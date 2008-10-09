@@ -243,7 +243,12 @@ case "$1" in
 	RETVAL=$?
 	;;
   status)
-	/usr/sbin/lsdahdi
+	if [ -d /proc/dahdi ]; then
+		/usr/sbin/lsdahdi
+		RETVAL=0
+	else
+		RETVAL=3
+	fi
 	;;
   *)
 	echo "Usage: dahdi {start|stop|restart|status|reload|unload}"
