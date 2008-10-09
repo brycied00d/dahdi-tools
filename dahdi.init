@@ -242,8 +242,11 @@ case "$1" in
 	fi
 	RETVAL=$?
 	;;
+  status)
+	/usr/sbin/lsdahdi
+	;;
   *)
-	echo "Usage: dahdi {start|stop|restart|reload|unload}"
+	echo "Usage: dahdi {start|stop|restart|status|reload|unload}"
 	exit 1
 esac
 
