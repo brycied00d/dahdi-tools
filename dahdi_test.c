@@ -130,7 +130,7 @@ int main(int argc, char *argv[])
 			if (verbose) {
 				printf("\n%d samples in %0.3f system clock sample intervals (%.3f%%)", 
 						count, ms, 100 - percent);
-			} else if (pass > 0 && (pass % 6) == 0) {
+			} else if (pass > 0 && (pass % 8) == 0) {
 				printf("\n");
 			}
 			score = 100.0 - fabs(percent);
