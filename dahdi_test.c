@@ -139,7 +139,7 @@ int main(int argc, char *argv[])
 			if (score < worst)
 				worst = score;
 			if (!verbose)
-				printf("%f%% ", score);
+				printf("%.3f%% ", score);
 			total += score;
 			delay_total += 100 - percent;
 			fflush(stdout);
