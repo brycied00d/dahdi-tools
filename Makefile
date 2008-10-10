@@ -55,7 +55,7 @@ ifeq (,$(DESTDIR))
   ifneq (,$(CHKCONFIG))
     ADD_INITD	:= $(CHKCONFIG) --add dahdi
   else
-    ifndef (,$(UPDATE_RCD))
+    ifneq (,$(UPDATE_RCD))
       ADD_INITD	:= $(UPDATE_RCD) dahdi defaults 15 30
     endif
   endif
