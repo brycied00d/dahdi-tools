@@ -140,7 +140,7 @@ sub new($$$$$$) {
 		$type = "FXS"; # likely Rhino
 	} elsif ($fqn =~ m{\bFXO/.*}) {
 		$type = "FXO"; # likely Rhino
-	} elsif ($fqn =~ m{\b---/.*}) {
+	} elsif ($fqn =~ m{---/.*}) {
 		$type = "EMPTY"; # likely Rhino, empty slot.
 	} elsif ($fqn =~ m{\b(TE[24]|WCT1|Tor2|TorISA|WP[TE]1|cwain[12])/.*}) {
 		# TE[24]: Digium wct4xxp
