@@ -12,14 +12,14 @@ use Dahdi::Utils;
 use Dahdi::Xpp;
 use Dahdi::Xpp::Line;
 
-my $proc_base = "/proc/xpp";
-
 sub blink($$) {
 	my $self = shift;
 	my $on = shift;
 	my $result;
-
-	my $file = "$proc_base/" . $self->fqn . "/blink";
+	my $file = Dahdi::Xpp::xpd_attr_path(
+		$self->xbus->num,
+		$self->unit,
+		$self->subunit, "blink");
 	die "$file is missing" unless -f $file;
 	# First query
 	open(F, "$file") or die "Failed to open $file for reading: $!";
@@ -44,8 +44,10 @@ sub dahdi_registration($$) {
 	my $self = shift;
 	my $on = shift;
 	my $result;
-
-	my $file = "$proc_base/" . $self->fqn . "/dahdi_registration";
+	my $file = Dahdi::Xpp::xpd_attr_path(
+		$self->xbus->num,
+		$self->unit,
+		$self->subunit, "span", "dahdi_registration");
 	die "$file is missing" unless -f $file;
 	# First query
 	open(F, "$file") or die "Failed to open $file for reading: $!";
@@ -101,8 +103,10 @@ sub new($$) {
 		}
 	}
 	close F;
-	$head =~ s/^(XPD-(\d\d))\s+// || die;
-	$self->{ID} = $2;
+	$head =~ s/^(XPD-(\d)(\d))\s+// || die;
+	$self->{ID} = "$2$3";
+	$self->{UNIT} = "$2";
+	$self->{SUBUNIT} = "$3";
 	$self->{FQN} = $xbus->name . "/" . $1;
 	$head =~ s/^.*\(// || die;
 	$head =~ s/\) */, / || die;

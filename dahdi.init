@@ -76,9 +76,8 @@ xpp_startup() {
 	# do nothing if there are no astribank devices:
 	if ! grep -q connected /proc/xpp/xbuses 2>/dev/null; then return 0; fi
 
-	echo "Waiting for Astribank devices to initialize:"
-	cat /proc/xpp/XBUS-[0-9]*/waitfor_xpds 2>/dev/null || true
-	
+	if ! /usr/share/dahdi/waitfor_xpds; then return 0; fi
+
 	# overriding locales for the above two, as perl can be noisy
 	# when locales are missing.
 	# No register all the devices if they didn't auto-register:

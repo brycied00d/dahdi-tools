@@ -32,6 +32,38 @@ Dahdi::Xpp - Perl interface to the Xorcom Astribank drivers.
 
 my $proc_base = "/proc/xpp";
 
+sub xpd_attr_path($$$@) {
+	my ($busnum, $unitnum, $subunitnum, @attr) = @_;
+	foreach my $attr (@attr) {
+		my $file = sprintf "/sys/bus/xpds/devices/%02d:%1d:%1d/$attr",
+		   $busnum, $unitnum, $subunitnum;
+		unless(-f $file) {
+			my $procfile = sprintf "/proc/xpp/XBUS-%02d/XPD-%1d%1d/$attr",
+			   $busnum, $unitnum, $subunitnum;
+			warn "$0: OLD DRIVER: missing '$file'. Fall back to '$procfile'\n";
+			$file = $procfile;
+		}
+		next unless -f $file;
+		return $file;
+	}
+	return undef;
+}
+
+sub xbus_attr_path($$) {
+	my ($busnum, @attr) = @_;
+	foreach my $attr (@attr) {
+		my $file = sprintf "/sys/bus/astribanks/devices/xbus-%02d/$attr", $busnum;
+		unless(-f $file) {
+			my $procfile = sprintf "/proc/xpp/XBUS-%02d/$attr", $busnum;
+			warn "$0: OLD DRIVER: missing '$file'. Fall back to '$procfile'\n";
+			$file = $procfile;
+		}
+		next unless -f $file;
+		return $file;
+	}
+	return undef;
+}
+
 # Nominal sorters for xbuses
 sub by_name {
 	return $a->name cmp $b->name;

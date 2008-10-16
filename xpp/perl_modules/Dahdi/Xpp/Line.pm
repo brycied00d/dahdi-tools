@@ -10,8 +10,6 @@ package Dahdi::Xpp::Line;
 use strict;
 use Dahdi::Utils;
 
-my $proc_base = "/proc/xpp";
-
 sub new($$$) {
 	my $pack = shift or die "Wasn't called as a class method\n";
 	my $xpd = shift or die;
@@ -29,14 +27,17 @@ sub blink($$) {
 	my $on = shift;
 	my $xpd = $self->xpd;
 	my $result;
-
-	my $file = "$proc_base/" . $xpd->fqn . "/blink";
+	my $file = Dahdi::Xpp::xpd_attr_path(
+			$xpd->xbus->num,
+			$xpd->unit,
+			$xpd->subunit, "blink");
 	die "$file is missing" unless -f $file;
 	# First query
 	open(F, "$file") or die "Failed to open $file for reading: $!";
 	$result = <F>;
 	chomp $result;
 	close F;
+	$result = hex($result);
 	if(defined($on)) {		# Now change
 		my $onbitmask = 1 << $self->index;
 		my $offbitmask = $result & ~$onbitmask;
@@ -67,14 +68,13 @@ sub create_all($$) {
 		push(@lines, $line);
 	}
 	$xpd->{LINES} = \@lines;
-	my ($infofile) = glob "$procdir/*_info";
-	die "Failed globbing '$procdir/*_info'" unless defined $infofile;
-	my $type = $xpd->type;
-	open(F, "$infofile") || die "Failed opening '$infofile': $!";
-	my $battery_info = 0;
-	while (<F>) {
-		chomp;
-		if($type eq 'FXO') {
+	if($xpd->type eq 'FXO') {
+		my ($infofile) = glob "$procdir/*_info";
+		die "Failed globbing '$procdir/*_info'" unless defined $infofile;
+		open(F, "$infofile") || die "Failed opening '$infofile': $!";
+		my $battery_info = 0;
+		while (<F>) {
+			chomp;
 			$battery_info = 1 if /^Battery:/;
 			if($battery_info && s/^\s*on\s*:\s*//) {
 				my @batt = split;

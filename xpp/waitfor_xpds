@@ -1,0 +1,31 @@
+#! /bin/sh
+
+set -e
+
+ab_list() {
+	ab=`find /sys/bus/astribanks/devices/xbus-*/ -name waitfor_xpds 2> /dev/null || :`
+	if [ "$ab" = "" ]; then
+		ab=`find /proc/xpp/XBUS-[0-9]*/ -name waitfor_xpds 2> /dev/null || :`
+		procfiles=1
+	fi
+	if [ "$ab" = "" ]; then
+		echo 1>&2 "$0: No XBUSES to wait for. Aborting..."
+		exit 1
+	fi
+	if [ -n "$procfiles" ]; then
+		echo 1>&2 "$0: No /sys attributes, fallback to /proc interface..."
+	fi
+	echo $ab
+}
+
+
+while
+	if ! ab=`ab_list`; then
+		exit 1
+	fi
+	test "$oldab" != "$ab"
+do
+	oldab="$ab"
+	echo 1>&2 "Waiting for XPDS"
+	cat $ab
+done
