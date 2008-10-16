@@ -183,7 +183,7 @@ sub gen_dahdi_signalling($) {
 		printf "# channel %d, %s, no module.\n", $num, $chan->fqn;
 		return;
 	}
-	my $sig = $default_dahdi_signalling{$type} || die "unknown default dahdi signalling for chan $chan type $type";
+	my $sig = $default_dahdi_signalling{$type} || die "unknown default dahdi signalling for chan $num type $type";
 	if ($type eq 'IN') {
 		printf "# astbanktype: input\n";
 	} elsif ($type eq 'OUT') {
