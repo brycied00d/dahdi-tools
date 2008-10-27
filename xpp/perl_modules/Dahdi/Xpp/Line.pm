@@ -69,23 +69,41 @@ sub create_all($$) {
 	}
 	$xpd->{LINES} = \@lines;
 	if($xpd->type eq 'FXO') {
-		my ($infofile) = glob "$procdir/*_info";
-		die "Failed globbing '$procdir/*_info'" unless defined $infofile;
-		open(F, "$infofile") || die "Failed opening '$infofile': $!";
-		my $battery_info = 0;
-		while (<F>) {
-			chomp;
-			$battery_info = 1 if /^Battery:/;
-			if($battery_info && s/^\s*on\s*:\s*//) {
-				my @batt = split;
-				foreach my $l (@lines) {
-					die unless @batt;
-					my $state = shift @batt;
-					$l->{BATTERY} = ($state eq '+') ? 1 : 0;
-				}
-				$battery_info = 0;
-				die if @batt;
+		my $file = Dahdi::Xpp::xpd_attr_path(
+				$xpd->xbus->num,
+				$xpd->unit,
+				$xpd->subunit, "fxo_battery");
+		if(defined $file) {
+			open(F, "$file") || die "Failed opening '$file': $!";
+			my $battery_line = <F>;
+			close F;
+			my @batt = split(/\s+/, $battery_line);
+			foreach my $l (@lines) {
+				die unless @batt;
+				my $state = shift @batt;
+				$l->{BATTERY} = ($state eq '+') ? 1 : 0;
 			}
+		} else {
+			# Fallback to old interface
+			my ($infofile) = glob "$procdir/*_info";
+			die "Failed globbing '$procdir/*_info'" unless defined $infofile;
+			open(F, "$infofile") || die "Failed opening '$infofile': $!";
+			my $battery_info = 0;
+			while (<F>) {
+				chomp;
+				$battery_info = 1 if /^Battery:/;
+				if($battery_info && s/^\s*on\s*:\s*//) {
+					my @batt = split;
+					foreach my $l (@lines) {
+						die unless @batt;
+						my $state = shift @batt;
+						$l->{BATTERY} = ($state eq '+') ? 1 : 0;
+					}
+					$battery_info = 0;
+					die if @batt;
+				}
+			}
+			close F;
 		}
 	}
 	close F;

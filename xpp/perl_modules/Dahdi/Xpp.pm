@@ -40,7 +40,7 @@ sub xpd_attr_path($$$@) {
 		unless(-f $file) {
 			my $procfile = sprintf "/proc/xpp/XBUS-%02d/XPD-%1d%1d/$attr",
 			   $busnum, $unitnum, $subunitnum;
-			warn "$0: OLD DRIVER: missing '$file'. Fall back to '$procfile'\n";
+			warn "$0: OLD DRIVER: missing '$file'. Fall back to /proc\n";
 			$file = $procfile;
 		}
 		next unless -f $file;
