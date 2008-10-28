@@ -11,3 +11,4 @@ blacklist wcfxo
 blacklist wctdm
 blacklist xpp_usb
 blacklist wctc4xxp
+blacklist wcb4xxp

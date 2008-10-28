@@ -37,5 +37,9 @@ wcfxo
 # Digium TDM400P: up to 4 analog ports
 wctdm
 
+# Digium B410P: 4 NT/TE BRI ports
+wcb4xxp
+
 # Xorcom Astribank Devices
 xpp_usb
+

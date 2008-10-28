@@ -84,6 +84,9 @@ my %pci_ids = (
 	'd161:8000'		=> { DRIVER => 'wcte12xp', DESCRIPTION => 'Wildcard TE121' },
 	'd161:8001'		=> { DRIVER => 'wcte12xp', DESCRIPTION => 'Wildcard TE122' },
 
+	# from wcb4xxp
+	'd161:b410'             => { DRIVER => 'wcb4xxp', DESCRIPTION => 'Digium Wildcard B410P' },
+
 	# from tor2
 	'10b5:9030'		=> { DRIVER => 'tor2', DESCRIPTION => 'PLX 9030' },
 	'10b5:3001'		=> { DRIVER => 'tor2', DESCRIPTION => 'PLX Development Board' },
