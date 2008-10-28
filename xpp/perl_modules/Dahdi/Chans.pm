@@ -150,7 +150,8 @@ sub new($$$$$$) {
 		# WP[TE]1: Sangoma. TODO: this one tells us if it is TE or NT.
 		# cwain: Junghanns E1 card.
 		$type = "PRI";
-	} elsif ($fqn =~ m{\b(ZTHFC%d*|ztqoz\d*)/.*}) {
+	} elsif ($fqn =~ m{\b(B4|ZTHFC%d*|ztqoz\d*)/.*}) {
+		# B4: The Digium wcb4xxp DAHDI driver
 		# ZTHFC: HFC-s single-port card (zaphfc/vzaphfc)
 		# ztqoz: qozap (Junghanns) multi-port HFC card
 		$type = "BRI";
