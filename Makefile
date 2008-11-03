@@ -90,7 +90,7 @@ LTZ_A:=libtonezone.a
 LTZ_A_OBJS:=zonedata.o tonezone.o version.o
 LTZ_SO:=libtonezone.so
 LTZ_SO_OBJS:=zonedata.lo tonezone.lo version.o
-LTZ_SO_MAJOR_VER:=1
+LTZ_SO_MAJOR_VER:=2
 LTZ_SO_MINOR_VER:=0
 
 # sbindir, libdir, includedir and mandir are defined in makeopts
