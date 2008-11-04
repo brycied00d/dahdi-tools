@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
 	
 	fasthdlc_precalc();
 	
-	fasthdlc_init(&receiver);
+	fasthdlc_init(&receiver, FASTHDLC_MODE_64);
 	
 	hdlcin = open("random.hdlc", O_RDONLY);
 	if (hdlcin < 0) {

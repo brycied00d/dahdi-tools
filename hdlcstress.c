@@ -179,7 +179,7 @@ int main(int argc, char *argv[])
 	}
 	ioctl(fd, DAHDI_GETEVENT);
 	fasthdlc_precalc();
-	fasthdlc_init(&fs);
+	fasthdlc_init(&fs, FASTHDLC_MODE_64);
 #if 0
 	print_packet(outbuf, res);
 	printf("FCS is %x, PPP_GOODFCS is %x\n",

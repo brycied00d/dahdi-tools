@@ -207,7 +207,7 @@ int main(int argc, char *argv[])
 	}
 	ioctl(fd, DAHDI_GETEVENT);
 	fasthdlc_precalc();
-	fasthdlc_init(&fs);
+	fasthdlc_init(&fs, FASTHDLC_MODE_64);
 	for(;;) {
 		res = read(fd, outbuf, sizeof(outbuf));
 		if (hdlcmode) {

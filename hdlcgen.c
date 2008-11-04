@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
 	
 	fasthdlc_precalc();
 	
-	fasthdlc_init(&transmitter);
+	fasthdlc_init(&transmitter, FASTHDLC_MODE_64);
 	
 	randin = open(RANDOM, O_RDONLY);
 	if (randin < 0) {
