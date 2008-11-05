@@ -9,14 +9,14 @@
 # 
 #   span=<span num>,<timing source>,<line build out (LBO)>,<framing>,<coding>[,yellow]
 #
-# All T1/E1 spans generate a clock signal on their transmit side. The
+# All T1/E1/BRI spans generate a clock signal on their transmit side. The
 # <timing source> parameter determines whether the clock signal from the far
-# end of the T1/E1 is used as the master source of clock timing. If it is, our
-# own clock will synchronise to it. T1/E1's connected directly or indirectly to
+# end of the T1/E1/BRI is used as the master source of clock timing. If it is, our
+# own clock will synchronise to it. T1/E1/BRI connected directly or indirectly to
 # a PSTN provider (telco) should generally be the first choice to sync to. The
 # PSTN will never be a slave to you. You must be a slave to it.
 #
-# Choose 1 to make the equipment at the far end of the E1/T1 link the preferred
+# Choose 1 to make the equipment at the far end of the E1/T1/BRI link the preferred
 # source of the master clock. Choose 2 to make it the second choice for the master
 # clock, if the first choice port fails (the far end dies, a cable breaks, or
 # whatever). Choose 3 to make a port the third choice, and so on. If you have, say,
@@ -24,9 +24,10 @@
 # port should be different.
 #
 # If you choose 0, the port will never be used as a source of timing. This is
-# appropriate when you know the far end should always be a slave to you. If the
-# port is connected to a channel bank, for example, you should always be its
-# master. Any number of ports can be marked as 0.
+# appropriate when you know the far end should always be a slave to you. If
+# the port is connected to a channel bank, for example, you should always be
+# its master. Likewise, BRI TE ports should always be configured as a slave.
+# Any number of ports can be marked as 0.
 #
 # Incorrect timing sync may cause clicks/noise in the audio, poor quality or failed
 # faxes, unreliable modem operation, and is a general all round bad thing.
@@ -42,12 +43,17 @@
 #  6: -15db (CSU)
 #  7: -22.5db (CSU)
 #
+# If the span is a BRI port the line build-out is not used and should be set
+# to 0.
+#
 # framing:: 
-#   one of 'd4' or 'esf' for T1 or 'cas' or 'ccs' for E1 and BRI.
+#   one of 'd4' or 'esf' for T1 or 'cas' or 'ccs' for E1. Use 'ccs' for BRI.
 #  'd4' could be referred to as 'sf' or 'superframe'
 #
 # coding:: 
-#   one of 'ami' or 'b8zs' for T1 or 'ami' or 'hdb3' for E1 and BRI.
+#   one of 'ami' or 'b8zs' for T1 or 'ami' or 'hdb3' for E1. Use 'ami' for
+#   BRI.
+#
 #   * For E1 there is the optional keyword 'crc4' to enable CRC4 checking.
 #   * If the keyword 'yellow' follows, yellow alarm is transmitted when no
 #     channels are open.
@@ -124,12 +130,13 @@
 # dchan::
 #   The DAHDI driver performs HDLC encoding and decoding on the
 #   bundle and also performs incoming and outgoing FCS insertion
-#   and verification.  'fcshdlc' is an alias for this.
+#   and verification.  'fcshdlc' is an alias for this. 
 # hardhdlc::
 #   The hardware driver performs HDLC encoding and decoding on the
 #   bundle and also performs incoming and outgoing FCS insertion
 #   and verification.  Is subject to limitations and support of underlying
-#   hardware.
+#   hardware. BRI spans serviced by the wcb4xxp driver must use hardhdlc
+#   channels for the signalling channels. 
 # nethdlc::
 #   The DAHDI driver bundles the channels together into an
 #   hdlc network device, which in turn can be configured with
@@ -161,6 +168,17 @@
 #   nethdlc=13-24
 #   fxsls=25,26,27,28
 #   fxols=29-32
+#
+# An example of BRI port:
+# 
+#   span=1,1,0,ccs,ami
+#   bchan=1,2
+#   hardhdlc=3
+#
+# NOTE: When using BRI channels in asterisk, use the bri_cpe, bri_net, or
+# bri_cpe_ptmp (for point to multipoint mode). libpri does not currently
+# support point to multipoint when in NT mode. Otherwise, the bearer channel
+# are configured identically to other DAHDI channels.
 #
 #fxoks=1-24
 #bchan=25-47
