@@ -23,7 +23,7 @@
 
 #include "dahdi_tools_version.h"
 
-int myread(int fd, char *buf, int len)
+int myread(int fd, unsigned char *buf, int len)
 {
 	int sofar;
 	int res;
