@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
 	int errors=0;
 	int bytes=0;
 	if (argc < 2) {
-		fprintf(stderr, "Usage: markhdlctest <tor device>\n");
+		fprintf(stderr, "Usage: %s <DAHDI device>\n", argv[0]);
 		exit(1);
 	}
 	fd = open(argv[1], O_RDWR, 0600);

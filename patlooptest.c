@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
 	i = DAHDI_FLUSH_ALL;
 	if (ioctl(fd,DAHDI_FLUSH,&i) == -1)
 	   {
-		perror("tor_flush");
+		perror("DAHDI_FLUSH");
 		exit(255);
 	   }
 	if(argc==3){

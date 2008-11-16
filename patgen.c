@@ -47,7 +47,7 @@ int main(int argc, char *argv[])
 	unsigned char c=0;
 	unsigned char outbuf[BLOCK_SIZE];
 	if (argc < 2) {
-		fprintf(stderr, "Usage: %s <tor device>\n", argv[0]);
+		fprintf(stderr, "Usage: %s <DAHDI device>\n", argv[0]);
 		exit(1);
 	}
 	fd = open(argv[1], O_RDWR, 0600);
