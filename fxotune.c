@@ -110,7 +110,7 @@ static int fxotune_read(int fd, void *buffer, int len)
 	res = read(fd, buffer, len);
 
 	if ((res > 0) && (audio_dump_fd != -1)) {
-		write(audio_dump_fd, buffer, len);
+		res = write(audio_dump_fd, buffer, len);
 	}
 
 	return res;

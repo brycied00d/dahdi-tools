@@ -575,21 +575,21 @@ int main(int argc, char *argv[])
 			break;
 		readcount += res_brx;
 		if (ofh[MON_BRX])
-			fwrite(buf_brx, 1, res_brx, ofh[MON_BRX]);
+			x = fwrite(buf_brx, 1, res_brx, ofh[MON_BRX]);
 
 		if (multichannel) {
 			res_tx = read(pfd[MON_TX], buf_tx, res_brx);
 			if (res_tx < 1)
 				break;
 			if (ofh[MON_TX])
-				fwrite(buf_tx, 1, res_tx, ofh[MON_TX]);
+				x = fwrite(buf_tx, 1, res_tx, ofh[MON_TX]);
 
 			if (stereo_output && ofh[MON_STEREO]) {
 				for (x=0;x<res_tx;x++) {
 					stereobuf[x*2] = buf_brx[x];
 					stereobuf[x*2+1] = buf_tx[x];
 				}
-				fwrite(stereobuf, 1, res_tx*2, ofh[MON_STEREO]);
+				x = fwrite(stereobuf, 1, res_tx*2, ofh[MON_STEREO]);
 			}
 
 			if (visual) {
@@ -605,32 +605,33 @@ int main(int argc, char *argv[])
 			if (res_brx < 1)
 				break;
 			if (ofh[MON_PRE_BRX])
-				fwrite(buf_brx, 1, res_brx, ofh[MON_PRE_BRX]);
+				x = fwrite(buf_brx, 1, res_brx, ofh[MON_PRE_BRX]);
 
 			if (multichannel) {
 				res_tx = read(pfd[MON_PRE_TX], buf_tx, res_brx);
 				if (res_tx < 1)
 					break;
 				if (ofh[MON_PRE_TX])
-					fwrite(buf_tx, 1, res_tx, ofh[MON_PRE_TX]);
+					x = fwrite(buf_tx, 1, res_tx, ofh[MON_PRE_TX]);
 
 				if (stereo_output && ofh[MON_PRE_STEREO]) {
 					for (x=0;x<res_brx;x++) {
 						stereobuf[x*2] = buf_brx[x];
 						stereobuf[x*2+1] = buf_tx[x];
 					}
-					fwrite(stereobuf, 1, res_brx*2, ofh[MON_PRE_STEREO]);
+					x = fwrite(stereobuf, 1, res_brx*2, ofh[MON_PRE_STEREO]);
 				}
 			}
 		}
 
 		if (ossoutput && afd) {
 			if (stereo) {
-				for (x=0;x<res_brx;x++)
+				for (x=0;x<res_brx;x++) {
 					buf_tx[x<<1] = buf_tx[(x<<1) + 1] = buf_brx[x];
-				write(afd, buf_tx, res_brx << 1);
+				}
+				x = write(afd, buf_tx, res_brx << 1);
 			} else
-				write(afd, buf_brx, res_brx);
+				x = write(afd, buf_brx, res_brx);
 		}
 
 		if (limit && readcount >= limit) {
