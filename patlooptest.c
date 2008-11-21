@@ -1,4 +1,18 @@
 /*
+ * Written by Mark Spencer <markster@digium.com>
+ * Based on previous works, designs, and architectures conceived and
+ * written by Jim Dixon <jim@lambdatel.com>.
+ *
+ * Copyright (C) 2001 Jim Dixon / Zapata Telephony.
+ * Copyright (C) 2001-2008 Digium, Inc.
+ *
+ * All rights reserved.
+ *
+ * Primary Author: Mark Spencer <markster@digium.com>
+ * Radio Support by Jim Dixon <jim@lambdatel.com>
+ */
+
+/*
  * See http://www.asterisk.org for more information about
  * the Asterisk project. Please do not directly contact
  * any of the maintainers of this project for assistance;
