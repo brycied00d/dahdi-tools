@@ -1613,7 +1613,9 @@ finish:
 		}
 
 		if (ae[x].chan) {
-			printf("Setting echocan for channel %d to %s\n", ae[x].chan, ae[x].echocan);
+			if (verbose > 0)
+				printf("Setting echocan for channel %d to %s\n", 
+						ae[x].chan, ae[x].echocan);
 			if (ioctl(fd, DAHDI_ATTACH_ECHOCAN, &ae[x])) {
 				fprintf(stderr, "DAHDI_ATTACH_ECHOCAN failed on channel %d: %s (%d)\n", x, strerror(errno), errno);
 				close(fd);
