@@ -118,7 +118,7 @@ MAN_PAGES:=$(wildcard $(BINS:%=doc/%.8))
 GROFF_PAGES	:= $(wildcard doc/*.8 xpp/*.8)
 GROFF_HTML	:= $(GROFF_PAGES:%=%.html)
 
-GENERATED_DOCS	:= $(GROFF_HTML) README.html # README.Astribank.html
+GENERATED_DOCS	:= $(GROFF_HTML) README.html README.Astribank.html
 
 all: menuselect.makeopts 
 	@$(MAKE) _all
