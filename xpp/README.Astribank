@@ -4,10 +4,10 @@ Xorcom Team <support@xorcom.com>
 $Revision$, $Date$
 
 This file documents the Dahdi drivers for the Xorcom Channel Bank.
-The drivers reside in a separate subdirectory, kernel/xpp/ .
 
 It is generally a more technical document than the 
-http://www.xorcom.com/documentation/manuals/[Astribank User Manual]
+http://www.xorcom.com/product-manuals/product-manuals.html[Astribank 
+User Manual]
 
 An HTML version of the latest version of this document could be found at 
 http://docs.tzafrir.org.il/dahdi-tools/README.Astribank.html[]
@@ -32,7 +32,7 @@ FXO::
 FXS::
   8 ports of FXS (connector to an analog phone). If used as the first
   (left-most) module, it will also have 2 output lines and 4 input lines
-  that will appear on Zaptel like standard Zaptel ports. The input and
+  that will appear on DAHDI like standard DAHDI ports. The input and
   output ports are connected from the two RJ-45 connectors on the right
   side of the module.
 
@@ -71,7 +71,7 @@ You install the driver when the Astribank was already connected:
 # that automatic load through firmware is also in place)
 dahdi_hardware -v
 # wait until the Astribank has a product ID of 11x2
-sleep 5 # Remind Tzafrir not to use 'sleep' in scripts
+sleep 5 # Just wait a little bit 
 dahdi_hardware -v # now that you see that all's well:
 /etc/init.d/dahdi start
 # generate configuration:
@@ -101,7 +101,7 @@ generate it.
 # that automatic load through firmware is also in place)
 dahdi_hardware -v
 # wait until the Astribank has a product ID of 11x2
-sleep 5 # Remind Tzafrir not to use 'sleep' in scripts
+sleep 5 # Just wait a little bit
 dahdi_hardware -v # now that you see that all's well:
 /etc/init.d/dahdi start
 #
@@ -122,8 +122,8 @@ configuration files.
 
 xpp.conf: Astribank Initialization
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-/etc/dahdi/xpp.conf is read by the initialization modules of dahdi
-scripts.
+/etc/dahdi/xpp.conf is read by the initialization scripts of Astribank
+modules:
 -----------------------------------------------------------
 # /etc/dahdi/xpp.conf
 #
@@ -491,9 +491,6 @@ Check if the Astribank spans are registered in DAHDI:
 - Registration is normally done as part of `/etc/init.d/dahdi start`.
   If you want to register the spans manually, then run command:
   `dahdi_registration on` .
-- Disabling of the automatic Astribank spans registration give you full
-  control on the order of Dahdi spans. See the module parameter
-  **zap_autoreg** for the further details.
 
 
 DAHDI Level Information
@@ -516,7 +513,7 @@ following commands:
 
      42 FXS
 
-- When a channel has been configured with *dahdi_cfg* (that applies
+- When *dahdi_cfg* has applied the configuration of the channel (from 
   /etc/dahdi/system.conf), you will see an extra column for the signalling
   type of the channel. The same channel after it has been configured:
 
@@ -534,7 +531,7 @@ Asterisk Level Information
 
 - If you get error "Unable to connect to remote asterisk" then it
   means that the Asterisk is not running. It is possible that Asterisk
-  has failed to start due to misconfigured zapata.conf or whatever reason.
+  has failed to start due to misconfigured chan_dahdi.conf or whatever reason.
   Check /var/log/asterisk/messages or /var/log/asterisk/full .
 - If you get the error that "there is no such command" then it means that
   chan_zap.so is not loaded. There are two reasons for such problem:
@@ -956,7 +953,8 @@ Before registering a XPD as a span in Dahdi, we run an initialization
 script: /usr/share/dahdi/init_card_N_MM (
 where,
 
-* N  - is 1 for an FXS span and 2 for an FXO span, 3 for BRI and 4 for PRI.
+* N  is telephony module type: 1 for an FXS span and 2 for an FXO span, 
+  3 for BRI and 4 for PRI.
 * MM - is a version number. Currently it equals 30.
 
 Those scripts must be executable. If they are not, the initiallization
@@ -1005,23 +1003,48 @@ they are registered. To register:
 
 For a system with several spans you'll see a "fast train of lights".
 
+"If you have multiple Astribank devices, dahdi_registration will
+register them by the ascending order of the USB connector ID. This
+means that as long as the same Astribank is connected to the same
+port, the order of plugging is not important.
+
+You can see the USB connector ID in the verbose output of the 
+dahdi_hardware utility when xpp drivers are loaded. See CONNECTOR value 
+in the example below:
+
+# dahdi_hardware -v
+usb:004/006     xpp_usb+     e4e4:1152 Astribank-multi FPGA-firmware
+ LABEL=[usb:0000148]        CONNECTOR=usb-0000:00:03.3-2
+        XBUS-00/XPD-00: E1_TE    Span 1  DAHDI-SYNC
+        XBUS-00/XPD-10: FXS      Span 2
+        XBUS-00/XPD-20: FXS      Span 3
+usb:004/007     xpp_usb+     e4e4:1152 Astribank-multi FPGA-firmware
+ LABEL=[usb:0000150]        CONNECTOR=usb-0000:00:03.3-6
+        XBUS-01/XPD-00: FXS      Span 4
+        XBUS-01/XPD-10: FXO      Span 5
+
 If you have multiple Astribank devices, dahdi_registration will register
 them by the order of the "connector" field. This means that as long as
 the same Astribank is connected to the same port, the order of plugging
 is not important..
 
-dahdi_registration checks if a span is registered or tries to register a
-span using the file /proc/xpp/XBUS-nn/XPD-mm/dahdi_registration . Reading
-from that file returns 0 if the span is unregisters or 1 if it is
-registered. You can register a span or ask to unregister it by writing 1
-(register) or 0 (unregister) to that file. Registration should
-generally always succeed. Unregistration may fail if a span is in use.
+The registration is performed through the sysfs interface. See below
+<<_sys_devices_xpp_xbus_nn_nn_m_p_span,the span attribute>>. Also note 
+that dahdi_registration also allows you to unregister spans, which will 
+work for all spans that are not in use (That is: none of their channels 
+is in use).
+
+By default, the Astribank drivers don't perform automatic span
+registration on DAHDI. It is in contrast to the all known drivers of
+PCI boards. Because of that, DAHDI channels  related to the PCI board
+spans will get lower numbers than the channels related to Astribank
+devices.
 
 You may choose to register the XPDs in Dahdi automatically. This may
 make the startup sequence a bit simpler, but is generally not
-recommended on a system with more than one Astribank or an Astribank and
-a different Dahdi device. This behavior may be defined by setting 
-parameter zap_autoreg in the modprobe configuration file (A file under 
+recommended on a system with more than one Astribank or an Astribank
+and a different Dahdi device. This behavior may be defined by setting
+parameter <<_zap_autoreg>> in the modprobe configuration file (A file under
 /etc/modprobe.d or /etc/modprobe.conf):
 
   options xpp zap_autoreg=1
@@ -1029,20 +1052,15 @@ parameter zap_autoreg in the modprobe configuration file (A file under
 
 DAHDI And Above
 ^^^^^^^^^^^^^^^
-From here you get a standard Dahdi span. It still needs to be
-configured by dahdi_cfg and used by a program such as Asterisk like any
-other Dahdi device. In order for you to get a dial-tone in a phone
-connected to the FXS port or a fully synchronized BRI port (layer 2
-activated, as signalled by a more steady blink) you will actually need
-both the span configured by Dahdi and the channels configured in
-Asterisk.
+From here you get a standard DAHDI span. The next step is to configure
+the span by running the dahdi_cfg utility. You would also need to 
+configure the channels in the Asterisk chan_dahdi.conf file. Only after 
+that you will be able to make calls through the telephony ports.
 
-You should generally refer to the general Dahdi documentation on how to
-configure those levels. e.g, the README file in the top-level directory,
-and
-
-  http://voip-info.org/wiki/view/Asterisk+config+zapata.conf[]
-
+Please refer to the general Dahdi documentation for more deatils about
+DAHDI and Asterisk configuration. E.g, the README file in the
+top-level directory, and 
+http://voip-info.org/wiki/view/Asterisk+config+chan_dahdi.conf[]
 
 Dahdi now includes a utility called dahdi_genconf to configure DAHDI 
 automatically as good as possible. For analog channels it works quite 
@@ -1060,8 +1078,8 @@ are many other debugging details that are exposed through the procfs
 interface. 
 
 Also note that those details are subject to changes. Generally the
-recommended stable interface are the Dahdi-perl utilities from the
-xpp/utils directory.
+recommended stable interface are the DAHDI-perl modules utilities from 
+the xpp/utils directory.
 
 
 /proc/xpp/xbuses
@@ -1198,32 +1216,36 @@ As with the procfs interface, we only document some interesting
 attribuets. Some attributes are writable and hence writing to them
 without knowing what you do is not exactly wise.
 
+Like the procfs interface, this interface is subject to changes and
+should not be considered a stable interface. Please use the DAHDI-perl
+modules and utilities.
+
 
 Astribanks in SysFS
 ^^^^^^^^^^^^^^^^^^^
 Each astribank is represented as a device under /sys/devices/xpp , with
 the name xbus-NN, where NN is its two-digit number (e.g.: 00, 01).
 
-===== /sys/bus/xpp/xbus-NN/cls
+===== /sys/devices/xpp/xbus-NN/cls
 CLear Statistics: writing to this file clear the procfs statistics for
 this Astribank.
 
-===== /sys/bun/xpp/xbus-NN/connector
+===== /sys/devices/xpp/xbus-NN/connector
 Connector string for the device. The place to which the Astribank is
 connected. e.g: usb-0000:00:03.3-2
 
-===== /sys/bun/xpp/xbus-NN/label
+===== /sys/devices/xpp/xbus-NN/label
 The label string of the Astribank unit. E.g: usb:00000135
 
-===== /sys/bun/xpp/xbus-NN/status
+===== /sys/devices/xpp/xbus-NN/status
 'connected' (normal operation) or 'disconnected' (has been disconnected,
 some channels are still open).
 
-===== /sys/bun/xpp/xbus-NN/timing
+===== /sys/devices/xpp/xbus-NN/timing
 Provides some statistics in case the Astribank is not the sync source.
 The format of this file is subject to future changes.
 
-===== /sys/bun/xpp/xbus-NN/waitfor_xpds
+===== /sys/devices/xpp/xbus-NN/waitfor_xpds
 Reading from this file only returns when the Astribank has finished
 initialization of the XPDs or in case of a timeout. It prints the number
 of XPDs to initialize, and the number initialize. Unless something went
@@ -1232,7 +1254,7 @@ reading from this file returns immediately:
 
   XPDS_READY: XBUS-00: 3/3
 
-===== /sys/bun/xpp/xbus-NN/xbus_state
+===== /sys/devices/xpp/xbus-NN/xbus_state
 Reading from it prints the name and number of the state of the
 Astribank. This file is also writable: you can write either 'stop' to
 disconnect the specific Astribank, or 'start' to reconnect it.
@@ -1263,13 +1285,13 @@ The two-digit number of the XPD in the procfs interface is in fact
 
 Under this you see several attributes.
 
-===== /sys/bun/xpp/xbus-NN/NN:M:P/blink
+===== /sys/devices/xpp/xbus-NN/NN:M:P/blink
 You can write here a number which will be considered to be a bitmask
 of the ports that should blink (0 - no blinking). Reading from here
 shows that bitmask. If you think that this is complicated, just use
 xpp_blink.
 
-===== /sys/bun/xpp/xbus-NN/NN:M:P/chipregs
+===== /sys/devices/xpp/xbus-NN/NN:M:P/chipregs
 Provides direct read/write interface to the registers of each chip. 
 Reading from the file shows the result of the last read request. To make
 either a read request or a write request you need to write to that file.
@@ -1279,12 +1301,12 @@ It is mainly used by the initialization scripts (init_card_*).
 Incorrect usage of this file is one possible way of damaging the
 Astribank.
 
-===== /sys/bun/xpp/xbus-NN/NN:M:P/fxo_battery
+===== /sys/devices/xpp/xbus-NN/NN:M:P/fxo_battery
 (Only on FXO) - shows ports that have (+) or don't have (-) battery
 current. That is: which ones are connected to an active FXS on the
 other side.
 
-===== /sys/bun/xpp/xbus-NN/NN:M:P/span
+===== /sys/devices/xpp/xbus-NN/NN:M:P/span
 is a read/write file. Reading from it gives 0 if the span is
 unregistered, or the span number if it is registered.
 
@@ -1301,7 +1323,7 @@ Alternatively you can use the parameter zap_autoreg to register spans
 automatically. But this is only recommended on a system with a single
 Astribank and no other Dahdi device.
 
-===== /sys/bun/xpp/xbus-NN/NN:M:P/driver
+===== /sys/devices/xpp/xbus-NN/NN:M:P/driver
 This is a standard sysfs feature: from the directory of the device you
 have a link called "driver" to the directory of the driver that
 handles it. One specific interesting thing is that this allows you to
@@ -1314,24 +1336,32 @@ Useful Module Parameters
 Compilation-time defaults for the all modules can be shown as part of the
 description line for the parameter in the "modinfo" command output.
 
-==== zap_autoreg (xpp)
+==== zap_autoreg
+(xpp)
+
 Register spans automatically (1) or not (0). Default: 0. 
 Setting it simplifies operations with a single Astribank and no other 
 Dahdi hardware. However if you have such systems, automatic
 registration can cause the order of spans to be unpredictable.
 The standard startup scripts use 'dahdi_registration on' instead of this.
 
-==== initdir (xpp)
+==== initdir
+(xpp)
+
 This is the directory containing the initialization scripts.
 The default is /usr/share/dahdi .
 Setting this value could be useful if that location is inconvenient for you.
 
-==== rx_tasklet (xpp)
+==== rx_tasklet
+(xpp)
+
 Enable (1) or disable (0) doing most of the packets processing in
 separate tasklets. This should probably help on higher-end systems with
 multiple Astribanks.
 
-==== debug (all modules)
+==== debug
+(all modules)
+
 It will make the driver to print tons of debugging messages. You can 
 set/unset the parameter at run-time. The parameter value is a bitmask 
 of several values. The different bits  meaning as it defined in 
@@ -1357,14 +1387,18 @@ For example,
 forces module xpp to print general debugging messages (1) and procfs
 debugging messages (32).
 
-==== vmwineon (xpd_fxs)
+==== vmwineon
+(xpd_fxs)
+
 Enable (1) or disable (0) sending the voicemail message waiting indication
 signal to phones equipped with the Message Waiting neon lamp. It is 
 disabled by default because the feature requires extra work of the driver
 even when such a phone is not used and also may cause some unusual
 side effects with some phone models.
 
-==== usb1 (xpp_usb)
+==== usb1
+(xpp_usb)
+
 Enable (1) or disable (0) support of USB1 devices. Disabled by default.
 
 USB1 devices are not well-tested. It seems that they don't work at all
@@ -1373,19 +1407,37 @@ we expect the voice quality issues. Hence we would like to make it
 very clear that you if you have a USB1 port (rather than a USB2 one, as 
 recommended) you will have to take an action to enable the device.
 
-==== poll intervals (various)
-There are various values which the driver occasionally polls the device
-for. For instance, the parameter poll_battery_interval for xpd_fxo
-to poll the battery, in order to know if the telco line is actually
-connected.
+==== poll intervals 
+(various)
+
+There are various values which the driver occasionally polls the
+device for. For instance, the parameter poll_battery_interval for
+xpd_fxo to poll the battery, in order to know if the telco line is
+actually connected.
 
 The value of those parameters is typically a number in milliseconds. 
 0 is used to disable polling. Under normal operation there should be 
 no reason to play with those parameters.
 
-==== dtmf_detection (xpd_fxs)
+==== dtmf_detection
+(xpd_fxs)
+
 Enable (1) or disable (0) support of hardware DTMF detection by the 
 Astribank.
+
+==== caller_id_style
+(fxo)
+
+Various types of caller ID signalling styles require knowing the PCM
+even when the line is on-hook (which is usually a waste of CPU and
+bandwidth). This parameter allows fine-tuning the behaviour here:
+
+* 0 (default) - Don't pass extra PCM when on-hook.
+* 1 ETSI-FSK: Wait for polarity reversal to come before a ring and 
+  then start passing PCM until the caller ID has been passed.
+* 2 Always: Always pass PCM.
+
+This parameter is read-only. It cannot be changed at run-time.
 
 
 NOTE: XPP here does not stand for X Printing Panel, XML Pull Parser, 
