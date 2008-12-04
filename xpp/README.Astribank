@@ -1012,6 +1012,7 @@ You can see the USB connector ID in the verbose output of the
 dahdi_hardware utility when xpp drivers are loaded. See CONNECTOR value 
 in the example below:
 
+------------------------------------------------------
 # dahdi_hardware -v
 usb:004/006     xpp_usb+     e4e4:1152 Astribank-multi FPGA-firmware
  LABEL=[usb:0000148]        CONNECTOR=usb-0000:00:03.3-2
@@ -1022,6 +1023,7 @@ usb:004/007     xpp_usb+     e4e4:1152 Astribank-multi FPGA-firmware
  LABEL=[usb:0000150]        CONNECTOR=usb-0000:00:03.3-6
         XBUS-01/XPD-00: FXS      Span 4
         XBUS-01/XPD-10: FXO      Span 5
+------------------------------------------------------
 
 If you have multiple Astribank devices, dahdi_registration will register
 them by the order of the "connector" field. This means that as long as
