@@ -133,7 +133,8 @@ my @bri_strings = (
 		'BRI_(NT|TE)',
 		'(?:quad|octo)BRI PCI ISDN Card.* \[(NT|TE)\]\ ',
 		'octoBRI \[(NT|TE)\] ',
-		'HFC-S PCI A ISDN.* \[(NT|TE)\] '
+		'HFC-S PCI A ISDN.* \[(NT|TE)\] ',
+		'(B4XXP) \(PCI\) Card', # Does not expose NT/TE type
 		);
 
 my @pri_strings = (
@@ -188,10 +189,12 @@ sub new($$) {
 	$self->{IS_PRI} = 0;
 	foreach my $cardtype (@bri_strings) {
 		if($head =~ m/$cardtype/) {
+			my $termtype = $1;
+			$termtype = 'TE' if ( $1 eq 'B4XXP' );
 			$self->{IS_DIGITAL} = 1;
 			$self->{IS_BRI} = 1;
-			$self->{TERMTYPE} = $1;
-			$self->{TYPE} = "BRI_$1";
+			$self->{TERMTYPE} = $termtype;
+			$self->{TYPE} = "BRI_$termtype";
 			$self->{DCHAN_IDX} = 2;
 			$self->{BCHAN_LIST} = [ 0, 1 ];
 			last;
@@ -259,7 +262,7 @@ sub new($$) {
 		# Infer some info from channel name:
 		my $first_chan = ($self->chans())[0] || die "$0: No channels in span #$num\n";
 		my $chan_fqn = $first_chan->fqn();
-		if($chan_fqn =~ m(ZTHFC.*/|ztqoz.*/|XPP_BRI_.*/)) {		# BRI
+		if($chan_fqn =~ m(ZTHFC.*/|ztqoz.*/|XPP_BRI_.*|B4/.*)) {		# BRI
 			$self->{FRAMING} = 'ccs';
 			$self->{SWITCHTYPE} = 'euroisdn';
 			$self->{SIGNALLING} = ($self->{TERMTYPE} eq 'NT') ? $DAHDI_BRI_NET : $DAHDI_BRI_CPE ;
