@@ -224,15 +224,11 @@ case "$1" in
   stop)
 	# Unload drivers
 	#shutdown_dynamic # FIXME: needs test from someone with dynamic spans
-	if [ $system = debian ]; then
-		echo -n "Unloading DAHDI hardware modules: " 
-		if unload_module dahdi; then
-			echo -n "done"
-		else
-			echo -n "error"
-		fi
-	elif [ $system = redhat ]; then
-		action "Unloading DAHDI hardware modules: " unload_module dahdi 
+	echo -n "Unloading DAHDI hardware modules: " 
+	if unload_module dahdi; then
+		echo -n "done"
+	else
+		echo -n "error"
 	fi
 	if [ "$LOCKFILE" != '' ]; then
 		[ $RETVAL -eq 0 ] && rm -f $LOCKFILE
