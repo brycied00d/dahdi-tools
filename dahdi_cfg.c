@@ -48,6 +48,13 @@
 
 #define NUM_TONES 15
 
+/*! A sanity check for the timing parameter of the span. 
+ *
+ * Note that each driver using it is still responsible for validating
+ * that value.
+ */
+#define MAX_TIMING 255 
+
 /* Assume no more than 1024 dynamics */
 #define NUM_DYNAMIC	1024
 
@@ -314,8 +321,9 @@ int spanconfig(char *keyword, char *args)
 		return -1;
 	}
 	res = sscanf(realargs[1], "%i", &timing);
-	if ((res != 1) || (timing < 0) || (timing > 15)) {
-		error("Timing should be a number from 0 to 15, not '%s'\n", realargs[1]);
+	if ((res != 1) || (timing < 0) || (timing > MAX_TIMING)) {
+		error("Timing should be a number from 0 to %d, not '%s'\n", 
+				MAX_TIMING,  realargs[1]);
 		return -1;
 	}
 	res = sscanf(realargs[2], "%i", &lc[spans].lbo);
