@@ -240,6 +240,15 @@ endif
 		$(DESTDIR)$(LIB_DIR)/$(LTZ_SO).$(LTZ_SO_MAJOR_VER)
 	$(LN) -sf $(LTZ_SO).$(LTZ_SO_MAJOR_VER).$(LTZ_SO_MINOR_VER) \
 		$(DESTDIR)$(LIB_DIR)/$(LTZ_SO)
+	# Overwrite the 1.0 links out there.  dahdi-tools 2.0.0 installed
+	# 1.0 links but dahdi-tools changed them to 2.0 in order to explicitly
+	# break applications linked with zaptel.  But, this also meant that
+	# applications linked with libtonezone.so.1.0 broke when dahdi-tools
+	# 2.1.0 was installed.
+	$(LN) -sf $(LTZ_SO).$(LTZ_SO_MAJOR_VER).$(LTZ_SO_MINOR_VER) \
+		$(DESTDIR)$(LIB_DIR)/$(LTZ_SO).1.0
+	$(LN) -sf $(LTZ_SO).$(LTZ_SO_MAJOR_VER).$(LTZ_SO_MINOR_VER) \
+		$(DESTDIR)$(LIB_DIR)/$(LTZ_SO).1
 ifneq (no,$(USE_SELINUX))
   ifeq (,$(DESTDIR))
 	/sbin/restorecon -v $(DESTDIR)$(LIB_DIR)/$(LTZ_SO)
