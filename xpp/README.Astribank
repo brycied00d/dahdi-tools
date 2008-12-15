@@ -53,7 +53,7 @@ Patch for BRI
 In order for the BRI module (xpd_bri.ko) to build, you still need an
 external patch: 
 
-  http://updates.xorcom.com/astribank/bristuff/dahdi_bri_dchan.diff[]
+http://updates.xorcom.com/astribank/bristuff/dahdi_bri_dchan.diff[]
 
 You need to apply it to the dahdi-linux tarball before building:
 
