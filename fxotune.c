@@ -4,7 +4,7 @@
  *
  * by Matthew Fredrickson <creslin@digium.com>
  * 
- * (C) 2004-2005 Digium, Inc.
+ * (C) 2004-2008 Digium, Inc.
  */
 
 /*
@@ -41,6 +41,9 @@
 #define TEST_DURATION 2000
 #define BUFFER_LENGTH (2 * TEST_DURATION)
 #define SKIP_SAMPLES 800
+#define SINE_SAMPLES 8000
+
+static float sintable[SINE_SAMPLES];
 
 static const float amplitude = 16384.0;
 
@@ -48,6 +51,21 @@ static char *dahdipath = "/dev/dahdi";
 static char *configfile = "/etc/fxotune.conf";
 
 static int audio_dump_fd = -1;
+
+static int printbest = 0;
+
+#define MAX_RESULTS 	(5)
+struct result_catalog {
+	int 	idx;
+	float 	echo;
+	float 	freqres;
+	struct wctdm_echo_coefs settings;
+};
+
+struct {
+	struct result_catalog results[MAX_RESULTS];
+	int numactive;
+}	topresults;
 
 static char *usage =
 "Usage: fxotune [-v[vv] (-s | -i <options> | -d <options>)\n"
@@ -61,6 +79,8 @@ static char *usage =
 "		options : [-b <device>][-w <waveform>]\n"
 "		   [-n <dialstring>][-l <delaytosilence>][-m <silencegoodfor>]\n"
 "	-v : more output (-vv, -vvv also)\n"
+"	-p : print the 5 best candidates for acim and coefficients settings\n"
+"	-x : Perform sin/cos functions using table lookup\n"
 "	-o <path> : Write the received raw 16-bit signed linear audio that is\n"
 "	            used in processing to the file specified by <path>\n"
 "	-c <config_file>\n"
@@ -102,6 +122,8 @@ static short outbuf[TEST_DURATION];
 static int debug = 0;
 
 static FILE *debugoutfile = NULL;
+
+static int use_table = 0;
 
 static int fxotune_read(int fd, void *buffer, int len)
 {
@@ -195,15 +217,15 @@ static int ensure_silence(struct silence_info *info)
  * Generates a tone of specified frequency.
  * 
  * @param hz the frequency of the tone to be generated
- * @param index the current sample
+ * @param idx the current sample
  * 		to begenerated.  For a normal waveform you need to increment
  * 		this every time you execute the function.
  *
  * @return 16bit slinear sample for the specified index
  */
-static short inline gentone(int hz, int index)
+static short inline gentone(int hz, int idx)
 {
-	return amplitude * sin((index * 2.0 * M_PI * hz)/8000);
+	return amplitude * sin((idx * 2.0 * M_PI * hz)/8000);
 }
 
 /* Using DTMF tones for now since they provide good mid band testing 
@@ -214,18 +236,18 @@ static int freqcount = 6;
 /**
  * Generates a waveform of several frequencies.
  * 
- * @param index the current sample
+ * @param idx the current sample
  * 		to begenerated.  For a normal waveform you need to increment
  * 		this every time you execute the function.
  *
  * @return 16bit slinear sample for the specified index
  */
-static short inline genwaveform(int index)
+static short inline genwaveform(int idx)
 {
 	int i = 0;
 	float response = (float)0;
 	for (i = 0; i < freqcount; i++){
-		response += sin((index * 2.0 * M_PI * freqs[i])/8000);
+		response += sin((idx * 2.0 * M_PI * freqs[i])/8000);
 	}
 	
 
@@ -278,7 +300,7 @@ static float power_of(void *prebuf, int bufsize, int short_format)
 	finalanswer = sum_of_squares/(float)bufsize; /* need to divide by the number of elements in the sample for RMS calc */
 
 	if (finalanswer < 0) {
-		printf("Error: Final answer negative number %f\n", finalanswer);
+		fprintf(stderr, "Error: Final answer negative number %f\n", finalanswer);
 		return -3;
 	}
 
@@ -304,6 +326,40 @@ static float power_of(void *prebuf, int bufsize, int short_format)
  * This essentially filters out any other noise which maybe present on the line which is outside
  * the frequencies used in our test multi-tone.
  */
+
+void init_sinetable(void)
+{
+	int i;
+	if (debug) {
+		fprintf(stdout, "Using sine tables with %d samples\n", SINE_SAMPLES);
+	}
+	for (i = 0; i < SINE_SAMPLES; i++) {
+		sintable[i] = sin(((float)i * 2.0 * M_PI )/(float)(SINE_SAMPLES));
+	}
+}
+
+/* Sine and cosine table lookup to use periodicity of the calculations being done */
+float sin_tbl(int arg, int num_per_period)
+{
+	arg = arg % num_per_period;
+
+	arg = (arg * SINE_SAMPLES)/num_per_period;
+
+	return sintable[arg];
+}
+
+float cos_tbl(int arg, int num_per_period)
+{
+	arg = arg  % num_per_period;
+
+	arg = (arg * SINE_SAMPLES)/num_per_period;
+
+	arg = (arg + SINE_SAMPLES/4) % SINE_SAMPLES;  /* Pi/2 adjustment */
+
+	return sintable[arg];
+}
+
+
 static float db_loss(float measured, float reference)
 {
 	return 20 * (logf(measured/reference)/logf(10));
@@ -315,8 +371,13 @@ static void one_point_dft(const short *inbuf, int len, int frequency, float *rea
 	int i;
 
 	for (i = 0; i < len; i++) {
-		myreal += (float) inbuf[i] * cos((i * 2.0 * M_PI * frequency)/8000);
-		myimag += (float) inbuf[i] * sin((i * 2.0 * M_PI * frequency)/8000);
+		if (use_table) {
+			myreal += (float) inbuf[i] * cos_tbl(i*frequency, 8000);
+			myimag += (float) inbuf[i] * sin_tbl(i*frequency, 8000);
+		} else {
+			myreal += (float) inbuf[i] * cos((i * 2.0 * M_PI * frequency)/8000);
+			myimag += (float) inbuf[i] * sin((i * 2.0 * M_PI * frequency)/8000);
+		}
 	}
 
 	myimag *= -1;
@@ -324,6 +385,7 @@ static void one_point_dft(const short *inbuf, int len, int frequency, float *rea
 	*real = myreal / (float) len;
 	*imaginary = myimag / (float) len;
 }
+
 
 static float calc_magnitude(short *inbuf, int insamps)
 {
@@ -339,6 +401,7 @@ static float calc_magnitude(short *inbuf, int insamps)
 
 	return totalmagnitude;
 }
+
 
 /**
  *  dumps input and output buffer contents for the echo test - used to see exactly what's going on
@@ -422,15 +485,15 @@ retry:
 		/* read return response */
 	res = fxotune_read(whichdahdi, inbuf, BUFFER_LENGTH);
 	if (res != BUFFER_LENGTH) {
-		int x;
+		int dummy;
 
-		ioctl(whichdahdi, DAHDI_GETEVENT, &x);
+		ioctl(whichdahdi, DAHDI_GETEVENT, &dummy);
 		goto retry;
 	}
 
 	/* write content of output buffer to debug file */
-	power_result = power_of(inbuf, TEST_DURATION, 1); 
-	power_waveform = power_of(outbuf, TEST_DURATION, 1); 
+	power_result = power_of(inbuf, TEST_DURATION, 1);
+	power_waveform = power_of(outbuf, TEST_DURATION, 1);
 	echo = power_result/power_waveform;
 	
 	fprintf(outfile, "Buffers, freq=%d, outpower=%0.0f, echo=%0.4f\n", freq, power_result, echo);
@@ -450,6 +513,73 @@ retry:
 	return 0;
 }
 
+
+/**
+ *  Initialize the data store for storing off best calculated results
+ */
+static void init_topresults(void)
+{
+	topresults.numactive = 0;
+}
+
+
+/**
+ *  If this is a best result candidate, store in the top results data store
+ * 		This is dependent on being the lowest echo value
+ *
+ *  @param tbleoffset - The offset into the echo_trys table used
+ *  @param setting - Pointer to the settings used to achieve the fgiven value
+ *  @param echo - The calculated echo return value (in dB)
+ *  @param echo - The calculated magnitude of the response
+ */
+static void set_topresults(int tbloffset, struct wctdm_echo_coefs *setting, float echo, float freqres)
+{
+	int place;
+	int idx;
+
+	for ( place = 0; place < MAX_RESULTS && place < topresults.numactive; place++) {
+		if (echo < topresults.results[place].echo) {
+			break;
+		}
+	}
+
+	if (place < MAX_RESULTS) {
+		/*  move results to the bottom */
+		for (idx = topresults.numactive-2; idx >= place; idx--) {
+			topresults.results[idx+1] = topresults.results[idx];
+		}
+		topresults.results[place].idx = tbloffset;
+		topresults.results[place].settings = *setting;
+		topresults.results[place].echo = echo;
+		topresults.results[place].freqres = freqres;
+		if (MAX_RESULTS > topresults.numactive) {
+			topresults.numactive++;
+		}
+	}
+}
+
+
+/**
+ *  Prints the top results stored to stdout
+ *
+ *  @param header - Text that goes in the header of the response
+ */
+static void print_topresults(char * header)
+{
+	int item;
+
+	fprintf(stdout, "Top %d results for %s\n", topresults.numactive, header);
+	for (item = 0; item < topresults.numactive; item++) {
+		fprintf(stdout, "Res #%d: index=%d, %3d,%3d,%3d,%3d,%3d,%3d,%3d,%3d,%3d: magnitude = %0.0f, echo = %0.4f dB\n",
+				item+1, topresults.results[item].idx, topresults.results[item].settings.acim,
+				topresults.results[item].settings.coef1, topresults.results[item].settings.coef2,
+				topresults.results[item].settings.coef3, topresults.results[item].settings.coef4,
+				topresults.results[item].settings.coef5, topresults.results[item].settings.coef6,
+				topresults.results[item].settings.coef7, topresults.results[item].settings.coef8,
+				topresults.results[item].freqres, topresults.results[item].echo);
+		
+	}
+}
 
 
 /**
@@ -491,6 +621,8 @@ static int acim_tune2(int whichdahdi, int freq, char *dialstr, int delayuntilsil
 	float waveform_power;
 	float freq_result;
 	float echo;
+
+	init_topresults();
 
 	if (debug && !debugoutfile) {
 		if (!(debugoutfile = fopen("fxotune.vals", "w"))) {
@@ -578,9 +710,9 @@ retry:
 		/* read return response */
 		res = fxotune_read(whichdahdi, inbuf, BUFFER_LENGTH * 2);
 		if (res != BUFFER_LENGTH * 2) {
-			int x;
+			int dummy;
 
-			ioctl(whichdahdi, DAHDI_GETEVENT, &x);
+			ioctl(whichdahdi, DAHDI_GETEVENT, &dummy);
 			goto retry;
 		}
 
@@ -618,11 +750,15 @@ retry:
 					);
 			
 			fprintf(debugoutfile, "%s\n", result);
-			fprintf(stdout, "%3d,%3d,%3d,%3d,%3d,%3d,%3d,%3d,%3d: magnitude = %0.0f, echo = %0.4f dB\n", 
+			fprintf(stdout, "%3d,%3d,%3d,%3d,%3d,%3d,%3d,%3d,%3d: magnitude = %0.0f, echo = %0.4f dB\n",
 					echo_trys[trys].acim, echo_trys[trys].coef1, echo_trys[trys].coef2,
 					echo_trys[trys].coef3, echo_trys[trys].coef4, echo_trys[trys].coef5,
 					echo_trys[trys].coef6, echo_trys[trys].coef7, echo_trys[trys].coef8,
 					freq_result, echo);
+		}
+
+		if (printbest) {
+			set_topresults(trys, &echo_trys[trys], echo, freq_result);
 		}
 	}
 
@@ -630,6 +766,9 @@ retry:
 		fprintf(stdout, "Config with lowest response = %d, magnitude = %0.0f, echo = %0.4f dB\n", lowesttry, lowesttryresult, lowestecho);
 
 	memcpy(coefs_out, &echo_trys[lowesttry], sizeof(struct wctdm_echo_coefs));
+	if (printbest) {
+		print_topresults("Acim2_tune Test");
+	}
 
 	return 0;
 }
@@ -731,9 +870,9 @@ retry:
 			/* read return response */
 			res = fxotune_read(whichdahdi, inbuf, BUFFER_LENGTH);
 			if (res != BUFFER_LENGTH) {
-				int x;
+				int dummy;
 	
-				ioctl(whichdahdi, DAHDI_GETEVENT, &x);
+				ioctl(whichdahdi, DAHDI_GETEVENT, &dummy);
 				goto retry;
 			}
 
@@ -909,7 +1048,7 @@ static int do_dump(int startdev, char* dialstr, int delayuntilsilence, int silen
  * 			(this is basically the amount of time it takes before the 'if you'd like to make a call...' message
  * 			kicks in after you dial dialstr
  * 
- * @return 0 if successful, !0 otherwise
+ * @return 0 if successful, -1 for serious error such as device not available , > 0 indicates the number of channels
  */	
 static int do_calibrate(int startdev, int enddev, int calibtype, char* configfilename, char* dialstr, int delayuntilsilence, int silencegoodfor)
 {
@@ -1055,6 +1194,12 @@ int main(int argc , char **argv)
 			case 'n':
 				dialstr = moreargs ? argv[++i] : dialstr;
 				break;
+			case 'p':
+				printbest++;
+				break;
+			case 'x':
+				use_table = 1;
+				break;
 			case 'v':
 				debug = strlen(argv[i])-1;
 				break;
@@ -1084,7 +1229,8 @@ int main(int argc , char **argv)
 		fprintf(stdout, "\tdoset=%d\n", doset);	
 		fprintf(stdout, "\tdocalibrate=%d\n", docalibrate);	
 		fprintf(stdout, "\tdodump=%d\n", dodump);	
-		fprintf(stdout, "\tstartdev=%d\n", startdev);	
+		fprintf(stdout, "\tprint best settings=%d\n", printbest);
+		fprintf(stdout, "\tstartdev=%d\n", startdev);
 		fprintf(stdout, "\tstopdev=%d\n", stopdev);	
 		fprintf(stdout, "\tcalibtype=%d\n", calibtype);	
 		fprintf(stdout, "\twaveformtype=%d\n", waveformtype);	
@@ -1094,6 +1240,10 @@ int main(int argc , char **argv)
 		fprintf(stdout, "\tdebug=%d\n", debug);	
 	}
 
+	if(use_table) {
+		init_sinetable();
+	}
+	
 	if (docalibrate){
 		res = do_calibrate(startdev, stopdev, calibtype, configfile, dialstr, delaytosilence, silencegoodfor);
 		if (!res)
