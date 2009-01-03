@@ -138,7 +138,6 @@ my @bri_strings = (
 		);
 
 my @pri_strings = (
-		'(E1|T1|J1)',
 		'Tormenta 2 .*Quad (E1|T1)',       # tor2.
 		'Digium Wildcard .100P (T1|E1)/', # wct1xxp
 		'ISA Tormenta Span 1',	           # torisa
@@ -146,7 +145,7 @@ my @pri_strings = (
 		'Wildcard TE120P',                 # wcte12xp
 		'Wildcard TE121',                  # wcte12xp
 		'Wildcard TE122',                  # wcte12xp
-		'T[24]XXP \(PCI\) Card ',          # wct4xxp
+		'T[24]XXP PCI Card ',              # wct4xxp
 		);
 
 our $DAHDI_BRI_NET = 'bri_net';
