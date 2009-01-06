@@ -90,7 +90,7 @@ my %pci_ids = (
 	# from tor2
 	'10b5:9030'		=> { DRIVER => 'tor2', DESCRIPTION => 'PLX 9030' },
 	'10b5:3001'		=> { DRIVER => 'tor2', DESCRIPTION => 'PLX Development Board' },
-	'10b5:D00D'		=> { DRIVER => 'tor2', DESCRIPTION => 'Tormenta 2 Quad T1/PRI or E1/PRA' },
+	'10b5:d00d'		=> { DRIVER => 'tor2', DESCRIPTION => 'Tormenta 2 Quad T1/PRI or E1/PRA' },
 	'10b5:4000'		=> { DRIVER => 'tor2', DESCRIPTION => 'Tormenta 2 Quad T1/E1 (non-Digium clone)' },
 
 	# Cologne Chips:
