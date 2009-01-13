@@ -155,17 +155,17 @@ int pseudo_open(void)
 
 void draw_barheader()
 {
-	char bar[barlen+5];
+	char bar[barlen + 4];
 
 	memset(bar, '-', sizeof(bar));
 	memset(bar, '<', 1);
-	memset(bar+barlen+2, '>', 1);
-	memset(bar+barlen+3, '\0', 1);
+	memset(bar + barlen + 2, '>', 1);
+	memset(bar + barlen + 3, '\0', 1);
 
-	dahdi_copy_string(bar+(barlen/2), "(RX)", 4);
+	strncpy(bar + (barlen / 2), "(RX)", 4);
 	printf("%s", bar);
 
-	dahdi_copy_string(bar+(barlen/2), "(TX)", 4);
+	strncpy(bar + (barlen / 2), "(TX)", 4);
 	printf(" %s\n", bar);
 }
 
