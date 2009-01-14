@@ -162,10 +162,10 @@ void draw_barheader()
 	memset(bar + barlen + 2, '>', 1);
 	memset(bar + barlen + 3, '\0', 1);
 
-	strncpy(bar + (barlen / 2), "(RX)", 4);
+	memcpy(bar + (barlen / 2), "(RX)", 4);
 	printf("%s", bar);
 
-	strncpy(bar + (barlen / 2), "(TX)", 4);
+	memcpy(bar + (barlen / 2), "(TX)", 4);
 	printf(" %s\n", bar);
 }
 
