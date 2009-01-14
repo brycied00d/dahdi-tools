@@ -31,7 +31,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <linux/types.h>
-#include <linux/ppp_defs.h> 
+#include <linux/ppp_defs.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -90,24 +90,26 @@ void print_packet(unsigned char *buf, int len)
 {
 	int x;
 	printf("{ ");
-	for (x=0;x<len;x++)
-		printf("%02x ",buf[x]);
+	for (x = 0; x < len; x++) {
+		printf("%02x ", buf[x]);
+	}
 	printf("}\n");
 }
 
-static int bytes = 0;
-static int errors=0;
+static int bytes;
+static int errors;
 static int c;
 
 void dump_bits(unsigned char *outbuf, int len)
 {
-	int x,i;
-	for (x=0;x<len;x++) {
-		for (i=0;i<8;i++) {
-			if (outbuf[x] & (1 << (7-i)))
+	int x, i;
+	for (x = 0; x < len; x++) {
+		for (i = 0; i < 8; i++) {
+			if (outbuf[x] & (1 << (7 - i))) {
 				printf("1");
-			else
+			} else {
 				printf("0");
+			}
 		}
 	}
 	printf("\n");
@@ -117,11 +119,12 @@ void dump_bitslong(unsigned int outbuf, int bits)
 {
 	int i;
 	printf("Dumping %d bits from %04x\n", bits, outbuf);
-	for (i=0;i<bits;i++) {
-		if (outbuf & (1 << (31 - i)))
+	for (i = 0; i < bits; i++) {
+		if (outbuf & (1 << (31 - i))) {
 			printf("1");
-		else
+		} else {
 			printf("0");
+		}
 	}
 	printf("\n");
 }
@@ -131,29 +134,34 @@ int check_frame(unsigned char *outbuf, int res)
 	static int setup = 0;
 	int x;
 	unsigned short fcs = PPP_INITFCS;
-	if (c < 1)
+	if (c < 1) {
 		c = 1;
+	}
 	if (!setup) {
 		c = outbuf[0];
 		setup++;
 	}
-	for (x=0;x<res;x++) {
+	for (x = 0; x < res; x++) {
 		if (outbuf[x] != c && (x < res - 2)) {
-			printf("(Error %d): Unexpected result, %d != %d, position %d %d bytes since last error.\n", ++errors, outbuf[x], c, x, bytes);
-			if (!x)
+			printf("(Error %d): Unexpected result, %d != %d, position %d %d bytes since last error.\n",
+				   ++errors, outbuf[x], c, x, bytes);
+			if (!x) {
 				c = outbuf[0];
-			bytes=0;
-		} else
+			}
+			bytes = 0;
+		} else {
 			bytes++;
+		}
 		fcs = PPP_FCS(fcs, outbuf[x]);
 	}
-	if (fcs != PPP_GOODFCS)
+	if (fcs != PPP_GOODFCS) {
 		printf("FCS Check failed :( (%04x != %04x)\n", fcs, PPP_GOODFCS);
+	}
 #if 0
 	if (res != c) {
 		printf("Res is %d, expected %d\n", res, c+2);
 	}
-#endif	
+#endif
 	c = bit_next(c);
 	return 0;
 }
@@ -168,7 +176,7 @@ int main(int argc, char *argv[])
 	int pos = 0;
 	unsigned char inbuf[BLOCK_SIZE];
 	unsigned char outbuf[BLOCK_SIZE];
-	int bytes=0;
+	int bytes = 0;
 	int out;
 	unsigned int olddata1;
 	int oldones1;
@@ -222,7 +230,7 @@ int main(int argc, char *argv[])
 	ioctl(fd, DAHDI_GETEVENT);
 	fasthdlc_precalc();
 	fasthdlc_init(&fs, FASTHDLC_MODE_64);
-	for(;;) {
+	for (;;) {
 		res = read(fd, outbuf, sizeof(outbuf));
 		if (hdlcmode) {
 			if (res < 0) {
@@ -232,7 +240,7 @@ int main(int argc, char *argv[])
 						exit(1);
 					}
 					fprintf(stderr, "Event: %d (%d bytes since last error)\n", x, bytes);
-					bytes=0;
+					bytes = 0;
 					continue;
 				} else {
 					fprintf(stderr, "Error: %s\n", strerror(errno));
@@ -240,14 +248,14 @@ int main(int argc, char *argv[])
 				}
 			}
 #if 0
-		printf("Res is %d, buf0 is %d, buf1 is %d\n", res, outbuf[0], outbuf[1]);
-#endif		
+			printf("Res is %d, buf0 is %d, buf1 is %d\n", res, outbuf[0], outbuf[1]);
+#endif
 			if (res < 2) {
 				fprintf(stderr, "Too small?  Only got %d bytes\n", res);
-			} 
+			}
 			check_frame(outbuf, res);
 		} else {
-			for (x=0;x<res;x++) {
+			for (x = 0; x < res; x++) {
 				oldones1 = oldones;
 				oldbits1 = oldbits;
 				olddata1 = olddata;
@@ -266,9 +274,11 @@ int main(int argc, char *argv[])
 					}
 					pos = 0;
 				} else if (out & RETURN_DISCARD_FLAG) {
-					printf("Discard (search = %d, len = %d, buf = %d, x=%d, res=%d, oldones: %d, oldbits: %d)\n", c, pos, inbuf[0], x, res, oldones, oldbits);
+					printf("Discard (search = %d, len = %d, buf = %d, x=%d, res=%d, oldones: %d, oldbits: %d)\n",
+						   c, pos, inbuf[0], x, res, oldones, oldbits);
 					dump_bitslong(olddata, oldbits);
-					printf("Discard                                                 oldones: %d, oldbits: %d)\n", oldones1, oldbits1);
+					printf("Discard                                                 oldones: %d, oldbits: %d)\n",
+						   oldones1, oldbits1);
 					dump_bitslong(olddata1, oldbits1);
 					if (x > 64) {
 						dump_bits(outbuf + x - 64, 64);
@@ -288,5 +298,5 @@ int main(int argc, char *argv[])
 			}
 		}
 	}
-	
+
 }
