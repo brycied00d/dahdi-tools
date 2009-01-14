@@ -173,9 +173,9 @@ int main(int argc, char *argv[])
 	unsigned int olddata1;
 	int oldones1;
 	int oldbits1;
-	unsigned int olddata;
-	int oldones;
-	int oldbits;
+	unsigned int olddata = 0;
+	int oldones = 0;
+	int oldbits = 0;
 	int hdlcmode = 0;
 	struct fasthdlc_state fs;
 	if (argc < 2) {
