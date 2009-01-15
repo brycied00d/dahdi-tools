@@ -135,6 +135,7 @@ my $dahdiconf_file;
 my $dahdimods_file;
 my $chan_dahdi_channels_file;
 my $users_file;
+my $asterisk_file;
 my $chan_dahdi_conf_file;
 my $unicall_channels_file;
 
@@ -143,6 +144,7 @@ my %files = (
 	modules		=> { file => \$dahdimods_file, func => \&gen_dahdimods },
 	chan_dahdi	=> { file => \$chan_dahdi_channels_file, func => \&gen_chan_dahdi_channelsconf },
 	users		=> { file => \$users_file, func => \&gen_usersconf },
+	asterisk	=> { file => \$asterisk_file, func => \&gen_asterisk_conf },
 	unicall		=> { file => \$unicall_channels_file, func => \&gen_unicall_channels },
 	chan_dahdi_full	=> { file => \$chan_dahdi_conf_file, func => \&gen_chan_dahdi_conf },
 );
@@ -516,6 +518,101 @@ allow = all
 EOF
 }
 
+# Shifts standard output to a file (which is actually the global 'F').
+# Saves original file as a backup.
+# Input: name of file. If it is '-', no action is taken.
+sub stdout_to_file($) {
+	my $file = shift || die;
+	return '-' if ($file eq '-');
+
+	rename "$file", "$file.bak"
+		or $! == 2	# ENOENT (No dependency on Errno.pm)
+		or die "Failed to backup old config: $!\n";
+	open(F, ">$file") || die "$0: Failed to open $file: $!\n";
+	my $old = select F;
+
+	return $old;
+}
+
+# Shifts standard output back to the original (unless the input file 
+# was '-', in which case no action is needed).
+# Input: the original file descriptor, as returned from stdout_to_file().
+sub stdout_restore($) {
+	my $old = shift || die;
+	return '-' if ($old eq '-');
+
+	close F;
+	select $old;
+}
+
+
+# Provide information for VoiceRoute's Druid Zaptel wizard
+sub gen_asterisk_conf($) {
+	my $file = shift || die;
+	my $old = stdout_to_file($file);
+
+	print << "EOF";
+; The following provides information about DAHDI hardware, spans and 
+; channels, in the format parsable to an Asterisk configuration file
+; parser.
+;
+; THE FORMAT IS SUBJECT TO CHANGES
+EOF
+	my $hardware = Dahdi::Hardware->scan;
+	foreach my $dev ($hardware->device_list) {
+		$dev->{ASTERISK_NAME} = "dev-".$dev->hardware_name;
+		print "[".$dev->asterisk_name."]\n";
+		printf "vendor = %s\n", $dev->vendor;
+		printf "product = %s\n", $dev->product;
+		printf "description = %s\n", $dev->description;
+		printf "hardware_name = %s\n", $dev->hardware_name;
+		printf "driver = %s\n", $dev->driver;
+		# TODO: indicate if driver != loaded?
+		printf "loaded = %s\n", $dev->loaded;
+		print "\n";
+	}
+
+	foreach my $span (@spans) {
+		$span->{ASTERISK_NAME} = "span-".$span->num;
+		print "[".$span->asterisk_name."]\n";
+		#next unless grep { $_ eq $span->type} ( 'FXS', 'IN', 'OUT' );
+		printf "; Span %d: %s %s\n", $span->num, $span->name, $span->description;
+		printf "num = %s\n", $span->num;
+		printf "type = %s\n", $span->type;
+		printf "name = %s\n", $span->name;
+		printf "description = %s\n", $span->description;
+		printf "digital = %s\n", 
+			$span->is_digital? 'yes' : 'no';
+
+		if ($span->is_digital) {
+			printf "switchtype = %s\n", $span->switchtype;
+			printf "signalling = %s\n", $span->signalling;
+			printf "channels = %s\n", bchan_range($span);
+			print "\n";
+		} else {
+			print "\n";
+			foreach my $chan ($span->chans()) {
+				my $type = $chan->type;
+				my $sig = $default_dahdi_signalling{$type};
+				$chan->{ASTERISK_NAME} = "chan-".$chan->num;
+
+				print "[".$chan->asterisk_name."]\n";
+
+				printf "type = %s\n", $type;
+				printf "span = %s\n", $chan->span->asterisk_name;
+				printf "channels = %s\n", $chan->num;
+				printf "index = %s\n", $chan->index;
+				printf "name = %s\n", $chan->fqn;
+				printf "signalling = %s\n", $sig;
+				print "\n";
+			}
+		}
+	}
+
+	stdout_restore($old);
+}
+
+
 # generate users.conf . The specific users.conf is strictly oriented
 # towards using with the asterisk-gui .
 #
@@ -645,6 +742,8 @@ sub set_defaults {
 	$dahdimods_file = $ENV{DAHDI_MODS_FILE} || "/etc/dahdi/modules";
 	$chan_dahdi_channels_file = $ENV{CHAN_DAHDI_CHANNELS_FILE} || "/etc/asterisk/dahdi-channels.conf";
 	$users_file = $ENV{USERS_FILE} || "/etc/asterisk/users.conf";
+	$asterisk_file = $ENV{ASTERISK_FILE} || 
+		"/var/lib/asterisk/asterisk-detect-hardware.conf";
 	$unicall_channels_file = $ENV{UNICALL_CHANNELS_FILE} || "/etc/asterisk/unicall-channels.conf";
 	$chan_dahdi_conf_file = $ENV{CHAN_DAHDI_CONF_FILE} || "/etc/asterisk/chan_dahdi.conf";
 }
@@ -707,6 +806,11 @@ CHAN_DAHDI_CHANNELS_FILE.
 Configuration for asterisk(1) and AsteriskGUI.
 Its location may be overriden by the environment variable USERS_FILE.
 
+=item asterisk - /var/lib/asterisk/asterisk-detected-zap.conf
+
+Dump information (hardware, spans and channels) in the format of an 
+Asterisk configuration file.
+
 =item chan_dahdi_full - /etc/asterisk/chan_dahdi.conf
 
 Configuration for asterisk(1) and AsteriskGUI.
@@ -724,3 +828,8 @@ chan_dahdi.conf ('chan_dahdi'):
 Create those two files, and /etc/dahdi/modules:
 
   dahdi_genconf chan_dahdi dahdi modules
+
+Print Asterisk configuration-file formatted report to the standard
+output:
+
+  ASTERISK_FILE=- dahdi_conf asterisk
