@@ -90,7 +90,43 @@ AST_C_DEFINE_CHECK([DAHDI], [DAHDI_CODE], [dahdi/user.h])
 AST_EXT_LIB_CHECK([NEWT], [newt], [newtBell], [newt.h])
 AST_EXT_LIB_CHECK([USB], [usb], [usb_init], [usb.h])
 
-AST_C_DEFINE_CHECK([HDLC], [GENERIC_HDLC_VERSION], [linux/hdlc.h], [4])
+PBX_HDLC=0
+AC_MSG_CHECKING([for GENERIC_HDLC_VERSION version 4 in linux/hdlc.h])
+AC_COMPILE_IFELSE(
+    [ AC_LANG_PROGRAM( [#include <linux/hdlc.h>],
+	    [#if defined(GENERIC_HDLC_VERSION) && GENERIC_HDLC_VERSION >= 4
+		int foo = 0;
+		#else
+		int foo = bar;
+		#endif
+		0])],
+	[AC_MSG_RESULT(yes)
+	 PBX_HDLC=1],
+	[AC_MSG_RESULT(no)]
+)
+if test $PBX_HDLC = 0; then
+    AC_MSG_CHECKING([for GENERIC_HDLC_VERSION version 4 in linux/hdlc/ioctl.h])
+    AC_COMPILE_IFELSE(
+	    [ AC_LANG_PROGRAM( [
+		    #include <sys/socket.h>
+			#include <linux/if.h>],
+			[#if defined(GENERIC_HDLC_VERSION) && GENERIC_HDLC_VERSION >= 4
+			int foo = 0;
+			#else
+			int foo = bar;
+			#endif
+			0])],
+		[AC_MSG_RESULT(yes)
+		 PBX_HDLC=1],
+		[AC_MSG_RESULT(no)]
+	)
+fi
+
+if test "x${PBX_HDLC}" != "x1"; then
+   AC_MSG_NOTICE([GENERIC_HDLC_VERSION (version 4) not found, disabling sethdlc.])
+fi
+
+AC_SUBST(PBX_HDLC)
 
 AC_ARG_WITH(selinux,
 	[AS_HELP_STRING([--with-selinux],
@@ -145,16 +181,6 @@ case "$with_ppp" in
 	fi
 	;;
 esac
-
-if test "x${PBX_HDLC}" == "x1"; then
-   AC_EGREP_CPP([VERSION = 4],
-		[#include <linux/hdlc.h>
-		VERSION = GENERIC_HDLC_VERSION], [], [PBX_HDLC=0])
-fi
-
-if test "x${PBX_HDLC}" != "x1"; then
-   AC_MSG_NOTICE([GENERIC_HDLC_VERSION version 4 not found, disabling sethdlc.])
-fi
 
 if test "x${PBX_DAHDI}" != "x1"; then
    AC_MSG_NOTICE([***])
