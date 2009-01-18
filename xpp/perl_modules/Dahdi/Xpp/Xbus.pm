@@ -40,48 +40,93 @@ sub get_xpd_by_number($$) {
 	my $xbus = shift;
 	my $xpdid = shift;
 	die "Missing XPD id parameter" unless defined $xpdid;
+	$xpdid = sprintf("%02d", $xpdid);
 	my @xpds = $xbus->xpds;
 	my ($wanted) = grep { $_->id eq $xpdid } @xpds;
 	return $wanted;
 }
 
+sub xbus_attr_path($$) {
+	my ($busnum, @attr) = @_;
+	foreach my $attr (@attr) {
+		my $file = sprintf "$Dahdi::Xpp::sysfs_astribanks/xbus-%02d/$attr", $busnum;
+		unless(-f $file) {
+			my $procfile = sprintf "/proc/xpp/XBUS-%02d/$attr", $busnum;
+			warn "$0: OLD DRIVER: missing '$file'. Fall back to '$procfile'\n";
+			$file = $procfile;
+		}
+		next unless -f $file;
+		return $file;
+	}
+	return undef;
+}
+
+sub xbus_getattr($$) {
+	my $xbus = shift || die;
+	my $attr = shift || die;
+	$attr = lc($attr);
+	my $file = xbus_attr_path($xbus->num, lc($attr));
+
+	open(F, $file) || die "Failed opening '$file': $!";
+	my $val = <F>;
+	close F;
+	chomp $val;
+	return $val;
+}
+
+sub read_attrs() {
+	my $xbus = shift || die;
+	my @attrnames = qw(CONNECTOR LABEL STATUS);
+	my @attrs;
+
+	foreach my $attr (@attrnames) {
+		my $val = xbus_getattr($xbus, $attr);
+		if($attr eq 'STATUS') {
+			# Some values are in all caps as well
+			$val = uc($val);
+		} elsif($attr eq 'LABEL') {
+			# Fix badly burned labels.
+			$val =~ s/[[:^print:]]/_/g;
+		}
+		$xbus->{$attr} = $val;
+	}
+}
+
 sub new($$) {
 	my $pack = shift or die "Wasn't called as a class method\n";
-	my $self = {};
+	my $num = shift;
+	my $xbus_dir = "$Dahdi::Xpp::sysfs_astribanks/xbus-$num";
+	my $self = {
+		NUM		=> $num,
+		NAME		=> "XBUS-$num",
+		SYSFS_DIR	=> $xbus_dir,
+		};
 	bless $self, $pack;
-	while(@_) {
-		my ($k, $v) = @_;
-		shift; shift;
-		# Keys in all caps
-		$k = uc($k);
-		# Some values are in all caps as well
-		if($k =~ /^(STATUS)$/) {
-			$v = uc($v);
+	$self->read_attrs;
+	# Get transport related info
+	my $transport = "$xbus_dir/transport";
+	my ($usbdev) = glob("$transport/usb_device:*");
+	if(defined $usbdev) {	# It's USB
+		if($usbdev =~ /.*usb_device:usbdev(\d+)\.(\d+)/) {
+			my $busnum = $1;
+			my $devnum = $2;
+			#printf STDERR "DEBUG: %03d/%03d\n", $busnum, $devnum;
+			$self->{USB_DEVNAME} = sprintf("%03d/%03d", $busnum, $devnum);
+		} else {
+			warn "Bad USB transport='$transport' usbdev='$usbdev'\n";
 		}
-		$self->{$k} = $v;
-	}
-	# backward compat for drivers without labels.
-	if(!defined $self->{LABEL}) {
-		$self->{LABEL} = '[]';
-	}
-	$self->{LABEL} =~ s/^\[(.*)\]$/$1/ or die "$self->{NAME}: Bad label";
-	# Fix badly burned labels.
-	$self->{LABEL} =~ s/[[:^print:]]/_/g;
-	$self->{NAME} or die "Missing xbus name";
-	my $prefix = "$proc_base/" . $self->{NAME};
-	my $usbfile = "$prefix/xpp_usb";
-	if(open(F, "$usbfile")) {
-		my $head = <F>;
-		chomp $head;
-		close F;
-		$head =~ s/^device: +([^, ]+)/$1/i or die;
-		$self->{USB_DEVNAME} = $head;
 	}
 	@{$self->{XPDS}} = ();
-	foreach my $dir (glob "$prefix/XPD-??") {
-		my $xpd = Dahdi::Xpp::Xpd->new($self, $dir);
+	opendir(D, $xbus_dir) || die "Failed opendir($xbus_dir): $!";
+	while(my $entry = readdir D) {
+		$entry =~ /^([0-9]+):([0-9]+):([0-9]+)$/ or next;
+		my ($busnum, $unit, $subunit) = ($1, $2, $3);
+		my $procdir = "/proc/xpp/XBUS-$busnum/XPD-$unit$subunit";
+		#print STDERR "busnum=$busnum, unit=$unit, subunit=$subunit procdir=$procdir\n";
+		my $xpd = Dahdi::Xpp::Xpd->new($self, $unit, $subunit, $procdir, "$xbus_dir/$entry");
 		push(@{$self->{XPDS}}, $xpd);
 	}
+	closedir D;
 	@{$self->{XPDS}} = sort { $a->id <=> $b->id } @{$self->{XPDS}};
 	return $self;
 }

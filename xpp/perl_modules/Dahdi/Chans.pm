@@ -140,7 +140,7 @@ sub new($$$$$$) {
 		$type = "FXS"; # likely Rhino
 	} elsif ($fqn =~ m{\bFXO/.*}) {
 		$type = "FXO"; # likely Rhino
-	} elsif ($fqn =~ m{---/.*}) {
+	} elsif ($fqn =~ m{\b---/.*}) {
 		$type = "EMPTY"; # likely Rhino, empty slot.
 	} elsif ($fqn =~ m{\b(TE[24]|WCT1|Tor2|TorISA|WP[TE]1|cwain[12])/.*}) {
 		# TE[24]: Digium wct4xxp
@@ -158,11 +158,11 @@ sub new($$$$$$) {
 	} elsif ($fqn =~ m{\bztgsm/.*}) {
 		# Junghanns GSM card
 		$type = "GSM";
-	} elsif(defined $signalling) {
-		$type = 'FXS' if $signalling =~ /^FXS/;
-		$type = 'FXO' if $signalling =~ /^FXO/;
+	} elsif($signalling ne '') {
+		$type = 'FXO' if $signalling =~ /^FXS/;
+		$type = 'FXS' if $signalling =~ /^FXO/;
 	} else {
-		$type = undef;
+		$type = $self->probe_type();
 	}
 	$self->type($type);
 	$self->span()->type($type)
@@ -218,7 +218,7 @@ sub battery($) {
 	my $self = shift or die;
 	my $span = $self->span or die;
 
-	return undef unless $self->type eq 'FXO';
+	return undef unless defined $self->type && $self->type eq 'FXO';
 	return $self->{BATTERY} if defined $self->{BATTERY};
 
 	my $xpd = $span->xpd;

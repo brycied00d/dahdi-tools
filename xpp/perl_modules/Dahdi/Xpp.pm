@@ -26,43 +26,13 @@ Dahdi::Xpp - Perl interface to the Xorcom Astribank drivers.
       print " - ".$xpd->fqn,"\n";
     }
   }
-
 =cut
 
 
 my $proc_base = "/proc/xpp";
-
-sub xpd_attr_path($$$@) {
-	my ($busnum, $unitnum, $subunitnum, @attr) = @_;
-	foreach my $attr (@attr) {
-		my $file = sprintf "/sys/bus/xpds/devices/%02d:%1d:%1d/$attr",
-		   $busnum, $unitnum, $subunitnum;
-		unless(-f $file) {
-			my $procfile = sprintf "/proc/xpp/XBUS-%02d/XPD-%1d%1d/$attr",
-			   $busnum, $unitnum, $subunitnum;
-			warn "$0: OLD DRIVER: missing '$file'. Fall back to /proc\n";
-			$file = $procfile;
-		}
-		next unless -f $file;
-		return $file;
-	}
-	return undef;
-}
-
-sub xbus_attr_path($$) {
-	my ($busnum, @attr) = @_;
-	foreach my $attr (@attr) {
-		my $file = sprintf "/sys/bus/astribanks/devices/xbus-%02d/$attr", $busnum;
-		unless(-f $file) {
-			my $procfile = sprintf "/proc/xpp/XBUS-%02d/$attr", $busnum;
-			warn "$0: OLD DRIVER: missing '$file'. Fall back to '$procfile'\n";
-			$file = $procfile;
-		}
-		next unless -f $file;
-		return $file;
-	}
-	return undef;
-}
+our $sysfs_astribanks = "/sys/bus/astribanks/devices";
+our $sysfs_xpds = "/sys/bus/xpds/devices";
+our $sysfs_ab_driver = "/sys/bus/astribanks/drivers/xppdrv";
 
 # Nominal sorters for xbuses
 sub by_name {
@@ -174,23 +144,13 @@ sub xbuses {
 	my $optsort = shift || 'SORT_CONNECTOR';
 	my @xbuses;
 
-	-d "$proc_base" or return ();
-	my @lines;
-	local $/ = "\n";
-	open(F, "$proc_base/xbuses") ||
-		die "$0: Failed to open $proc_base/xbuses: $!\n";
-	@lines = <F>;
-	close F;
-	foreach my $line (@lines) {
-		chomp $line;
-		my ($name, @attr) = split(/\s+/, $line);
-		$name =~ s/://;
-		$name =~ /XBUS-(\d\d)/ or die "Bad XBUS number: $name";
-		my $num = $1;
-		@attr = map { split(/=/); } @attr;
-		my $xbus = Dahdi::Xpp::Xbus->new(NAME => $name, NUM => $num, @attr);
+	opendir(D, $sysfs_astribanks) || return();
+	while(my $entry = readdir D) {
+		next unless $entry =~ /xbus-(\d+)/;
+		my $xbus = Dahdi::Xpp::Xbus->new($1);
 		push(@xbuses, $xbus);
 	}
+	closedir D;
 	my $sorter = sorters($optsort);
 	die "Unknown optional sorter '$optsort'" unless defined $sorter;
 	@xbuses = sort $sorter @xbuses;
@@ -218,7 +178,7 @@ For more information read that file and see README.Astribank .
 
 =cut
 
-sub sync {
+sub sync_via_proc {
 	my $newsync = shift;
 	my $result;
 	my $newapi = 0;
@@ -242,6 +202,32 @@ sub sync {
 		$newsync =~ s/.*/\U$&/;
 		if($newsync =~ /^(\d+)$/) {
 			$newsync = ($newapi)? "SYNC=$1" : "$1 0";
+		} elsif($newsync ne 'DAHDI') {
+			die "Bad sync parameter '$newsync'";
+		}
+		open(F, ">$file") or die "Failed to open $file for writing: $!";
+		print F $newsync;
+		close(F) or die "Failed in closing $file: $!";
+	}
+	return $result;
+}
+
+sub sync {
+	my ($newsync) = @_;
+	my $result;
+	my $file = "$sysfs_ab_driver/sync";
+	if(! -f $file) {	# Old /proc interface
+		return sync_via_proc(@_);
+	}
+	open(F, "$file") or die "Failed to open $file for reading: $!";
+	$result = <F>;
+	close F;
+	chomp $result;
+	$result =~ s/^SYNC=\D*//;
+	if(defined $newsync) {		# Now change
+		$newsync =~ s/.*/\U$&/;
+		if($newsync =~ /^(\d+)$/) {
+			$newsync = "SYNC=$1";
 		} elsif($newsync ne 'DAHDI') {
 			die "Bad sync parameter '$newsync'";
 		}

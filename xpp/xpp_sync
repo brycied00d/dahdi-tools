@@ -51,21 +51,9 @@ sub get_sorted_xpds() {
 			push(@good_xpds, $xpd);
 		}
 	}
-	my @pri_nt_xpds = grep { $_->type =~ /(E1|T1|J1)_NT/; } @good_xpds;
-	my @pri_te_xpds = grep { $_->type =~ /(E1|T1|J1)_TE/; } @good_xpds;
-	my @bri_nt_xpds = grep { $_->type eq 'BRI_NT'; } @good_xpds;
-	my @bri_te_xpds = grep { $_->type eq 'BRI_TE'; } @good_xpds;
-	my @fxo_xpds = grep { $_->type eq 'FXO'; } @good_xpds;
-	my @fxs_xpds = grep { $_->type eq 'FXS'; } @good_xpds;
-
-	# Sync Priority
-	return
-		@pri_nt_xpds,
-		@bri_nt_xpds,
-		@fxo_xpds,
-		@pri_te_xpds,
-		@bri_te_xpds,
-		@fxs_xpds;
+	my @xpd_prio = Dahdi::Xpp::Xpd::xpds_by_rank(@good_xpds);
+	#Dahdi::Xpp::Xpd::show_xpd_rank(@xpd_prio);
+	return @good_xpds;
 }
 
 sub do_select(@) {
@@ -108,7 +96,7 @@ sub show_sync() {
 		my $xpdstr = '[ ' . $xbus->pretty_xpds . ' ]';
 		my $label = '[' . $xbus->label() . ']';
 		my $connector = '(' . $xbus->connector . ')';
-		my $mark = ($curr_sync =~ /\d+/ and $xbus->num == $curr_sync)?"+":"";
+		my $mark = ($curr_sync =~ /^\d+$/ and $xbus->num == $curr_sync)?"+":"";
 		my $padding = ' ' x (40 - length $xpdstr);
 		printf " %1s %s %-25s %-14s %s\n", $mark, $xbus->name, $connector, $label, $xpdstr;
 	}
@@ -131,7 +119,7 @@ END
 	}
 }
 
-if($sync) {
+if(defined $sync) {
 	if($autoselect) {
 		do_select(@sync_xpds);
 	} else {

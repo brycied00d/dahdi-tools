@@ -145,7 +145,7 @@ my @pri_strings = (
 		'Wildcard TE120P',                 # wcte12xp
 		'Wildcard TE121',                  # wcte12xp
 		'Wildcard TE122',                  # wcte12xp
-		'T[24]XXP PCI Card ',              # wct4xxp
+		'T[24]XXP \(PCI\) Card ',          # wct4xxp
 		);
 
 our $DAHDI_BRI_NET = 'bri_net';
@@ -166,6 +166,7 @@ sub init_proto($$) {
 		$self->{DCHAN_IDX} = 23;
 		$self->{BCHAN_LIST} = [ 0 .. 22 ];
 	}
+	$self->{TYPE} = "${proto}_$self->{TERMTYPE}";
 }
 
 sub new($$) {

@@ -26,17 +26,7 @@ sub blink($$) {
 	my $self = shift;
 	my $on = shift;
 	my $xpd = $self->xpd;
-	my $result;
-	my $file = Dahdi::Xpp::xpd_attr_path(
-			$xpd->xbus->num,
-			$xpd->unit,
-			$xpd->subunit, "blink");
-	die "$file is missing" unless -f $file;
-	# First query
-	open(F, "$file") or die "Failed to open $file for reading: $!";
-	$result = <F>;
-	chomp $result;
-	close F;
+	my $result = $xpd->xpd_getattr("blink");
 	$result = hex($result);
 	if(defined($on)) {		# Now change
 		my $onbitmask = 1 << $self->index;
@@ -44,15 +34,7 @@ sub blink($$) {
 
 		$result = $offbitmask;
 		$result |= $onbitmask if $on;
-		open(F, ">$file") or die "Failed to open $file for writing: $!";
-		print F "$result";
-		if(!close(F)) {
-			if($! == 17) {	# EEXISTS
-				# good
-			} else {
-				undef $result;
-			}
-		}
+		$result = $xpd->xpd_setattr("blink", $result);
 	}
 	return $result;
 }
@@ -69,15 +51,9 @@ sub create_all($$) {
 	}
 	$xpd->{LINES} = \@lines;
 	if($xpd->type eq 'FXO') {
-		my $file = Dahdi::Xpp::xpd_attr_path(
-				$xpd->xbus->num,
-				$xpd->unit,
-				$xpd->subunit, "fxo_battery");
-		if(defined $file) {
-			open(F, "$file") || die "Failed opening '$file': $!";
-			my $battery_line = <F>;
-			close F;
-			my @batt = split(/\s+/, $battery_line);
+		my $battery = $xpd->xpd_getattr("fxo_battery");
+		if(defined $battery) {
+			my @batt = split(/\s+/, $battery);
 			foreach my $l (@lines) {
 				die unless @batt;
 				my $state = shift @batt;
