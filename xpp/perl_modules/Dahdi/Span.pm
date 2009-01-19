@@ -139,6 +139,7 @@ my @bri_strings = (
 
 my @pri_strings = (
 		'Tormenta 2 .*Quad (E1|T1)',       # tor2.
+		'Xorcom XPD.*: (E1|T1)',           # Astribank PRI
 		'Digium Wildcard .100P (T1|E1)/', # wct1xxp
 		'ISA Tormenta Span 1',	           # torisa
 		'TE110P T1/E1',                    # wcte11xp
