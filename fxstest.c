@@ -58,7 +58,8 @@ int main(int argc, char *argv[])
 		       "       regdump - dumps ProSLIC registers\n"
 		       "       tones - plays a series of tones\n"
 		       "       polarity - tests polarity reversal\n"
-		       "       ring - rings phone\n");
+		       "       ring - rings phone\n"
+		       "       vmwi - toggles VMWI lamp\n");
 		exit(1);
 	}
 	fd = open(argv[1], O_RDWR);
@@ -66,8 +67,27 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Unable to open %s: %s\n", argv[1], strerror(errno));
 		exit(1);
 	}
-	if (!strcasecmp(argv[2], "ring")) {
-		fprintf(stderr, "Ringing phone...\n");
+	
+	if (!strcasecmp(argv[2], "vmwi")) {
+		fprintf(stderr, "Twiddling vmwi...\n");
+		x = DAHDI_VMWI_LREV | 1;
+		res = ioctl(fd, DAHDI_VMWI, &x);
+		if (res) {
+			fprintf(stderr, "Unable to set VMWI...\n");
+		} else {
+			fprintf(stderr, "Set 1 Voice Message...\n");
+			sleep(5);
+			x = DAHDI_VMWI_LREV | 2;
+			ioctl(fd, DAHDI_VMWI, &x);
+			fprintf(stderr, "Set 2 Voice Messages...\n");
+			sleep(5);
+			x = DAHDI_VMWI_LREV;
+			ioctl(fd, DAHDI_VMWI, &x);
+			fprintf(stderr, "Set No Voice messages...\n");
+			sleep(2);
+		}
+	} else if (!strcasecmp(argv[2], "ring")) {
+					fprintf(stderr, "Ringing phone...\n");
 		x = DAHDI_RING;
 		res = ioctl(fd, DAHDI_HOOK, &x);
 		if (res) {
@@ -78,6 +98,13 @@ int main(int argc, char *argv[])
 		}
 	} else if (!strcasecmp(argv[2], "polarity")) {
 		fprintf(stderr, "Twiddling polarity...\n");
+		/* Insure that the channel is in active mode */
+		x = DAHDI_RING;
+		res = ioctl(fd, DAHDI_HOOK, &x);
+		usleep(100000);
+		x = 0;
+		res = ioctl(fd, DAHDI_HOOK, &x);
+
 		x = 0;
 		res = ioctl(fd, DAHDI_SETPOLARITY, &x);
 		if (res) {
