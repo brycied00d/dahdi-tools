@@ -53,7 +53,7 @@ sub get_sorted_xpds() {
 	}
 	my @xpd_prio = Dahdi::Xpp::Xpd::xpds_by_rank(@good_xpds);
 	#Dahdi::Xpp::Xpd::show_xpd_rank(@xpd_prio);
-	return @good_xpds;
+	return @xpd_prio;
 }
 
 sub do_select(@) {

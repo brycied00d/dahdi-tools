@@ -163,7 +163,10 @@ sub new($$$$$) {
 	my $span = $self->xpd_getattr('span');
 	$self->{SPANNO} = $span;
 	$self->{TYPE} = $type;
-	$self->{IS_BRI} = ($type =~ /BRI_(NT|TE)/);
+	if($type =~ /BRI_(NT|TE)/) {
+		$self->{IS_BRI} = 1;
+		$self->{TERMTYPE} = $1;
+	}
 	$self->{IS_PRI} = ($type =~ /[ETJ]1/);
 	$self->{IS_DIGITAL} = ( $self->{IS_BRI} || $self->{IS_PRI} );
 	Dahdi::Xpp::Line->create_all($self, $procdir);
