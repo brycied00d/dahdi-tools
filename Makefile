@@ -114,6 +114,7 @@ BINS:=fxotune fxstest sethdlc dahdi_cfg dahdi_diag dahdi_monitor dahdi_speed dah
 BINS:=$(filter-out $(MENUSELECT_UTILS),$(BINS))
 MAN_PAGES:=$(wildcard $(BINS:%=doc/%.8))
 
+TEST_BINS:=patgen pattest patlooptest hdlcstress hdlctest hdlcgen hdlcverify timertest
 # All the man pages. Not just installed ones:
 GROFF_PAGES	:= $(wildcard doc/*.8 xpp/*.8)
 GROFF_HTML	:= $(GROFF_PAGES:%=%.html)
@@ -143,7 +144,7 @@ version.c: FORCE
 	fi
 	@rm -f $@.tmp
 
-tests: patgen pattest patlooptest hdlcstress hdlctest hdlcgen hdlcverify timertest
+tests: $(TEST_BINS)
 
 $(UTILS): %: %.o
 
@@ -309,7 +310,7 @@ update:
 
 clean:
 	-@$(MAKE) -C menuselect clean
-	rm -f $(BINS)
+	rm -f $(BINS) $(TEST_BINS)
 	rm -f *.o dahdi_cfg tzdriver sethdlc
 	rm -f $(LTZ_SO) $(LTZ_A) *.lo
 	@for dir in $(SUBDIRS_UTILS_ALL); do \
