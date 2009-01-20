@@ -48,7 +48,7 @@ my %default_group = (
 	J1_NT	=> 6,
 	);
 
-my $fxs_default_start = 'ls';
+my $fxs_default_start = 'ks';
 
 my %default_dahdi_signalling = (
 	FXO	=> 'fxsks',
