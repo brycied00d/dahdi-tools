@@ -46,6 +46,8 @@ static int tones[] = {
 	DAHDI_TONE_DIALRECALL,
 };
 
+struct dahdi_vmwi_info mwisend_setting; /*!< Which VMWI methods to use */
+
 int main(int argc, char *argv[])
 {
 	int fd;
@@ -59,7 +61,9 @@ int main(int argc, char *argv[])
 		       "       tones - plays a series of tones\n"
 		       "       polarity - tests polarity reversal\n"
 		       "       ring - rings phone\n"
-		       "       vmwi - toggles VMWI lamp\n");
+		       "       vmwi - toggles VMWI LED lamp\n"
+		       "       hvdc - toggles VMWI HV lamp\n"
+		       "       neon - toggles VMWI NEON lamp\n");
 		exit(1);
 	}
 	fd = open(argv[1], O_RDWR);
@@ -68,26 +72,39 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 	
-	if (!strcasecmp(argv[2], "vmwi")) {
-		fprintf(stderr, "Twiddling vmwi...\n");
-		x = DAHDI_VMWI_LREV | 1;
-		res = ioctl(fd, DAHDI_VMWI, &x);
+	if ( !strcasecmp(argv[2], "neon") || !strcasecmp(argv[2], "vmwi") || !strcasecmp(argv[2], "hvdc")) {
+		fprintf(stderr, "Twiddling %s ...\n", argv[2]);
+
+		if ( !strcasecmp(argv[2], "vmwi") ) {
+			mwisend_setting.vmwi_type = DAHDI_VMWI_LREV;
+		} else if ( !strcasecmp(argv[2], "neon") ) {
+			mwisend_setting.vmwi_type = DAHDI_VMWI_HVAC;
+		} else if ( !strcasecmp(argv[2], "hvdc") ) {
+			mwisend_setting.vmwi_type = DAHDI_VMWI_HVDC;
+		}
+
+		mwisend_setting.messages = 1;
+		res = ioctl(fd, DAHDI_VMWI, &mwisend_setting);
 		if (res) {
-			fprintf(stderr, "Unable to set VMWI...\n");
+			fprintf(stderr, "Unable to set %s ...\n", argv[2]);
 		} else {
 			fprintf(stderr, "Set 1 Voice Message...\n");
+
 			sleep(5);
-			x = DAHDI_VMWI_LREV | 2;
-			ioctl(fd, DAHDI_VMWI, &x);
+			mwisend_setting.messages = 2;
+			ioctl(fd, DAHDI_VMWI, &mwisend_setting);
 			fprintf(stderr, "Set 2 Voice Messages...\n");
+
 			sleep(5);
-			x = DAHDI_VMWI_LREV;
-			ioctl(fd, DAHDI_VMWI, &x);
+			mwisend_setting.messages = 0;
+			ioctl(fd, DAHDI_VMWI, &mwisend_setting);
 			fprintf(stderr, "Set No Voice messages...\n");
 			sleep(2);
+
+			mwisend_setting.vmwi_type = 0;
 		}
 	} else if (!strcasecmp(argv[2], "ring")) {
-					fprintf(stderr, "Ringing phone...\n");
+		fprintf(stderr, "Ringing phone...\n");
 		x = DAHDI_RING;
 		res = ioctl(fd, DAHDI_HOOK, &x);
 		if (res) {
