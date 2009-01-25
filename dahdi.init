@@ -33,8 +33,8 @@ FXOTUNE=/usr/sbin/fxotune
 # explicit Astribank (e.g: 01).
 XPP_SYNC=auto
 
-# The maximal timeout (seconds) to wait for udevd to finish generating 
-# device nodes after the modules have loaded and before running dahdi_cfg. 
+# The maximal timeout (seconds) to wait for udevd to finish generating
+# device nodes after the modules have loaded and before running dahdi_cfg.
 DAHDI_DEV_TIMEOUT=20
 
 #
@@ -65,7 +65,7 @@ fi
 # recursively unload a module and its dependencies, if possible.
 # where's modprobe -r when you need it?
 # inputs: module to unload.
-# returns: the result from 
+# returns: the result from
 unload_module() {
 	module="$1"
 	line=`lsmod 2>/dev/null | grep "^$1 "`
@@ -79,7 +79,7 @@ unload_module() {
 	case "$module" in xpd_*) mods="xpp_usb $mods";; esac
 	for mod in $mods; do
 		# run in a subshell, so it won't step over our vars:
-		(unload_module $mod) 
+		(unload_module $mod)
 		# TODO: the following is probably the error handling we want:
 		# if [ $? != 0 ]; then return 1; fi
 	done
@@ -165,7 +165,7 @@ RETVAL=0
 case "$1" in
   start)
   	# Some systems, e.g. Debian Lenny, add here -b, which will break
-	# loading of modules blacklisted in modprobe.d/* 
+	# loading of modules blacklisted in modprobe.d/*
 	unset MODPROBE_OPTIONS
   	modules=`sed -e 's/#.*$//' $DAHDI_MODULES_FILE 2>/dev/null`
 	#if [ "$modules" = '' ]; then
@@ -175,14 +175,14 @@ case "$1" in
 	modprobe dahdi
 	for line in $modules; do
 		if [ $system = debian ]; then
-			echo -n "   ${line}: " 
+			echo -n "   ${line}: "
 			if modprobe $line 2> /dev/null; then
 				echo -n "done"
 			else
 				echo -n "error"
 			fi
 		elif [ $system = redhat ]; then
-			action "  ${line}: " modprobe $line 
+			action "  ${line}: " modprobe $line
 		fi
 	done
 	echo ""
@@ -206,7 +206,7 @@ case "$1" in
 	fi
 
 	if [ $system = debian ]; then
-	    echo -n "Running dahdi_cfg: " 
+	    echo -n "Running dahdi_cfg: "
 	    $DAHDI_CFG_CMD 2> /dev/null && echo -n "done"
 	    echo "."
 	elif [ $system = redhat ]; then
@@ -220,7 +220,7 @@ case "$1" in
 
 	if [ -x "$FXOTUNE" ] && [ -r /etc/fxotune.conf ]; then
 		# Allowed to fail if e.g. Asterisk already uses channels:
-		$FXOTUNE -s || : 
+		$FXOTUNE -s || :
 	fi
 
 	hpec_start
@@ -228,7 +228,7 @@ case "$1" in
   stop)
 	# Unload drivers
 	#shutdown_dynamic # FIXME: needs test from someone with dynamic spans
-	echo -n "Unloading DAHDI hardware modules: " 
+	echo -n "Unloading DAHDI hardware modules: "
 	if unload_module dahdi; then
 		echo -n "done"
 	else
