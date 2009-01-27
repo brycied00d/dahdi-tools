@@ -82,25 +82,25 @@ int main(int argc, char *argv[])
 		} else if ( !strcasecmp(argv[2], "hvdc") ) {
 			mwisend_setting.vmwi_type = DAHDI_VMWI_HVDC;
 		}
+		res = ioctl(fd, DAHDI_VMWI_CONFIG, &mwisend_setting);
 
-		mwisend_setting.messages = 1;
-		res = ioctl(fd, DAHDI_VMWI, &mwisend_setting);
+		x = 1;
+		res = ioctl(fd, DAHDI_VMWI, &x);
 		if (res) {
 			fprintf(stderr, "Unable to set %s ...\n", argv[2]);
 		} else {
 			fprintf(stderr, "Set 1 Voice Message...\n");
 
 			sleep(5);
-			mwisend_setting.messages = 2;
-			ioctl(fd, DAHDI_VMWI, &mwisend_setting);
+			x = 2;
+			ioctl(fd, DAHDI_VMWI, &x);
 			fprintf(stderr, "Set 2 Voice Messages...\n");
 
 			sleep(5);
-			mwisend_setting.messages = 0;
-			ioctl(fd, DAHDI_VMWI, &mwisend_setting);
+			x = 0;
+			ioctl(fd, DAHDI_VMWI, &x);
 			fprintf(stderr, "Set No Voice messages...\n");
 			sleep(2);
-
 			mwisend_setting.vmwi_type = 0;
 		}
 	} else if (!strcasecmp(argv[2], "ring")) {
