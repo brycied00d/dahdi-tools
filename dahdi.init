@@ -109,28 +109,28 @@ hpec_start() {
 		return
 	fi
 
-	# zaphpec_enable not installed in /usr/sbin
-	if [ ! -f /usr/sbin/zaphpec_enable ]; then
-		echo -n "Running zaphpec_enable: Failed"
+	# dahdihpec_enable not installed in /usr/sbin
+	if [ ! -f /usr/sbin/dahdihpec_enable ]; then
+		echo -n "Running dahdihpec_enable: Failed"
 		echo -n "."
-		echo "  The zaphpec_enable binary is not installed in /usr/sbin."
+		echo "  The dahdihpec_enable binary is not installed in /usr/sbin."
 		return
 	fi
 
-	# zaphpec_enable not set executable
-	if [ ! -x /usr/sbin/zaphpec_enable ]; then
-		echo -n "Running zaphpec_enable: Failed"
+	# dahdihpec_enable not set executable
+	if [ ! -x /usr/sbin/dahdihpec_enable ]; then
+		echo -n "Running dahdihpec_enable: Failed"
 		echo -n "."
-		echo "  /usr/sbin/zaphpec_enable is not set as executable."
+		echo "  /usr/sbin/dahdihpec_enable is not set as executable."
 		return
 	fi
 
-	# zaphpec_enable properly installed
+	# dahdihpec_enable properly installed
 	if [ $system = debian ]; then
-		echo -n "Running zaphpec_enable: "
-		/usr/sbin/zaphpec_enable 2> /dev/null
+		echo -n "Running dahdihpec_enable: "
+		/usr/sbin/dahdihpec_enable 2> /dev/null
 	elif [ $system = redhat ]; then
-		action "Running zaphpec_enable: " /usr/sbin/zaphpec_enable
+		action "Running dahdihpec_enable: " /usr/sbin/dahdihpec_enable
 	fi
 	if [ $? = 0 ]; then
 		echo -n "done"
@@ -138,7 +138,7 @@ hpec_start() {
 	else
 		echo -n "Failed"
 		echo -n "."
-		echo "  This can be caused if you had already run zaphpec_enable, or if your HPEC license is no longer valid."
+		echo "  This can be caused if you had already run dahdihpec_enable, or if your HPEC license is no longer valid."
 	fi
 }
 
