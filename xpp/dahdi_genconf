@@ -749,7 +749,13 @@ sub set_defaults {
 }
 
 sub parse_args {
-	push(@ARGV, 'unicall') if $pri_connection_type eq 'R2';
+	if (not @ARGV) {
+		# No files given. Use the defaults.
+		push(@ARGV, 'unicall') if $pri_connection_type eq 'R2';
+		return;
+	}
+
+	@default_files = ();
 	for my $file (@ARGV) {
 		die "$0: Unknown file '$file'" unless defined $files{$file};
 		push @default_files, $file;
