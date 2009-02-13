@@ -11,11 +11,12 @@ use strict;
 use File::Basename;
 BEGIN { my $dir = dirname($0); unshift(@INC, "$dir", "$dir/perl_modules"); }
 
+use Getopt::Std;
 use Dahdi;
-use Dahdi::Hardware;
 use Dahdi::Xpp;
 use Dahdi::Config::GenconfDefaults;
 
+my %opts;
 my $genconf_defaults;
 
 my %default_context = (
@@ -64,28 +65,35 @@ my %default_chan_dahdi_signalling = (
 	OUT	=> "fxo_{fxs_default_start}",
 	);
 
-my $file = '';
-my $base_exten = 4000;
-my $fxs_immediate = 'no';
 my $lc_country = 'us';
-my $loadzone = $lc_country;
-my $defaultzone = $lc_country;
-my $bri_sig_style = 'bri_ptmp';
-my $brint_overlap = 'no';
 my $pri_termtype = 'SPAN/* TE';
-my $pri_connection_type = 'PRI'; # PRI or R2
-my $r2_idle_bits = '1101';
 my $echo_can = 'mg2';
-my $bri_hardhdlc= 'no';
+
+my %global_config = (
+		'genconf_file'	=> 'HARD-CODED-DEFAULT',	# GenconfDefaults override
+		'base_exten'	=> 4000,
+		'fxs_immediate'	=> 'no',
+		'loadzone'	=> $lc_country,
+		'defaultzone'	=> $lc_country,
+		'context'	=> \%default_context,
+		'group'		=> \%default_group,
+		'bri_hardhdlc'	=> 'no',
+		'bri_sig_style'	=> 'bri_ptmp',
+		'r2_idle_bits'	=> '1101',
+		'bri_overlapdial'	=> 'no',
+		'pri_connection_type'	=> 'PRI', # PRI or R2
+		'dahdi_signalling'	=> \%default_dahdi_signalling,
+		'chan_dahdi_signalling'	=> \%default_chan_dahdi_signalling,
+	);
 
 my %dahdi_default_vars = (
-		GENCONF_FILE		=> \$file,
-		base_exten		=> \$base_exten,
-		fxs_immediate		=> \$fxs_immediate,
+		GENCONF_FILE		=> \$global_config{'genconf_file'},
+		base_exten		=> \$global_config{'base_exten'},
+		fxs_immediate		=> \$global_config{'fxs_immediate'},
 		fxs_default_start	=> \$fxs_default_start,
 		lc_country		=> [
-						\$loadzone,
-						\$defaultzone,
+						\$global_config{'loadzone'},
+						\$global_config{'defaultzone'},
 					],
 		context_lines		=> \$default_context{FXO},
 		context_phones		=> \$default_context{FXS},
@@ -97,13 +105,13 @@ my %dahdi_default_vars = (
 						\$default_group{OUT},
 					],
 		group_lines		=> \$default_group{FXO},
-		bri_sig_style		=> \$bri_sig_style,
-		brint_overlap		=> \$brint_overlap,
+		bri_sig_style		=> \$global_config{'bri_sig_style'},
+		bri_overlapdial		=> \$global_config{'bri_overlapdial'},
 		pri_termtype		=> \$pri_termtype,
-		pri_connection_type	=> \$pri_connection_type,
-		r2_idle_bits		=> \$r2_idle_bits,
+		pri_connection_type	=> \$global_config{'pri_connection_type'},
+		r2_idle_bits		=> \$global_config{'r2_idle_bits'},
 		echo_can		=> \$echo_can,
-		bri_hardhdlc		=> \$bri_hardhdlc,
+		bri_hardhdlc		=> \$global_config{'bri_hardhdlc'},
 		);
 
 sub map_dahdi_defaults {
@@ -130,603 +138,15 @@ sub map_dahdi_defaults {
 	}
 }
 
-
-my $dahdiconf_file;
-my $dahdimods_file;
-my $chan_dahdi_channels_file;
-my $users_file;
-my $asterisk_file;
-my $chan_dahdi_conf_file;
-my $unicall_channels_file;
-
-my %files = (
-	dahdi		=> { file => \$dahdiconf_file, func => \&gen_dahdiconf },
-	modules		=> { file => \$dahdimods_file, func => \&gen_dahdimods },
-	chan_dahdi	=> { file => \$chan_dahdi_channels_file, func => \&gen_chan_dahdi_channelsconf },
-	users		=> { file => \$users_file, func => \&gen_usersconf },
-	asterisk	=> { file => \$asterisk_file, func => \&gen_asterisk_conf },
-	unicall		=> { file => \$unicall_channels_file, func => \&gen_unicall_channels },
-	chan_dahdi_full	=> { file => \$chan_dahdi_conf_file, func => \&gen_chan_dahdi_conf },
-);
-
-my @default_files = ("dahdi", "chan_dahdi");
-
 my @spans = Dahdi::spans();
-
-sub bchan_range($) {
-	my $span = shift || die;
-	my $first_chan = ($span->chans())[0];
-	my $first_num = $first_chan->num();
-	my $range_start = $first_num;
-	my @range;
-	my $prev = undef;
-
-	die unless $span->is_digital();
-	foreach my $c (@{$span->bchan_list()}) {
-		my $curr = $c + $first_num;
-		if(!defined($prev)) {
-			$prev = $curr;
-		} elsif($curr != $prev + 1) {
-			push(@range, sprintf("%d-%d", $range_start, $prev));
-			$range_start = $curr;
-		}
-		$prev = $curr;
-	}
-	if($prev >= $first_num) {
-		push(@range, sprintf("%d-%d", $range_start, $prev));
-	}
-	return join(',', @range);
-}
-
-sub gen_dahdi_signalling($) {
-	my $chan = shift || die;
-	my $type = $chan->type;
-	my $num = $chan->num;
-
-	die "channel $num type $type is not an analog channel\n" if $chan->span->is_digital();
-	if($type eq 'EMPTY') {
-		printf "# channel %d, %s, no module.\n", $num, $chan->fqn;
-		return;
-	}
-	my $sig = $default_dahdi_signalling{$type} || die "unknown default dahdi signalling for chan $num type $type";
-	if ($type eq 'IN') {
-		printf "# astbanktype: input\n";
-	} elsif ($type eq 'OUT') {
-		printf "# astbanktype: output\n";
-	}
-	printf "$sig=$num\n";
-	print_echo_can($num);
-}
-
-sub print_echo_can($) {
-	my $chans = shift; # channel or range of channels.
-	return if ($echo_can eq 'none');
-
-	print "echocanceller=$echo_can,$chans\n";
-}
-
-my $bri_te_last_timing = 1;
-
-sub gen_dahdi_digital($) {
-	my $span = shift || die;
-	my $num = $span->num() || die;
-	die "Span #$num is analog" unless $span->is_digital();
-	my $termtype = $span->termtype() || die "$0: Span #$num -- unkown termtype [NT/TE]\n";
-	my $timing;
-	my $lbo = 0;
-	my $framing = $span->framing() || die "$0: No framing information for span #$num\n";
-	my $coding =  $span->coding() || die "$0: No coding information for span #$num\n";
-	my $span_crc4 = $span->crc4();
-	$span_crc4 = (defined $span_crc4) ? ",$span_crc4" : '';
-	my $span_yellow = $span->yellow();
-	$span_yellow = (defined $span_yellow) ? ",$span_yellow" : '';
-	# "MFC/R2 does not normally use CRC4"
-	# FIXME: a finer way to override:
-	if ($pri_connection_type eq 'R2') { 
-		$span_crc4 = '';
-		$framing = 'cas';
-	}
-	my $dchan_type = 'dchan';
-	if ($span->is_bri() && ($bri_hardhdlc eq 'yes')) {
-		$dchan_type = 'hardhdlc';
-	}
-
-	$timing = ($termtype eq 'NT') ? 0 : $bri_te_last_timing++;
-	printf "span=%d,%d,%d,%s,%s%s%s\n",
-			$num,
-			$timing,
-			$lbo,
-			$framing,
-			$coding,
-			$span_crc4,
-			$span_yellow;
-	printf "# termtype: %s\n", lc($termtype);
-	if ($pri_connection_type eq 'PRI') {
-		printf "bchan=%s\n", bchan_range($span);
-		my $dchan = $span->dchan();
-		printf "$dchan_type=%d\n", $dchan->num();
-	} elsif ($pri_connection_type eq 'R2' ) {
-		my $idle_bits = $r2_idle_bits; 
-		printf "cas=%s:$idle_bits\n", bchan_range($span);
-		printf "dchan=%d\n", $span->dchan()->num();
-	}
-	print_echo_can(bchan_range($span));
-}
-
-sub gen_unicall_channels($) {
-	my $file = shift || die;
-	die "Only for R2" unless $pri_connection_type eq 'R2';
-	rename "$file", "$file.bak"
-		or $! == 2	# ENOENT (No dependency on Errno.pm)
-		or die "Failed to backup old config: $!\n";
-	open(F, ">$file") || die "$0: Failed to open $file: $!\n";
-	my $old = select F;
-	printf "; Autogenerated by %s on %s -- do not hand edit\n", $0, scalar(localtime);
-	print  "; This file should be #included in unicall.conf\n\n";
-	foreach my $span (@spans) {
-		next unless $span->is_digital();
-		printf "; Span %d: %s %s\n", $span->num, $span->name, $span->description;
-		my $idle_bits = $r2_idle_bits; 
-		printf "protocolend=%s\n", ($span->termtype() eq 'TE') ? 'cpe' : 'co';
-		printf "channel=%s\n", bchan_range($span);
-		print "\n";
-	}
-	close F;
-	select $old;
-}
-
-
-sub gen_dahdiconf($) {
-	my $file = shift || die;
-	rename "$file", "$file.bak"
-		or $! == 2	# ENOENT (No dependency on Errno.pm)
-		or die "Failed to backup old config: $!\n";
-	open(F, ">$file") || die "$0: Failed to open $file: $!\n";
-	my $old = select F;
-	printf "# Autogenerated by %s on %s -- do not hand edit\n", $0, scalar(localtime);
-	print <<"HEAD";
-# Dahdi Configuration File
-#
-# This file is parsed by the Dahdi Configurator, dahdi_cfg
-#
-HEAD
-	foreach my $span (@spans) {
-		printf "# Span %d: %s %s\n", $span->num, $span->name, $span->description;
-		if($span->is_digital()) {
-			gen_dahdi_digital($span);
-		} else {
-			foreach my $chan ($span->chans()) {
-				if(1 || !defined $chan->type) {
-					my $type = $chan->probe_type;
-					my $num = $chan->num;
-					die "Failed probing type for channel $num"
-						unless defined $type;
-					$chan->type($type);
-				}
-				gen_dahdi_signalling($chan);
-			}
-		}
-		print "\n";
-	}
-	print <<"TAIL";
-# Global data
-
-loadzone	= $loadzone
-defaultzone	= $defaultzone
-TAIL
-	close F;
-	select $old;
-}
-
-
-sub gen_dahdimods($) {
-	my $file = shift || die;
-	rename "$file", "$file.bak"
-		or $! == 2	# ENOENT (No dependency on Errno.pm)
-		or die "Failed to backup old config: $!\n";
-	open(F, ">$file") || die "$0: Failed to open $file: $!\n";
-	my $old = select F;
-	printf "# Autogenerated by %s on %s\n", $0, scalar(localtime);
-	print <<"HEAD";
-# List of modules for DAHDI devices detected on the system
-#
-# This file is parsed by the dahdi init.d script, /etc/init.d/dahdi
-# Anything after '#' is a comment. List one module in a line.
-#
-HEAD
-	my $hardware = Dahdi::Hardware->scan;
-	foreach my $dev ($hardware->device_list) {
-		my $description = $dev->description || "";
-		printf "%s\t#%s %s\n", $dev->driver,
-			$dev->description, $dev->hardware_name;
-	}
-	close F;
-	select $old;
-}
-
-my %DefaultConfigs = (
-	context => 'default',
-	group => '63', # FIXME: should not be needed. 
-	overlapdial => 'no',
-	busydetect => 'no',
-	rxgain => 0,
-	txgain => 0,
-);
-
-sub reset_chan_dahdi_values {
-	foreach my $arg (@_) {
-		if (exists ($DefaultConfigs{$arg})) {
-			print "$arg = $DefaultConfigs{$arg}\n";
-		} else {
-			print "$arg =\n";
-		}
-	}
-}
-
-sub gen_chan_dahdi_digital($) {
-	my $span = shift || die;
-	my $num = $span->num() || die;
-	die "Span #$num is analog" unless $span->is_digital();
-	if($span->is_pri && $pri_connection_type eq 'R2') {
-		printf "; Skipped: $pri_connection_type config generated into $unicall_channels_file\n\n";
-		return;
-	}
-	my $type = $span->type() || die "$0: Span #$num -- unkown type\n";
-	my $termtype = $span->termtype() || die "$0: Span #$num -- unkown termtype [NT/TE]\n";
-	my $group = $default_group{"$type"};
-	my $context = $default_context{"$type"};
-	my @to_reset = qw/context group/;
-
-	die "$0: missing default group (termtype=$termtype)\n" unless defined($group);
-	die "$0: missing default context\n" unless $context;
-
-	my $sig = $span->signalling || die "missing signalling info for span #$num type $type";
-	grep($bri_sig_style eq $_, 'bri', 'bri_ptmp', 'pri') or die "unknown signalling style for BRI";
-	if($span->is_bri() and $bri_sig_style eq 'bri_ptmp') {
-		$sig .= '_ptmp';
-	}
-	if ($span->is_bri() && $termtype eq 'NT' && $brint_overlap eq 'yes') {
-		print "overlapdial = yes\n";
-		push(@to_reset, qw/overlapdial/);
-	}
-		
-	$group .= "," . (10 + $num);	# Invent unique group per span
-	printf "group=$group\n";
-	printf "context=$context\n";
-	printf "switchtype = %s\n", $span->switchtype;
-	printf "signalling = %s\n", $sig;
-	printf "channel => %s\n", bchan_range($span);
-	reset_chan_dahdi_values(@to_reset);
-}
-
-sub gen_chan_dahdi_channel($) {
-	my $chan = shift || die;
-	my $type = $chan->type;
-	my $num = $chan->num;
-	die "channel $num type $type is not an analog channel\n" if $chan->span->is_digital();
-	my $exten = $base_exten + $num;
-	my $sig = $default_chan_dahdi_signalling{$type};
-	my $context = $default_context{$type};
-	my $group = $default_group{$type};
-	my $callerid;
-	my $immediate;
-
-	return if $type eq 'EMPTY';
-	die "missing default_chan_dahdi_signalling for chan #$num type $type" unless $sig;
-	$callerid = ($type eq 'FXO')
-			? 'asreceived'
-			: sprintf "\"Channel %d\" <%04d>", $num, $exten;
-	if($type eq 'IN') {
-		$immediate = 'yes';
-	}
-	# FIXME: $immediage should not be set for 'OUT' channels, but meanwhile
-	#        it's better to be compatible with genzaptelconf
-	$immediate = 'yes' if $fxs_immediate eq 'yes' and $sig =~ /^fxo_/;
-	my $signalling = $chan->signalling;
-	$signalling = " " . $signalling if $signalling;
-	my $info = $chan->info;
-	$info = " " . $info if $info;
-	printf ";;; line=\"%d %s%s%s\"\n", $num, $chan->fqn, $signalling, $info;
-	printf "signalling=$sig\n";
-	printf "callerid=$callerid\n";
-	printf "mailbox=%04d\n", $exten unless $type eq 'FXO';
-	if(defined $group) {
-		printf "group=$group\n";
-	}
-	printf "context=$context\n";
-	printf "immediate=$immediate\n" if defined $immediate;
-	printf "channel => %d\n", $num;
-	# Reset following values to default
-	printf "callerid=\n";
-	printf "mailbox=\n" unless $type eq 'FXO';
-	if(defined $group) {
-		printf "group=\n";
-	}
-	printf "context=default\n";
-	printf "immediate=no\n" if defined $immediate;
-	print "\n";
-}
-
-sub gen_chan_dahdi_channelsconf($) {
-	my $file = shift || die;
-	rename "$file", "$file.bak"
-		or $! == 2	# ENOENT (No dependency on Errno.pm)
-		or die "Failed to backup old config: $!\n";
-	open(F, ">$file") || die "$0: Failed to open $file: $!\n";
-	my $old = select F;
-	printf "; Autogenerated by %s on %s -- do not hand edit\n", $0, scalar(localtime);
-	print <<"HEAD";
-; Dahdi Channels Configurations (chan_dahdi.conf)
-;
-; This is not intended to be a complete chan_dahdi.conf. Rather, it is intended
-; to be #include-d by /etc/asterisk/chan_dahdi.conf that will include the global settings
-;
-
-HEAD
-	foreach my $span (@spans) {
-		printf "; Span %d: %s %s\n", $span->num, $span->name, $span->description;
-		if($span->is_digital()) {
-			gen_chan_dahdi_digital($span);
-		} else {
-			foreach my $chan ($span->chans()) {
-				gen_chan_dahdi_channel($chan);
-			}
-		}
-		print "\n";
-	}
-	close F;
-	select $old;
-}
-
-sub gen_users_channel($) {
-	my $chan = shift || die;
-	my $type = $chan->type;
-	my $num = $chan->num;
-	die "channel $num type $type is not an analog channel\n" if $chan->span->is_digital();
-	my $exten = $base_exten + $num;
-	my $sig = $default_chan_dahdi_signalling{$type};
-	my $full_name = "$type $num";
-
-	die "missing default_chan_dahdi_signalling for chan #$num type $type" unless $sig;
-	print << "EOF";
-[$exten]
-callwaiting = yes
-context = numberplan-custom-1
-fullname = $full_name
-cid_number = $exten
-hasagent = no
-hasdirectory = no
-hasiax = no
-hasmanager = no
-hassip = no
-hasvoicemail = yes
-host = dynamic
-mailbox = $exten
-threewaycalling = yes
-vmsecret = 1234
-secret = 1234
-signalling = $sig
-dahdichan = $num
-registeriax = no
-registersip = no
-canreinvite = no
-nat = no
-dtmfmode = rfc2833
-disallow = all
-allow = all
-
-EOF
-}
-
-# Shifts standard output to a file (which is actually the global 'F').
-# Saves original file as a backup.
-# Input: name of file. If it is '-', no action is taken.
-sub stdout_to_file($) {
-	my $file = shift || die;
-	return '-' if ($file eq '-');
-
-	rename "$file", "$file.bak"
-		or $! == 2	# ENOENT (No dependency on Errno.pm)
-		or die "Failed to backup old config: $!\n";
-	open(F, ">$file") || die "$0: Failed to open $file: $!\n";
-	my $old = select F;
-
-	return $old;
-}
-
-# Shifts standard output back to the original (unless the input file 
-# was '-', in which case no action is needed).
-# Input: the original file descriptor, as returned from stdout_to_file().
-sub stdout_restore($) {
-	my $old = shift || die;
-	return '-' if ($old eq '-');
-
-	close F;
-	select $old;
-}
-
-
-# Provide information for VoiceRoute's Druid Zaptel wizard
-sub gen_asterisk_conf($) {
-	my $file = shift || die;
-	my $old = stdout_to_file($file);
-
-	print << "EOF";
-; The following provides information about DAHDI hardware, spans and 
-; channels, in the format parsable to an Asterisk configuration file
-; parser.
-;
-; THE FORMAT IS SUBJECT TO CHANGES
-EOF
-	my $hardware = Dahdi::Hardware->scan;
-	foreach my $dev ($hardware->device_list) {
-		$dev->{ASTERISK_NAME} = "dev-".$dev->hardware_name;
-		print "[".$dev->asterisk_name."]\n";
-		printf "vendor = %s\n", $dev->vendor;
-		printf "product = %s\n", $dev->product;
-		printf "description = %s\n", $dev->description;
-		printf "hardware_name = %s\n", $dev->hardware_name;
-		printf "driver = %s\n", $dev->driver;
-		# TODO: indicate if driver != loaded?
-		printf "loaded = %s\n", $dev->loaded;
-		print "\n";
-	}
-
-	foreach my $span (@spans) {
-		$span->{ASTERISK_NAME} = "span-".$span->num;
-		print "[".$span->asterisk_name."]\n";
-		#next unless grep { $_ eq $span->type} ( 'FXS', 'IN', 'OUT' );
-		printf "; Span %d: %s %s\n", $span->num, $span->name, $span->description;
-		printf "num = %s\n", $span->num;
-		printf "type = %s\n", $span->type;
-		printf "name = %s\n", $span->name;
-		printf "description = %s\n", $span->description;
-		printf "digital = %s\n", 
-			$span->is_digital? 'yes' : 'no';
-
-		if ($span->is_digital) {
-			printf "switchtype = %s\n", $span->switchtype;
-			printf "signalling = %s\n", $span->signalling;
-			printf "channels = %s\n", bchan_range($span);
-			print "\n";
-		} else {
-			print "\n";
-			foreach my $chan ($span->chans()) {
-				my $type = $chan->type;
-				my $sig = $default_dahdi_signalling{$type};
-				$chan->{ASTERISK_NAME} = "chan-".$chan->num;
-
-				print "[".$chan->asterisk_name."]\n";
-
-				printf "type = %s\n", $type;
-				printf "span = %s\n", $chan->span->asterisk_name;
-				printf "channels = %s\n", $chan->num;
-				printf "index = %s\n", $chan->index;
-				printf "name = %s\n", $chan->fqn;
-				printf "signalling = %s\n", $sig;
-				print "\n";
-			}
-		}
-	}
-
-	stdout_restore($old);
-}
-
-
-# generate users.conf . The specific users.conf is strictly oriented
-# towards using with the asterisk-gui .
-#
-# This code could have generated a much simpler and smaller
-# configuration file, had there been minimal level of support for
-# configuration templates in the asterisk configuration rewriting. Right
-# now Asterisk's configuration rewriting simply freaks out in the face
-# of templates: http://bugs.digium.com/11442 .
-sub gen_usersconf($) {
-	my $file = shift || die;
-	rename "$file", "$file.bak"
-		or $! == 2	# ENOENT (No dependency on Errno.pm)
-		or die "Failed to backup old config: $!\n";
-	open(F, ">$file") || die "$0: Failed to open $file: $!\n";
-	my $old = select F;
-	print <<"HEAD";
-;!
-;! Automatically generated configuration file
-;! Filename: @{[basename($file)]} ($file)
-;! Generator: $0
-;! Creation Date: @{[scalar(localtime)]}
-;!
-[general]
-;
-; Full name of a user
-;
-fullname = New User
-;
-; Starting point of allocation of extensions
-;
-userbase = @{[$base_exten+1]}
-;
-; Create voicemail mailbox and use use macro-stdexten
-;
-hasvoicemail = yes
-;
-; Set voicemail mailbox @{[$base_exten+1]} password to 1234
-;
-vmsecret = 1234
-;
-; Create SIP Peer
-;
-hassip = no
-;
-; Create IAX friend
-;
-hasiax = no
-;
-; Create Agent friend
-;
-hasagent = no
-;
-; Create H.323 friend
-;
-;hash323 = yes
-;
-; Create manager entry
-;
-hasmanager = no
-;
-; Remaining options are not specific to users.conf entries but are general.
-;
-callwaiting = yes
-threewaycalling = yes
-callwaitingcallerid = yes
-transfer = yes
-canpark = yes
-cancallforward = yes
-callreturn = yes
-callgroup = 1
-pickupgroup = 1
-localextenlength = @{[length($base_exten)]}
-
-
-HEAD
-	foreach my $span (@spans) {
-		next unless grep { $_ eq $span->type} ( 'FXS', 'IN', 'OUT' );
-		printf "; Span %d: %s %s\n", $span->num, $span->name, $span->description;
-		foreach my $chan ($span->chans()) {
-			gen_users_channel($chan);
-		}
-		print "\n";
-	}
-	close F;
-	select $old;
-}
-
-sub gen_chan_dahdi_conf($) {
-	my $file = shift || die;
-	open(F, ">>$file") || die "$0: Failed to open $file: $!\n";
-	my $old = select F;
-	foreach my $span (@spans) {
-		next unless $span->type eq 'FXO';
-		my $current_sig = "";
-		for my $chan ($span->chans()) {
-			my $chan_num = $chan->num;
-			if ($default_chan_dahdi_signalling{$chan->type} ne $current_sig) {
-				$current_sig = $default_chan_dahdi_signalling{$chan->type};
-				print "\nsignalling = $current_sig";
-				print "\nchannel => $chan_num";
-			} else {
-				print ",$chan_num";
-			}
-		}
-		print "\n";
-	}
-	close F;
-	select $old;
-}
 
 sub set_defaults {
 	# Source default files
 	my $default_file = $ENV{GENCONF_PARAMETERS} || "/etc/dahdi/genconf_parameters";
 	$genconf_defaults = Dahdi::Config::GenconfDefaults->new($default_file);
+	if($opts{v}) {
+		print "Default parameters from ", $genconf_defaults->{GENCONF_FILE}, "\n";
+	}
 	#$genconf_defaults->dump;
 	map_dahdi_defaults(%$genconf_defaults);
 	foreach my $span (@spans) {
@@ -738,39 +158,69 @@ sub set_defaults {
 	foreach my $val (values %default_dahdi_signalling, values %default_chan_dahdi_signalling) {
 		$val =~ s/{fxs_default_start}/$fxs_default_start/g;
 	}
-	$dahdiconf_file = $ENV{DAHDI_CONF_FILE} || "/etc/dahdi/system.conf";
-	$dahdimods_file = $ENV{DAHDI_MODS_FILE} || "/etc/dahdi/modules";
-	$chan_dahdi_channels_file = $ENV{CHAN_DAHDI_CHANNELS_FILE} || "/etc/asterisk/dahdi-channels.conf";
-	$users_file = $ENV{USERS_FILE} || "/etc/asterisk/users.conf";
-	$asterisk_file = $ENV{ASTERISK_FILE} || 
-		"/var/lib/asterisk/asterisk-detect-hardware.conf";
-	$unicall_channels_file = $ENV{UNICALL_CHANNELS_FILE} || "/etc/asterisk/unicall-channels.conf";
-	$chan_dahdi_conf_file = $ENV{CHAN_DAHDI_CONF_FILE} || "/etc/asterisk/chan_dahdi.conf";
 }
 
 sub parse_args {
-	if (not @ARGV) {
+	my @default_generators;
+
+	getopts('v', \%opts);
+	if (@ARGV) {
+		for my $gen (@ARGV) {
+			push @default_generators, $gen;
+		}
+	} else {
 		# No files given. Use the defaults.
-		push(@ARGV, 'unicall') if $pri_connection_type eq 'R2';
-		return;
+		@default_generators = ('system', 'chandahdi');
+		if($global_config{'pri_connection_type'} eq 'R2') {
+			push @default_generators, 'unicall';
+		}
 	}
+	return @default_generators;
+}
 
-	@default_files = ();
-	for my $file (@ARGV) {
-		die "$0: Unknown file '$file'" unless defined $files{$file};
-		push @default_files, $file;
+sub run_generator($$) {
+	my ($name, $genopts) = @_;
+
+	if(defined $opts{'v'}) {
+		$genopts->{'verbose'} = $opts{v};
+	}
+	my $module = "Dahdi::Config::Gen::$name";
+	eval "use $module";
+	if($@) {
+		die "Failed to load configuration generator for '$name'\n";
+	}
+	my $cfg = new $module(\%global_config, $genopts);
+	$cfg->generate(@spans);
+}
+
+sub parse_genopts($) {
+	my $optstr = shift;
+	my %genopts;
+
+	$optstr = '' unless defined $optstr;
+	foreach my $o (split(/,/, $optstr)) {
+		my ($k, $v) = split(/=/, $o, 2);
+		$v = 1 unless defined $v and $v;
+		$genopts{$k} = $v;
+	}
+	return %genopts;
+}
+
+sub generate_files(@) {
+	my @default_generators = @_;
+
+	for my $gen (@default_generators) {
+		my ($name, $optstr) = split(/=/, $gen, 2);
+		die "Illegal name '$name'\n" unless $name =~ /^\w+$/;
+		$name =~ s/(.)(.*)/\u$1\L$2/;
+		my %genopts = parse_genopts($optstr);
+		run_generator($name, \%genopts);
 	}
 }
 
-sub generate_files {
-	for my $file (@default_files) {
-		&{$files{$file}->{func}}(${$files{$file}->{file}});
-	}
-}
-
+my @default_generators = parse_args;
 set_defaults;
-parse_args;
-generate_files;
+generate_files @default_generators;
 
 __END__
 
@@ -780,62 +230,47 @@ dahdi_genconf - Generate configuration for dahdi channels.
 
 =head1 SYNOPSIS
 
-dahdi_genconf [FILES...]
+dahdi_genconf [options] [generator...]
 
 =head1 DESCRIPTION
 
-This script generate configuration files for DAHDI hardware. The
-parameters are types of files to generate. By default it will generate
-the types 'dahdi' and 'chan_dahdi'. See below a complete list.
+This script generate configuration files for Dahdi hardware.
+It uses two information sources:
 
 =over 4
 
-=item dahdi - /etc/dahdi/system.conf
+=item Hardware
 
-Configuration for dahdi_cfg(1). Its location may be overriden by the
-environment variable DAHDI_CONF_FILE.
+ The actual dahdi hardware is automatically detected on the host.
 
-=item modules /etc/dahdi/modules
+=item /etc/dahdi/genconf_params
 
-List of DAHDI kernel modules to be loaded by the init.d script. One
-module per line. Its location may be overriden with the variable
-DAHDI_MODS_FILE.
-
-=item chan_dahdi - /etc/asterisk/dahdi-channels.conf
-
-Configuration for asterisk(1). It should be included in the main /etc/asterisk/chan_dahdi.conf.
-Its location may be overriden by the environment variable 
-CHAN_DAHDI_CHANNELS_FILE.
-
-=item users - /etc/asterisk/users.conf
-
-Configuration for asterisk(1) and AsteriskGUI.
-Its location may be overriden by the environment variable USERS_FILE.
-
-=item asterisk - /var/lib/asterisk/asterisk-detected-zap.conf
-
-Dump information (hardware, spans and channels) in the format of an 
-Asterisk configuration file.
-
-=item chan_dahdi_full - /etc/asterisk/chan_dahdi.conf
-
-Configuration for asterisk(1) and AsteriskGUI.
-Its location may be overriden by the environment variable CHAN_DAHDI_CONF_FILE.
+A configuration file that supplements the hardware information.
+Its location may be overriden via the C<GENCONF_PARAMETERS> environment
+variable.
 
 =back
 
-=head1 EXAMPLES
+The dahdi_genconf script can generate various kinds of configuration files
+as specificed by the generator arguments.  Each generator is a perl classes
+in Dahdi::Config::Gen namespace.  The generator names on the command line
+are the class names in lowercase.
 
-Generate /etc/dahdi/system.conf ('dahdi') and a snippet of
-chan_dahdi.conf ('chan_dahdi'):
+The following generators are currently implemented: system, chandahdi, unicall, users.
+For further documentation on each, please user perldoc on the relevant
+class. E.g: C<perldoc Dahdi::Config::Gen::Chandahdi>
 
-  dahdi_genconf
+Each generator on the command line may be passed custom options by assigning
+a comma separated list of options to the generator name. E.g:
 
-Create those two files, and /etc/dahdi/modules:
+ dahdi_genconf system chandahdi=verbose unicall
 
-  dahdi_genconf chan_dahdi dahdi modules
+Global options:
 
-Print Asterisk configuration-file formatted report to the standard
-output:
+=over 4
 
-  ASTERISK_FILE=- dahdi_conf asterisk
+=item -v
+
+Verbose -- also sets the C<'verbose'> option for all generators.
+
+=back
