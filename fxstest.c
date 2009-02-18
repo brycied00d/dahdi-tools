@@ -200,7 +200,6 @@ int main(int argc, char *argv[])
 			regop.val = val;
 			if (!strcasecmp(argv[2], "setindirect")) {
 				regop.indirect = 1;
-				regop.val &= 0xff;
 			} else {
 				regop.indirect = 0;
 			}
