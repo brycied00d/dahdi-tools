@@ -100,6 +100,8 @@ my %pci_ids = (
 	'1397:16b8'		=> { DRIVER => 'qozap', DESCRIPTION => 'Junghanns OctoBRI ISDN card' },
 	'1397:30b1'		=> { DRIVER => 'cwain', DESCRIPTION => 'HFC-E1 ISDN E1 card' },
 	'1397:2bd0'		=> { DRIVER => 'zaphfc', DESCRIPTION => 'HFC-S ISDN BRI card' },
+	# Has three submodels. Tested with 0675:1704:
+	'1043:0675'		=> { DRIVER => 'zaphfc', DESCRIPTION => 'ASUSTeK Computer Inc. ISDNLink P-IN100-ST-D' },
 	'1397:f001'		=> { DRIVER => 'ztgsm', DESCRIPTION => 'HFC-GSM Cologne Chips GSM' },
 
 	# Rhino cards (based on pci.ids)
