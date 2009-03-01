@@ -360,6 +360,23 @@ int recv_usb(const char *msg, struct my_usb_device *mydev, char *buf, size_t len
 	return ret;
 }
 
+int flush_read(struct my_usb_device *mydev)
+{
+	char		tmpbuf[BUFSIZ];
+	int		ret;
+
+	memset(tmpbuf, 0, BUFSIZ);
+	ret = recv_usb("flush_read", mydev, tmpbuf, sizeof(tmpbuf), TIMEOUT);
+	if(ret < 0 && ret != -ETIMEDOUT) {
+		ERR("ret=%d\n", ret);
+		return ret;
+	} else if(ret > 0) {
+		DBG("Got %d bytes:\n", ret);
+		dump_packet(__FUNCTION__, tmpbuf, ret);
+	}
+	return 0;
+}
+
 #ifdef	XORCOM_INTERNAL
 int eeprom_set(struct my_usb_device *mydev, const struct myeeprom *eeprom)
 {
@@ -636,6 +653,10 @@ int my_usb_device_init(const char devpath[], struct my_usb_device *mydev, const 
 	}
 	if(usb_clear_halt(mydev->handle, mydev->my_ep_in) != 0) {
 		ERR("Clearing input endpoint: %s\n", usb_strerror());
+		return 0;
+	}
+	if(flush_read(mydev) < 0) {
+		ERR("flush_read failed\n");
 		return 0;
 	}
 	return 1;
