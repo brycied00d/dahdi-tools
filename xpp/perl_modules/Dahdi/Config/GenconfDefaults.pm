@@ -14,7 +14,14 @@ sub new($$) {
 	my $cfg_file = shift || die;
 	my $self = { GENCONF_FILE => $cfg_file };
 	bless $self, $pack;
-	open(F, $cfg_file) || return $self; # Empty configuration
+	if(!open(F, $cfg_file)) {
+		if(defined($!{ENOENT})) {
+			#print STDERR "No $cfg_file. Assume empty config\n";
+			return $self; # Empty configuration
+		}
+		die "$pack: Failed to open '$cfg_file': $!\n";
+	}
+	#print STDERR "$pack: $cfg_file\n";
 	my $array_key;
 	while(<F>) {
 		my ($key, $val);
@@ -43,11 +50,15 @@ sub new($$) {
 
 sub dump($) {
 	my $self = shift || die;
+	print STDERR "Genconf dump:\n";
 	foreach my $k (sort keys %$self) {
 		my $val = $self->{$k};
 		my $ref = ref $val;
+		#print STDERR "DEBUG: '$k', '$ref', '$val'\n";
 		if($ref eq '') {
 			printf STDERR "%-20s %s\n", $k, $val;
+		} elsif($ref eq 'SCALAR') {
+			printf STDERR "%-20s %s\n", $k, ${$val};
 		} elsif($ref eq 'ARRAY') {
 			printf STDERR "%s\n", $k;
 			foreach my $v (@{$val}) {

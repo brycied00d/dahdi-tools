@@ -171,6 +171,7 @@ users - Generate configuration for users.conf.
 
 =head1 DESCRIPTION
 
-Generate the F</etc/asterisk/users.conf> which is used by asterisk(1) and AsteriskGUI.
+Generate the F</etc/asterisk/users.conf> which is used by asterisk(1) 
+and AsteriskGUI.
 
 Its location may be overriden via the environment variable F<USERS_FILE>.

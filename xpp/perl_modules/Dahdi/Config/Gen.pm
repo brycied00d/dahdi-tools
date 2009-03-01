@@ -7,7 +7,8 @@ require Exporter;
 use strict;
 
 sub is_true($) {
-	my $val = shift || die;
+	my $val = shift;
+	return undef unless defined $val;
 	return $val =~ /^(1|y|yes)$/i;
 }
 
