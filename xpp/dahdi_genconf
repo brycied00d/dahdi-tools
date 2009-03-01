@@ -16,6 +16,9 @@ use Dahdi;
 use Dahdi::Xpp;
 use Dahdi::Config::GenconfDefaults;
 
+my $version = '1';	# Functionality version (integer)
+my $revision = '$Revision$';
+
 my %opts;
 my $genconf_defaults;
 
@@ -72,6 +75,7 @@ my $echo_can = 'mg2';
 my %global_config = (
 		'genconf_file'	=> 'HARD-CODED-DEFAULT',	# GenconfDefaults override
 		'base_exten'	=> 4000,
+		'freepbx'	=> 'no',			# Better via -F command line
 		'fxs_immediate'	=> 'no',
 		'loadzone'	=> $lc_country,
 		'defaultzone'	=> $lc_country,
@@ -80,7 +84,7 @@ my %global_config = (
 		'bri_hardhdlc'	=> 'no',
 		'bri_sig_style'	=> 'bri_ptmp',
 		'r2_idle_bits'	=> '1101',
-		'bri_overlapdial'	=> 'no',
+		'brint_overlap'	=> 'no',
 		'pri_connection_type'	=> 'PRI', # PRI or R2
 		'dahdi_signalling'	=> \%default_dahdi_signalling,
 		'chan_dahdi_signalling'	=> \%default_chan_dahdi_signalling,
@@ -89,6 +93,7 @@ my %global_config = (
 my %dahdi_default_vars = (
 		GENCONF_FILE		=> \$global_config{'genconf_file'},
 		base_exten		=> \$global_config{'base_exten'},
+		freepbx			=> \$global_config{'freepbx'},
 		fxs_immediate		=> \$global_config{'fxs_immediate'},
 		fxs_default_start	=> \$fxs_default_start,
 		lc_country		=> [
@@ -106,7 +111,7 @@ my %dahdi_default_vars = (
 					],
 		group_lines		=> \$default_group{FXO},
 		bri_sig_style		=> \$global_config{'bri_sig_style'},
-		bri_overlapdial		=> \$global_config{'bri_overlapdial'},
+		brint_overlap		=> \$global_config{'brint_overlap'},
 		pri_termtype		=> \$pri_termtype,
 		pri_connection_type	=> \$global_config{'pri_connection_type'},
 		r2_idle_bits		=> \$global_config{'r2_idle_bits'},
@@ -147,7 +152,6 @@ sub set_defaults {
 	if($opts{v}) {
 		print "Default parameters from ", $genconf_defaults->{GENCONF_FILE}, "\n";
 	}
-	#$genconf_defaults->dump;
 	map_dahdi_defaults(%$genconf_defaults);
 	foreach my $span (@spans) {
 		if($span->is_pri) {
@@ -158,12 +162,12 @@ sub set_defaults {
 	foreach my $val (values %default_dahdi_signalling, values %default_chan_dahdi_signalling) {
 		$val =~ s/{fxs_default_start}/$fxs_default_start/g;
 	}
+	#$genconf_defaults->dump;
 }
 
 sub parse_args {
 	my @default_generators;
 
-	getopts('v', \%opts);
 	if (@ARGV) {
 		for my $gen (@ARGV) {
 			push @default_generators, $gen;
@@ -214,8 +218,18 @@ sub generate_files(@) {
 		die "Illegal name '$name'\n" unless $name =~ /^\w+$/;
 		$name =~ s/(.)(.*)/\u$1\L$2/;
 		my %genopts = parse_genopts($optstr);
+		$genopts{'freepbx'} = 'yes' if $opts{'F'};
 		run_generator($name, \%genopts);
 	}
+}
+
+getopts('vVF', \%opts) || die "$0: Bad option\n";
+if($opts{'V'}) {
+	my $revstr = $revision;
+	$revstr =~ s/[^$]*\$[^:]+:\s*//;
+	$revstr =~ s/\s*\$.*//;
+	print "$0: version=$version revision=$revstr\n";
+	exit 0;
 }
 
 my @default_generators = parse_args;
@@ -269,8 +283,18 @@ Global options:
 
 =over 4
 
+=item -V
+
+Version -- print version string and exit.
+
 =item -v
 
-Verbose -- also sets the C<'verbose'> option for all generators.
+Verbose -- sets the C<'verbose'> option for all generators.
+
+=item -F
+
+Freepbx -- sets the C<'freepbx'> option for all generators.
+Currently, chandahdi is affected.
+
 
 =back

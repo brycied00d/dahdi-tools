@@ -155,7 +155,7 @@ HEAD
 			$self->gen_digital($span);
 		} else {
 			foreach my $chan ($span->chans()) {
-				if($genopts->{'freepbx'}) {
+				if(is_true($genopts->{'freepbx'}) || is_true($gconfig->{'freepbx'})) {
 					# Freepbx has its own idea about channels
 					my $type = $chan->type;
 					if($type eq 'FXS' || $type eq 'OUT' || $type eq 'IN') {
@@ -208,3 +208,6 @@ Output ports. This is done because these channel definitions need to be
 generated and inserted into I<freepbx> database anyway.
 
 =back
+
+The I<freepbx> option may be activated also by adding a C<freepbx yes> line
+to the C<genconf_parameters> file.

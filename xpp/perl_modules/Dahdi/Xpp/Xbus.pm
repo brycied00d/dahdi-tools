@@ -46,13 +46,16 @@ sub get_xpd_by_number($$) {
 	return $wanted;
 }
 
+my %file_warned;	# Prevent duplicate warnings about same file.
+
 sub xbus_attr_path($$) {
 	my ($busnum, @attr) = @_;
 	foreach my $attr (@attr) {
 		my $file = sprintf "$Dahdi::Xpp::sysfs_astribanks/xbus-%02d/$attr", $busnum;
 		unless(-f $file) {
 			my $procfile = sprintf "/proc/xpp/XBUS-%02d/$attr", $busnum;
-			warn "$0: OLD DRIVER: missing '$file'. Fall back to '$procfile'\n";
+			warn "$0: warning - OLD DRIVER: missing '$file'. Fall back to '$procfile'\n"
+				unless $file_warned{$attr}++;
 			$file = $procfile;
 		}
 		next unless -f $file;
@@ -92,6 +95,40 @@ sub read_attrs() {
 	}
 }
 
+sub read_xpdnames_old($) {
+	my $xbus_num = shift || die;
+	my $pat = sprintf "/proc/xpp/XBUS-%02d/XPD-[0-9][0-9]", $xbus_num;
+	my @xpdnames;
+
+	#print STDERR "read_xpdnames_old($xbus_num): $pat\n";
+	foreach (glob $pat) {
+		die "Bad /proc entry: '$_'" unless /^.*XPD-([0-9])([0-9])$/;
+		my $name = sprintf("%02d:%1d:%1d", $xbus_num, $1, $2);
+		#print STDERR "\t> $_ ($name)\n";
+		push(@xpdnames, $name);
+	}
+	return @xpdnames;
+}
+
+sub read_xpdnames($) {
+	my $xbus_num = shift || die;
+	my $xbus_dir = "$Dahdi::Xpp::sysfs_astribanks/xbus-$xbus_num";
+	my $pat = sprintf "%s/xbus-%02d/[0-9][0-9]:[0-9]:[0-9]", $Dahdi::Xpp::sysfs_astribanks, $xbus_num;
+	my @xpdnames;
+
+	#print STDERR "read_xpdnames($xbus_num): $pat\n";
+	foreach (glob $pat) {
+		die "Bad /sys entry: '$_'" unless m/^.*\/([0-9][0-9]):([0-9]):([0-9])$/;
+		my ($busnum, $unit, $subunit) = ($1, $2, $3);
+		my $name = sprintf("%02d:%1d:%1d", $1, $2, $3);
+		#print STDERR "\t> $_ ($name)\n";
+		push(@xpdnames, $name);
+	}
+	return @xpdnames;
+}
+
+my $warned_notransport = 0;
+
 sub new($$) {
 	my $pack = shift or die "Wasn't called as a class method\n";
 	my $num = shift;
@@ -116,18 +153,22 @@ sub new($$) {
 			warn "Bad USB transport='$transport' usbdev='$usbdev'\n";
 		}
 	}
-	@{$self->{XPDS}} = ();
-	opendir(D, $xbus_dir) || die "Failed opendir($xbus_dir): $!";
-	while(my $entry = readdir D) {
-		$entry =~ /^([0-9]+):([0-9]+):([0-9]+)$/ or next;
-		my ($busnum, $unit, $subunit) = ($1, $2, $3);
-		my $procdir = "/proc/xpp/XBUS-$busnum/XPD-$unit$subunit";
-		#print STDERR "busnum=$busnum, unit=$unit, subunit=$subunit procdir=$procdir\n";
-		my $xpd = Dahdi::Xpp::Xpd->new($self, $unit, $subunit, $procdir, "$xbus_dir/$entry");
-		push(@{$self->{XPDS}}, $xpd);
+	my @xpdnames;
+	my @xpds;
+	if(-e $transport) {
+		@xpdnames = read_xpdnames($num);
+	} else {
+		@xpdnames = read_xpdnames_old($num);
+		warn "$0: warning - OLD DRIVER: missing '$transport'. Fall back to /proc\n"
+			unless $warned_notransport++;
 	}
-	closedir D;
-	@{$self->{XPDS}} = sort { $a->id <=> $b->id } @{$self->{XPDS}};
+	foreach my $xpdstr (@xpdnames) {
+		my ($busnum, $unit, $subunit) = split(/:/, $xpdstr);
+		my $procdir = "/proc/xpp/XBUS-$busnum/XPD-$unit$subunit";
+		my $xpd = Dahdi::Xpp::Xpd->new($self, $unit, $subunit, $procdir, "$xbus_dir/$xpdstr");
+		push(@xpds, $xpd);
+	}
+	@{$self->{XPDS}} = sort { $a->id <=> $b->id } @xpds;
 	return $self;
 }
 

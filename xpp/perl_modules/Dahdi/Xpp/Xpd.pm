@@ -12,6 +12,8 @@ use Dahdi::Utils;
 use Dahdi::Xpp;
 use Dahdi::Xpp::Line;
 
+my %file_warned;	# Prevent duplicate warnings about same file.
+
 sub xpd_attr_path($@) {
 	my $self = shift || die;
 	my ($busnum, $unitnum, $subunitnum, @attr) = (
@@ -25,7 +27,8 @@ sub xpd_attr_path($@) {
 		unless(-f $file) {
 			my $procfile = sprintf "/proc/xpp/XBUS-%02d/XPD-%1d%1d/$attr",
 			   $busnum, $unitnum, $subunitnum;
-			warn "$0: OLD DRIVER: missing '$file'. Fall back to /proc\n";
+			warn "$0: warning - OLD DRIVER: missing '$file'. Fall back to /proc\n"
+				unless $file_warned{$attr}++;
 			$file = $procfile;
 		}
 		next unless -f $file;
@@ -47,13 +50,56 @@ sub xpd_old_gettype($) {
 	return $head;
 }
 
+sub xpd_old_getspan($) {
+	my $xpd = shift || die;
+	my $dahdi_registration = "/proc/xpp/" . $xpd->fqn . "/dahdi_registration";
+	open(F, $dahdi_registration) or die "Failed to open '$dahdi_registration': $!";
+	my $head = <F>;
+	close F;
+	chomp $head;
+	return $head;
+}
+
+sub xpd_old_getoffhook($) {
+	my $xpd = shift || die;
+	my $summary = "/proc/xpp/" . $xpd->fqn . "/summary";
+	my $channels;
+
+	local $/ = "\n";
+	open(F, "$summary") || die "Failed opening $summary: $!\n";
+	my $head = <F>;
+	chomp $head;	# "XPD-00 (BRI_TE ,card present, span 3)"
+	my $offhook;
+	while(<F>) {
+		chomp;
+		if(s/^\s*offhook\s*:\s*//) {
+			s/\s*$//;
+			$offhook = $_;
+			$offhook || die "No channels in '$summary'";
+			last;
+		}
+	}
+	close F;
+	return $offhook;
+}
+
+my %attr_missing_warned;	# Prevent duplicate warnings
+
 sub xpd_getattr($$) {
 	my $xpd = shift || die;
 	my $attr = shift || die;
 	$attr = lc($attr);
-	my $file = xpd_attr_path($xpd, lc($attr));
+	my $file = $xpd->xpd_attr_path(lc($attr));
 
+	# Handle special cases for backward compat
 	return xpd_old_gettype($xpd) if $attr eq 'type' and !defined $file;
+	return xpd_old_getspan($xpd) if $attr eq 'span' and !defined $file;
+	return xpd_old_getoffhook($xpd) if $attr eq 'offhook' and !defined $file;
+	if(!defined($file)) {
+		warn "$0: xpd_getattr($attr) -- Missing attribute.\n" if
+			$attr_missing_warned{$attr};
+		return undef;
+	}
 	open(F, $file) || return undef;
 	my $val = <F>;
 	close F;
@@ -136,29 +182,15 @@ sub new($$$$$) {
 	my $self = {
 		XBUS		=> $xbus,
 		ID		=> "$unit$subunit",
+		FQN		=> $xbus->name . "/" . "XPD-$unit$subunit",
 		UNIT		=> $unit,
 		SUBUNIT		=> $subunit,
 		DIR		=> $procdir,
 		SYSFS_DIR	=> $sysfsdir,
 		};
 	bless $self, $pack;
-	local $/ = "\n";
-	open(F, "$procdir/summary") || die "Missing summary file in $procdir";
-	my $head = <F>;
-	chomp $head;	# "XPD-00 (BRI_TE ,card present, span 3)"
-	# The driver does not export the number of channels...
-	# Let's find it indirectly
-	while(<F>) {
-		chomp;
-		if(s/^\s*offhook\s*:\s*//) {
-			my @offhook = split;
-			@offhook || die "No channels in '$procdir/summary'";
-			$self->{CHANNELS} = @offhook;
-			last;
-		}
-	}
-	close F;
-	$self->{FQN} = $xbus->name . "/" . "XPD-$unit$subunit";
+	my @offhook = split / /, ($self->xpd_getattr('offhook'));
+	$self->{CHANNELS} = @offhook;
 	my $type = $self->xpd_getattr('type');
 	my $span = $self->xpd_getattr('span');
 	$self->{SPANNO} = $span;
