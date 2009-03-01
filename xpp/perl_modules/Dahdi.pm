@@ -22,7 +22,7 @@ hardware and loaded Dahdi devices.
   # Listing channels in analog spans:
   use Dahdi;
   # scans system:
-  my @xbuses = Dahdi::spans();
+  my @spans = Dahdi::spans();
   for my $span (@spans) {
     next if ($span->is_digital);
      $span->num. " - [". $span->type ."] ". $span->name. "\n";
