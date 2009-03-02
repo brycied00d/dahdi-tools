@@ -73,7 +73,7 @@ sub generate($) {
 	my $file = $self->{FILE};
 	my $gconfig = $self->{GCONFIG};
 	my $genopts = $self->{GENOPTS};
-	#Dahdi::Config::Gen::show_gconfig($gconfig);
+	#$gconfig->dump;
 	my @spans = @_;
 	warn "Empty configuration -- no spans\n" unless @spans;
 	rename "$file", "$file.bak"

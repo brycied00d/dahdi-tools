@@ -107,7 +107,7 @@ sub generate($$$) {
 	rename "$file", "$file.bak"
 		or $! == 2	# ENOENT (No dependency on Errno.pm)
 		or die "Failed to backup old config: $!\n";
-	#Dahdi::Config::Gen::show_gconfig($gconfig);
+	#$gconfig->dump;
 	print "Generating $file\n" if $genopts->{verbose};
 	open(F, ">$file") || die "$0: Failed to open $file: $!\n";
 	my $old = select F;

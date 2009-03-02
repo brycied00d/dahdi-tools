@@ -14,187 +14,52 @@ BEGIN { my $dir = dirname($0); unshift(@INC, "$dir", "$dir/perl_modules"); }
 use Getopt::Std;
 use Dahdi;
 use Dahdi::Xpp;
-use Dahdi::Config::GenconfDefaults;
+use Dahdi::Config::Gen;
+use Dahdi::Config::Params;
 
 my $version = '1';	# Functionality version (integer)
 my $revision = '$Revision$';
 
 my %opts;
-my $genconf_defaults;
-
-my %default_context = (
-	FXO	=> 'from-pstn',
-	FXS	=> 'from-internal',
-	IN	=> 'astbank-input',
-	OUT	=> 'astbank-output',
-	BRI_TE	=> 'from-pstn',
-	BRI_NT	=> 'from-internal',
-	E1_TE	=> 'from-pstn',
-	T1_TE	=> 'from-pstn',
-	J1_TE	=> 'from-pstn',
-	E1_NT	=> 'from-internal',
-	T1_NT	=> 'from-internal',
-	J1_NT	=> 'from-internal',
-	);
-
-my %default_group = (
-	FXO	=> 0,
-	FXS	=> "5",
-	IN	=> '',
-	OUT	=> '',
-	BRI_TE	=> 0,
-	BRI_NT	=> 6,
-	E1_TE	=> 0,
-	T1_TE	=> 0,
-	J1_TE	=> 0,
-	E1_NT	=> 6,
-	T1_NT	=> 6,
-	J1_NT	=> 6,
-	);
-
-my $fxs_default_start = 'ks';
-
-my %default_dahdi_signalling = (
-	FXO	=> 'fxsks',
-	FXS	=> "fxo{fxs_default_start}",
-	IN	=> "fxo{fxs_default_start}",
-	OUT	=> "fxo{fxs_default_start}",
-	);
-
-my %default_chan_dahdi_signalling = (
-	FXO	=> 'fxs_ks',
-	FXS	=> "fxo_{fxs_default_start}",
-	IN	=> "fxo_{fxs_default_start}",
-	OUT	=> "fxo_{fxs_default_start}",
-	);
-
-my $lc_country = 'us';
-my $pri_termtype = 'SPAN/* TE';
-my $echo_can = 'mg2';
-
-my %global_config = (
-		'genconf_file'	=> 'HARD-CODED-DEFAULT',	# GenconfDefaults override
-		'base_exten'	=> 4000,
-		'freepbx'	=> 'no',			# Better via -F command line
-		'fxs_immediate'	=> 'no',
-		'loadzone'	=> $lc_country,
-		'defaultzone'	=> $lc_country,
-		'context'	=> \%default_context,
-		'group'		=> \%default_group,
-		'bri_hardhdlc'	=> 'no',
-		'bri_sig_style'	=> 'bri_ptmp',
-		'r2_idle_bits'	=> '1101',
-		'brint_overlap'	=> 'no',
-		'pri_connection_type'	=> 'PRI', # PRI or R2
-		'dahdi_signalling'	=> \%default_dahdi_signalling,
-		'chan_dahdi_signalling'	=> \%default_chan_dahdi_signalling,
-	);
-
-my %dahdi_default_vars = (
-		GENCONF_FILE		=> \$global_config{'genconf_file'},
-		base_exten		=> \$global_config{'base_exten'},
-		freepbx			=> \$global_config{'freepbx'},
-		fxs_immediate		=> \$global_config{'fxs_immediate'},
-		fxs_default_start	=> \$fxs_default_start,
-		lc_country		=> [
-						\$global_config{'loadzone'},
-						\$global_config{'defaultzone'},
-					],
-		context_lines		=> \$default_context{FXO},
-		context_phones		=> \$default_context{FXS},
-		context_input		=> \$default_context{IN},
-		context_output		=> \$default_context{OUT},
-		group_phones		=> [
-						\$default_group{FXS},
-						\$default_group{IN},
-						\$default_group{OUT},
-					],
-		group_lines		=> \$default_group{FXO},
-		bri_sig_style		=> \$global_config{'bri_sig_style'},
-		brint_overlap		=> \$global_config{'brint_overlap'},
-		pri_termtype		=> \$pri_termtype,
-		pri_connection_type	=> \$global_config{'pri_connection_type'},
-		r2_idle_bits		=> \$global_config{'r2_idle_bits'},
-		echo_can		=> \$echo_can,
-		bri_hardhdlc		=> \$global_config{'bri_hardhdlc'},
-		);
-
-sub map_dahdi_defaults {
-	my %defaults = @_;
-	foreach my $name (keys %defaults) {
-		my $val = $defaults{$name};
-		my $ref = $dahdi_default_vars{$name};
-		my $type = ref $ref;
-		my @vars = ();
-		# Some broken shells (msh) export even variables
-		# That where not defined. Work around that.
-		next unless defined $val && $val ne '';
-		if($type eq 'SCALAR') {
-			@vars = ($ref);
-		} elsif($type eq 'ARRAY') {
-			@vars = @$ref;
-		} else {
-			die "$0: Don't know how to map '$name' (type=$type)\n";
-		}
-		foreach my $v (@vars) {
-			$$v = $val;
-			#printf STDERR "%-20s %s\n", $v, $val;
-		}
-	}
-}
-
-my @spans = Dahdi::spans();
 
 sub set_defaults {
-	# Source default files
 	my $default_file = $ENV{GENCONF_PARAMETERS} || "/etc/dahdi/genconf_parameters";
-	$genconf_defaults = Dahdi::Config::GenconfDefaults->new($default_file);
+	my $params = Dahdi::Config::Params->new($default_file);
+	#$params->dump;
 	if($opts{v}) {
-		print "Default parameters from ", $genconf_defaults->{GENCONF_FILE}, "\n";
+		print "Default parameters from ", $params->{GENCONF_FILE}, "\n";
 	}
-	map_dahdi_defaults(%$genconf_defaults);
-	foreach my $span (@spans) {
-		if($span->is_pri) {
-			$span->pri_set_fromconfig($genconf_defaults);
-		}
-	}
-	# Fixups
-	foreach my $val (values %default_dahdi_signalling, values %default_chan_dahdi_signalling) {
-		$val =~ s/{fxs_default_start}/$fxs_default_start/g;
-	}
-	#$genconf_defaults->dump;
+	my $gconfig = Dahdi::Config::Gen->new($params);
+	#$gconfig->dump;
+	return $gconfig;
 }
 
-sub parse_args {
-	my @default_generators;
+sub spans_prep($@) {
+	my $gconfig = shift || die;
+	my @spans = @_;
+	foreach my $span (@spans) {
+		if($span->is_pri) {
+			$span->pri_set_fromconfig($gconfig);
+		}
+	}
+}
+
+sub generator_list($) {
+	my $gconfig = shift || die;
+	my @genlist;
 
 	if (@ARGV) {
 		for my $gen (@ARGV) {
-			push @default_generators, $gen;
+			push @genlist, $gen;
 		}
 	} else {
 		# No files given. Use the defaults.
-		@default_generators = ('system', 'chandahdi');
-		if($global_config{'pri_connection_type'} eq 'R2') {
-			push @default_generators, 'unicall';
+		@genlist = ('system', 'chandahdi');
+		if($gconfig->{'pri_connection_type'} eq 'R2') {
+			push @genlist, 'unicall';
 		}
 	}
-	return @default_generators;
-}
-
-sub run_generator($$) {
-	my ($name, $genopts) = @_;
-
-	if(defined $opts{'v'}) {
-		$genopts->{'verbose'} = $opts{v};
-	}
-	my $module = "Dahdi::Config::Gen::$name";
-	eval "use $module";
-	if($@) {
-		die "Failed to load configuration generator for '$name'\n";
-	}
-	my $cfg = new $module(\%global_config, $genopts);
-	$cfg->generate(@spans);
+	return @genlist;
 }
 
 sub parse_genopts($) {
@@ -210,16 +75,21 @@ sub parse_genopts($) {
 	return %genopts;
 }
 
-sub generate_files(@) {
-	my @default_generators = @_;
+sub generate_files($@) {
+	my $gconfig = shift || die;
+	my @spans = @_;
+	my @generators = generator_list($gconfig);
 
-	for my $gen (@default_generators) {
+	for my $gen (@generators) {
 		my ($name, $optstr) = split(/=/, $gen, 2);
 		die "Illegal name '$name'\n" unless $name =~ /^\w+$/;
 		$name =~ s/(.)(.*)/\u$1\L$2/;
 		my %genopts = parse_genopts($optstr);
 		$genopts{'freepbx'} = 'yes' if $opts{'F'};
-		run_generator($name, \%genopts);
+		if(defined $opts{'v'}) {
+			$genopts{'verbose'} = $opts{v};
+		}
+		$gconfig->run_generator($name, \%genopts, @spans);
 	}
 }
 
@@ -232,9 +102,10 @@ if($opts{'V'}) {
 	exit 0;
 }
 
-my @default_generators = parse_args;
-set_defaults;
-generate_files @default_generators;
+my $gconfig = set_defaults;
+my @spans = Dahdi::spans();
+spans_prep($gconfig, @spans);
+generate_files($gconfig, @spans);
 
 __END__
 
@@ -279,7 +150,7 @@ a comma separated list of options to the generator name. E.g:
 
  dahdi_genconf system chandahdi=verbose unicall
 
-Global options:
+=head1 Global options:
 
 =over 4
 
@@ -296,5 +167,30 @@ Verbose -- sets the C<'verbose'> option for all generators.
 Freepbx -- sets the C<'freepbx'> option for all generators.
 Currently, chandahdi is affected.
 
+
+=back
+
+=head1 Implementation notes:
+
+=over 4
+
+=item *
+
+F<genconf_parameters> parsing is done via C<Dahdi::Config::Params>.
+An object representing the parsed data is instanciated by:
+C<Dahdi::Config::Params-E<gt>new()>.
+The C<item()> method of this object contains all the hard coded
+defaults of the configuration directives.
+
+=item *
+
+A configuration object is instanciated by C<Dahdi::Config::Gen-E<gt>new($params)>.
+The mapping of configuration directives into semantic configuration is
+done in the constructor.
+
+=item *
+
+A single generator is run via the the C<run_generator()> method of the
+configuration object.
 
 =back
