@@ -19,6 +19,15 @@ sub new($$$) {
 
 my $bri_te_last_timing = 1;
 
+sub print_echo_can($$) {
+	my $gconfig = shift || die;
+	my $chans = shift || die; # channel or range of channels.
+	my $echo_can = $gconfig->{'echo_can'};
+	return if !defined($echo_can) || $echo_can eq 'none';
+
+	print "echocanceller=$echo_can,$chans\n";
+}
+
 sub gen_digital($$) {
 	my $gconfig = shift || die;
 	my $span = shift || die;
@@ -63,6 +72,7 @@ sub gen_digital($$) {
 		printf "cas=%s:$idle_bits\n", Dahdi::Config::Gen::bchan_range($span);
 		printf "dchan=%d\n", $span->dchan()->num();
 	}
+	print_echo_can($gconfig, Dahdi::Config::Gen::bchan_range($span));
 }
 
 sub gen_signalling($$) {
@@ -84,6 +94,7 @@ sub gen_signalling($$) {
 		printf "# astbanktype: output\n";
 	}
 	printf "$sig=$num\n";
+	print_echo_can($gconfig, $num);
 }
 
 sub generate($$$) {
