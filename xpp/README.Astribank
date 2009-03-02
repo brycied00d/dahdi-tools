@@ -1388,7 +1388,7 @@ not off-hook. For BRI and E1/T1 the value is 1 if the span is in use.
 This value can also be used to get the number of lines (channels) in
 this XPD: the count of items in this list.
 
-===== /sys/devices/xpp/xbus-NN/NN:M:P/span
+===== /sys/bus/astribanks/devices/xbus-NN/NN:M:P/span
 is a read/write file. Reading from it gives 0 if the span is
 unregistered, or the span number if it is registered.
 
