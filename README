@@ -126,6 +126,13 @@ Sample init.conf
 include::init.conf.asciidoc[]
 
 
+Sample genconf_parameters
+~~~~~~~~~~~~~~~~~~~~~~~~~
+FIXME: still not properly formatted.
+
+include::genconf_parameters.asciidoc[]
+
+
 Tonezones
 ~~~~~~~~~
 The file zonedata.c contains the information about the tone zones used

@@ -193,7 +193,11 @@ tonezones.txt: zonedata.c
 
 docs: $(GENERATED_DOCS)
 
-README.html: README system.conf.asciidoc init.conf.asciidoc tonezones.txt UPGRADE.txt
+genconf_parameters.sample: xpp/genconf_parameters
+	cp $< $@
+
+README.html: README system.conf.asciidoc init.conf.asciidoc tonezones.txt \
+  UPGRADE.txt genconf_parameters.asciidoc
 	$(ASCIIDOC) -n -a toc -a toclevels=3 $<
 
 README.Astribank.html: xpp/README.Astribank
