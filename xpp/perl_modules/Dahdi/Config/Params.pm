@@ -95,6 +95,7 @@ sub item($$) {
 			freepbx			=> 'no',	# Better via -F command line
 			fxs_immediate		=> 'no',
 			fxs_default_start	=> 'ks',
+			fxo_default_start	=> 'ks',
 			lc_country		=> 'us',
 			context_lines		=> 'from-pstn',
 			context_phones		=> 'from-internal',

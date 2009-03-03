@@ -88,6 +88,7 @@ sub new($) {
 
 	# Set defaults
 	my $fxs_default_start = $p->item('fxs_default_start');
+	my $fxo_default_start = $p->item('fxo_default_start');
 
 	my %default_context = (
 		FXO	=> $p->item('context_lines'),
@@ -108,23 +109,23 @@ sub new($) {
 		FXS	=> $p->item('group_phones'),
 		IN	=> '',
 		OUT	=> '',
-		BRI_TE	=> 0,
-		BRI_NT	=> 6,
-		E1_TE	=> 0,
-		T1_TE	=> 0,
-		J1_TE	=> 0,
-		E1_NT	=> 6,
-		T1_NT	=> 6,
-		J1_NT	=> 6,
+		BRI_TE	=> $p->item('group_lines'),
+		BRI_NT	=> $p->item('group_lines'),
+		E1_TE	=> $p->item('group_lines'),
+		T1_TE	=> $p->item('group_lines'),
+		J1_TE	=> $p->item('group_lines'),
+		E1_NT	=> $p->item('group_lines'),
+		T1_NT	=> $p->item('group_lines'),
+		J1_NT	=> $p->item('group_lines'),
 		);
 	my %default_dahdi_signalling = (
-		FXO	=> 'fxsks',
+		FXO	=> "fxs$fxo_default_start",
 		FXS	=> "fxo$fxs_default_start",
 		IN	=> "fxo$fxs_default_start",
 		OUT	=> "fxo$fxs_default_start",
 		);
 	my %default_chan_dahdi_signalling = (
-		FXO	=> 'fxs_ks',
+		FXO	=> "fxs_$fxo_default_start",
 		FXS	=> "fxo_$fxs_default_start",
 		IN	=> "fxo_$fxs_default_start",
 		OUT	=> "fxo_$fxs_default_start",
