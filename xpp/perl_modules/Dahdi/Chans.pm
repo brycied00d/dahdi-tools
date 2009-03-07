@@ -190,7 +190,7 @@ sub probe_type($) {
 	my $num = $self->num;
 	my $type;
 
-	if($fqn =~ m:WCTDM/| WRTDM/|OPVXA1200/:) {
+	if($fqn =~ m:WCTDM/|WRTDM/|OPVXA1200/:) {
 		my %maybe;
 
 		undef %maybe;
