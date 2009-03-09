@@ -155,6 +155,9 @@ sub new($$$$$$) {
 		# ZTHFC: HFC-s single-port card (zaphfc/vzaphfc)
 		# ztqoz: qozap (Junghanns) multi-port HFC card
 		$type = "BRI";
+        } elsif ($fqn =~ m{\bDYN/.*}) {
+                # DYN : Dynamic span (TDMOE)
+                $type = "DYN"
 	} elsif ($fqn =~ m{\bztgsm/.*}) {
 		# Junghanns GSM card
 		$type = "GSM";
