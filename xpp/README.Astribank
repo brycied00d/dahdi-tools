@@ -1112,6 +1112,19 @@ parameter <<_zap_autoreg>> in the modprobe configuration file (A file under
   options xpp zap_autoreg=1
 
 
+Astribanks Synchronization Source
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+If there is more than one Astribank on the system, all the Astribanks
+keep their clock in sync. Optionally the Astribanks can synchronize
+their clock to the master DAHDI device (in case it is a different DAHDI
+device). Normally you just use the default init.d script or run
+explicitly:
+
+  xpp_sync auto
+
+(For now see the man page of xpp_sync for more information)
+
+
 DAHDI And Above
 ^^^^^^^^^^^^^^^
 From here you get a standard DAHDI span. The next step is to configure

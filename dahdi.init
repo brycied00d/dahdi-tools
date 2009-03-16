@@ -97,9 +97,6 @@ xpp_startup() {
 	# when locales are missing.
 	# No register all the devices if they didn't auto-register:
 	LC_ALL=C dahdi_registration on
-
-	# this one could actually be run after dahdi_cfg:
-	LC_ALL=C xpp_sync "$XPP_SYNC"
 }
 
 
@@ -222,6 +219,9 @@ case "$1" in
 		# Allowed to fail if e.g. Asterisk already uses channels:
 		$FXOTUNE -s || :
 	fi
+
+	# Set the right Astribanks ticker:
+	LC_ALL=C xpp_sync "$XPP_SYNC"
 
 	hpec_start
 	;;

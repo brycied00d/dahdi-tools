@@ -200,14 +200,27 @@ The parameter it is called with defaults to
 I<auto>, but it is possible to override that parameter (e.g: set it to
 I<dahdi>) through the value of XPP_SYNC in /etc/dahdi/init.conf .
 
+It should be run after dahdi_cfg as the configuration of a PRI module
+is set from it. It must be run after dahdi_registration as it only
+handles XPDs that are registered spans.
+
 =head1 FILES
 
 =over
 
+=item /sys/bus/astribanks/drivers/xppdrv/sync
+
+The low-level interface used by xpp_sync to set / read registration.
+
 =item /proc/xpp/sync
 
+(Deprecated: no longer supported)
 xpp_sync is essentially a nicer interface to /proc/xpp/sync . That file
 shows the current xpp sync master (and in what format you need to write
 to it to set the master).
+
+=head1 SEE ALSO
+
+dahdi_registration(1), dahdi_cfg(1), README.Astribank
 
 =back
