@@ -157,12 +157,12 @@ $(UTILS): version.o
 	$(CC) $(CFLAGS) $(MAKE_DEPS) -c -o $@ $<
 
 %: %.o
-	$(CC) $(LDFLAGS) -o $@ $^
+	$(CC) $(LDFLAGS) $^ $(LIBS) -o $@
 
 prereq: config.status
 
 dahdi_tool: CFLAGS+=$(NEWT_INCLUDE)
-dahdi_tool: LDFLAGS+=$(NEWT_LIB)
+dahdi_tool: LIBS+=$(NEWT_LIB)
 
 dahdi_speed: CFLAGS+=-O0
 
@@ -174,11 +174,11 @@ $(LTZ_SO): $(LTZ_SO_OBJS)
 	$(CC) $(CFLAGS) -shared -Wl,-soname,$(LTZ_SO).$(LTZ_SO_MAJOR_VER).$(LTZ_SO_MINOR_VER) -o $@ $^ -lm
 
 dahdi_cfg: $(LTZ_A)
-dahdi_cfg: LDFLAGS+=-lm
+dahdi_cfg: LIBS+=-lm
 
 fxstest: $(LTZ_SO)
-fxstest: LDFLAGS+=-lm
-fxotune: LDFLAGS+=-lm
+fxstest: LIBS+=-lm
+fxotune: LIBS+=-lm
 
 tonezones.txt: zonedata.c
 	perl -ne 'next unless (/\.(country|description) = *"([^"]*)/); \
