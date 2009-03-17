@@ -934,5 +934,25 @@ struct tone_zone builtin_zones[] =
 	  .mfr1_level = -10,
 	  .mfr2_level = -8,
 	},
+	{
+		.zone = 41,
+		.country = "tr",
+		.description = "Turkey",
+		.ringcadence = { 2000, 4000 },
+		.tones = {
+			{ DAHDI_TONE_DIALTONE,   "450" },
+			{ DAHDI_TONE_BUSY,       "450/500,0/500" },
+			{ DAHDI_TONE_RINGTONE,   "450/2000,0/4000" },
+			{ DAHDI_TONE_CONGESTION, "!450/200,!0/200,!450/200,!0/200,!450/200,!0/200,450/600,0/200" },
+			{ DAHDI_TONE_CALLWAIT,   "450/200,0/600,450/200,0/800" },
+			/* This should actually be 950+1400+1800, but we only support 2 tones at a time */
+			{ DAHDI_TONE_INFO,       "!950+1400/300,!0/1000,!950+1400/300,!0/1000,!950+1400/1000,0" },
+			{ DAHDI_TONE_STUTTER,    "!450/100,!0/100,!450/100,!0/100,!450/100,!0/100,!450/100,!0/100,!450/100,!0/100,!450/100,!0/100,450" },
+		},
+		.dtmf_high_level = -10,
+		.dtmf_low_level = -10,
+		.mfr1_level = -10,
+		.mfr2_level = -8,
+	},
 	{ .zone = -1 }
 };
