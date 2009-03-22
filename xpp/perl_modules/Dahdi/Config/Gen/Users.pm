@@ -88,6 +88,8 @@ sub generate($) {
 ;! Filename: @{[basename($file)]} ($file)
 ;! Generator: $0
 ;! Creation Date: @{[scalar(localtime)]}
+;! If you edit this file and execute $0 again,\n";
+;! your manual changes will be LOST.\n";
 ;!
 [general]
 ;
