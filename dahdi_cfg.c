@@ -723,8 +723,7 @@ static int setechocan(char *keyword, char *args)
 
 	for (x = 0; x < DAHDI_MAX_CHANNELS; x++) {
 		if (chans[x]) {
-			ae[x].chan = x;
-			dahdi_copy_string(ae[x].echocan, echocan, sizeof(ae[0].echocan));
+			dahdi_copy_string(ae[x].echocan, echocan, sizeof(ae[x].echocan));
 		}
 	}
 
@@ -1304,9 +1303,7 @@ static void printconfig(int fd)
 					printf("Channel %02d %s to %02d", x, sig[x], cc[x].idlebits);
 				else {
 					printf("Channel %02d: %s (%s)", x, sig[x], laws[cc[x].deflaw]);
-					if (ae[x].echocan[0]) {
-						printf(" (Echo Canceler: %s)", ae[x].echocan);
-					}
+					printf(" (Echo Canceler: %s)", ae[x].echocan[0] ? ae[x].echocan : "none");
 					for (y=1;y<DAHDI_MAX_CHANNELS;y++) {
 						if (cc[y].master == x)  {
 							printf("%s%02d", ps++ ? " " : " (Slaves: ", y);
@@ -1620,16 +1617,15 @@ finish:
 			exit(1);
 		}
 
-		if (ae[x].chan) {
-			if (verbose) {
-				printf("Setting echocan for channel %d to %s\n", 
-						ae[x].chan, ae[x].echocan);
-			}
-			if (ioctl(fd, DAHDI_ATTACH_ECHOCAN, &ae[x])) {
-				fprintf(stderr, "DAHDI_ATTACH_ECHOCAN failed on channel %d: %s (%d)\n", x, strerror(errno), errno);
-				close(fd);
-				exit(1);
-			}
+		ae[x].chan = x;
+		if (verbose) {
+			printf("Setting echocan for channel %d to %s\n", ae[x].chan, ae[x].echocan[0] ? ae[x].echocan : "none");
+		}
+
+		if (ioctl(fd, DAHDI_ATTACH_ECHOCAN, &ae[x])) {
+			fprintf(stderr, "DAHDI_ATTACH_ECHOCAN failed on channel %d: %s (%d)\n", x, strerror(errno), errno);
+			close(fd);
+			exit(1);
 		}
 	}
 	for (x=0;x<numzones;x++) {
