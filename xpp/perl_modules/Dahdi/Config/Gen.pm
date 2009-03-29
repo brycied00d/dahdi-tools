@@ -96,13 +96,13 @@ sub new($) {
 		IN	=> $p->item('context_input'),
 		OUT	=> $p->item('context_output'),
 		BRI_TE	=> $p->item('context_lines'),
-		BRI_NT	=> $p->item('context_phones'),
+		BRI_NT	=> $p->item('context_lines'),
 		E1_TE	=> $p->item('context_lines'),
 		T1_TE	=> $p->item('context_lines'),
 		J1_TE	=> $p->item('context_lines'),
-		E1_NT	=> $p->item('context_phones'),
-		T1_NT	=> $p->item('context_phones'),
-		J1_NT	=> $p->item('context_phones'),
+		E1_NT	=> $p->item('context_lines'),
+		T1_NT	=> $p->item('context_lines'),
+		J1_NT	=> $p->item('context_lines'),
 		);
 	my %default_group = (
 		FXO	=> $p->item('group_lines'),
