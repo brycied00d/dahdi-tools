@@ -150,7 +150,7 @@ a comma separated list of options to the generator name. E.g:
 
  dahdi_genconf system chandahdi=verbose unicall
 
-=head1 Global options:
+=head2 Global options:
 
 =over 4
 
@@ -170,7 +170,7 @@ Currently, chandahdi is affected.
 
 =back
 
-=head1 Implementation notes:
+=head2 Implementation notes:
 
 =over 4
 

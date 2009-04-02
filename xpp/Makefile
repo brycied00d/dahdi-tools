@@ -1,6 +1,5 @@
 PEDANTIC	= -ansi -pedantic -std=c99
 
-RANLIB		= ranlib
 INSTALL		= install
 INSTALL_DATA	= install -m 644
 
@@ -54,12 +53,20 @@ PERL_SCRIPTS	=	\
 
 PERL_MANS	= $(PERL_SCRIPTS:%=%.8)
 
-TARGETS	= perlcheck
-PROG_INSTALL	= #genzaptelconf
+ABHEXLOAD_OBJS		= astribank_hexload.o hexfile.o pic_loader.o astribank_usb.o mpp_funcs.o debug.o
+ABTOOL_OBJS		= astribank_tool.o astribank_usb.o mpp_funcs.o debug.o
+ABALLOW_OBJS		= astribank_allow.o astribank_usb.o mpp_funcs.o debug.o
+
+TARGETS	= .perlcheck
+PROG_INSTALL	= 
 MAN_INSTALL	= $(PROG_INSTALL:%=%.8)
 ifeq	(1,$(PBX_USB))
-TARGETS	+= libhexfile.a fpga_load test_parse
-PROG_INSTALL	+= fpga_load
+TARGETS	+= fpga_load		\
+	   astribank_tool	\
+	   astribank_hexload	\
+	   astribank_allow	\
+	   test_parse
+PROG_INSTALL	+= fpga_load astribank_tool astribank_hexload
 endif
 ifneq	(,$(PERLLIBDIR))
 PROG_INSTALL	+= $(PERL_SCRIPTS)
@@ -94,27 +101,34 @@ ifneq	(,$(PERLLIBDIR))
 	done
 endif
 
-libhexfile.a: hexfile.o
-	$(AR) cru $@ $^
-	$(RANLIB) $@
+fpga_load: fpga_load.o hexfile.o
+	$(CC) -L. -o $@ $^ $(EXTRA_LIBS) -lusb
 
-fpga_load: fpga_load.o libhexfile.a
-	$(CC) -L. -o $@ $@.o $(EXTRA_LIBS) -lhexfile -lusb
+astribank_hexload: $(ABHEXLOAD_OBJS)
+	$(CC) -L. -o $@ $(ABHEXLOAD_OBJS) $(EXTRA_LIBS) -lusb
+
+astribank_tool: $(ABTOOL_OBJS)
+	$(CC) -L. -o $@ $(ABTOOL_OBJS) $(EXTRA_LIBS) -lusb
+
+astribank_allow: $(ABALLOW_OBJS)
+	$(CC) -L. -o $@ $(ABALLOW_OBJS) $(EXTRA_LIBS) -lusb
 
 fpga_load.o: CFLAGS+=-D_GNU_SOURCE	# We use memrchr()
 
-hexfile.o: hexfile.c hexfile.h
-	$(CC) $(CFLAGS) $(PEDANTIC) -c $<
+test_parse: test_parse.o hexfile.o
+	$(CC) -L. -o $@ $^ $(EXTRA_LIBS) -lusb
 
-test_parse.o: test_parse.c hexfile.h
-	$(CC) $(CFLAGS) $(PEDANTIC) -c $<
 
-test_parse: test_parse.o libhexfile.a
-	$(CC) -L. -o $@ $@.o $(EXTRA_LIBS) -lhexfile -lusb
-
-perlcheck: $(PERL_SCRIPTS)
+.perlcheck: $(PERL_SCRIPTS)
 	for i in $^; do perl -I./perl_modules -c $$i || exit 1; done
 	touch $@
 
 clean:
-	$(RM) *.o $(TARGETS)
+	$(RM) .depend *.o $(TARGETS)
+
+.PHONY: depend
+depend: .depend
+.depend: *.c *.h
+	@$(CC) -MM *.c > $@ || rm -f $@
+
+include .depend

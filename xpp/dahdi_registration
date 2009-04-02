@@ -18,21 +18,24 @@ use Dahdi::Xpp::Xbus;
 use Getopt::Std;
 
 sub usage {
-	die "Usage: $0 [on|off|1|0]\n";
+	die "Usage: $0 [-s sort_order] [on|off|1|0]\n";
 }
 
 my %opts;
-getopts('s:', \%opts);
+getopts('s:', \%opts) || usage;
 
-my $sort_order = $opts{s} || $ENV{XBUS_SORT} || 'SORT_CONNECTOR';
-my $sorter = Dahdi::Xpp::sorters($sort_order);
+my $sorter;
+my $sort_order = $opts{'s'};
+if(defined $sort_order) {
+	my $sorter = Dahdi::Xpp::sorters($sort_order);
 
-if(!defined $sorter) {
-	my @sorter_names = Dahdi::Xpp::sorters;
-	print STDERR "Unknown sort order $sort_order. Select from:\n\t";
-	print STDERR join("\n\t", @sorter_names);
-	print STDERR "\n";
-	exit 1;
+	if(!defined $sorter) {
+		my @sorter_names = Dahdi::Xpp::sorters;
+		print STDERR "Unknown sort order $sort_order. Select from:\n\t";
+		print STDERR join("\n\t", @sorter_names);
+		print STDERR "\n";
+		exit 1;
+	}
 }
 
 @ARGV == 0 or @ARGV == 1 or usage;
@@ -58,7 +61,8 @@ sub myprintf {
 my @spans = Dahdi::spans;
 
 foreach my $xbus (Dahdi::Xpp::xbuses($sorter)) {
-	myprintf "%-10s\t%s\t%s\n", $xbus->name, $xbus->label, $xbus->connector;
+	myprintf "%-10s\t%3s-%s\t%s\n",
+		$xbus->name, $xbus->xpporder, $xbus->label, $xbus->connector;
 	next unless $xbus->status eq 'CONNECTED';
 	foreach my $xpd ($xbus->xpds()) {
 		my $prev = $xpd->dahdi_registration($on);
@@ -76,7 +80,7 @@ foreach my $xbus (Dahdi::Xpp::xbuses($sorter)) {
 		myprintf "%3s ==> %3s\n", state2str($prev), state2str($on);
 	}
 }
-myprintf "# Sorted: $sort_order\n";
+myprintf "# Sorted: $sort_order\n" if defined $sort_order;
 
 __END__
 
@@ -118,7 +122,7 @@ The sort order to use.
 
 If the option is not used, the sort order is taken from the environment 
 variable XBUS_SORT and failing that: the hard-coded default of 
-SORT_CONNECTOR.
+SORT_XPPORDER.
 
 The available sorting orders are documented in Dahdi::Xpp manual.
 

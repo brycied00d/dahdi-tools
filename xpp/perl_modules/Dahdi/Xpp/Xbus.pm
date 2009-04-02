@@ -9,6 +9,7 @@ package Dahdi::Xpp::Xbus;
 #
 use strict;
 use Dahdi::Utils;
+use Dahdi::Hardware;
 use Dahdi::Xpp::Xpd;
 
 my $proc_base = "/proc/xpp";
@@ -95,6 +96,19 @@ sub read_attrs() {
 	}
 }
 
+sub transport_type($$) {
+	my $xbus = shift || die;
+	my $xbus_dir = shift;
+	my $transport = "$xbus_dir/transport";
+	if(-e "$transport/ep_00") {	# It's USB
+		$xbus->{TRANSPORT_TYPE} = 'USB';
+	} else {
+		warn "Unkown transport in $xbus_dir\n";
+		undef $xbus->{TRANSPORT_TYPE};
+	}
+	return $xbus->{TRANSPORT_TYPE};
+}
+
 sub read_xpdnames_old($) {
 	my $xbus_num = shift || die;
 	my $pat = sprintf "/proc/xpp/XBUS-%02d/XPD-[0-9][0-9]", $xbus_num;
@@ -142,16 +156,11 @@ sub new($$) {
 	$self->read_attrs;
 	# Get transport related info
 	my $transport = "$xbus_dir/transport";
-	my ($usbdev) = glob("$transport/usb_device:*");
-	if(defined $usbdev) {	# It's USB
-		if($usbdev =~ /.*usb_device:usbdev(\d+)\.(\d+)/) {
-			my $busnum = $1;
-			my $devnum = $2;
-			#printf STDERR "DEBUG: %03d/%03d\n", $busnum, $devnum;
-			$self->{USB_DEVNAME} = sprintf("%03d/%03d", $busnum, $devnum);
-		} else {
-			warn "Bad USB transport='$transport' usbdev='$usbdev'\n";
-		}
+	my $transport_type = $self->transport_type($xbus_dir);
+	if(defined $transport_type) {
+		my $tt = "Dahdi::Hardware::$transport_type";
+		my $hw = $tt->set_transport($self, $xbus_dir);
+		#printf STDERR "Xbus::new transport($transport_type): %s\n", $hw->{HARDWARE_NAME};
 	}
 	my @xpdnames;
 	my @xpds;

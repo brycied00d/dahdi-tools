@@ -134,12 +134,13 @@ sub pci_sorter {
 	return $a->priv_device_name() cmp $b->priv_device_name();
 }
 
-sub new($$) {
-	my $pack = shift or die "Wasn't called as a class method\n";
-	my $self = { @_ };
+sub new($@) {
+	my $pack = shift || die "Wasn't called as a class method\n";
+	my %attr = @_;
+	my $name = sprintf("pci:%s", $attr{PRIV_DEVICE_NAME});
+	my $self = Dahdi::Hardware->new($name, 'PCI');
+	%{$self} = (%{$self}, %attr);
 	bless $self, $pack;
-	Dahdi::Hardware::device_detected($self,
-		sprintf("pci:%s", $self->{PRIV_DEVICE_NAME}));
 	return $self;
 }
 
@@ -197,7 +198,6 @@ sub scan_devices($) {
 		next unless defined $pci_ids{$key};
 
 		my $d = Dahdi::Hardware::PCI->new(
-			BUS_TYPE		=> 'PCI',
 			PRIV_DEVICE_NAME	=> $dev->{PRIV_DEVICE_NAME},
 			VENDOR			=> $dev->{VENDOR},
 			PRODUCT			=> $dev->{PRODUCT},

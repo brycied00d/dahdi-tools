@@ -162,7 +162,7 @@ sub dahdi_registration($$) {
 }
 
 sub xpds_by_spanno() {
-	my @xbuses = Dahdi::Xpp::xbuses("SORT_CONNECTOR");
+	my @xbuses = Dahdi::Xpp::xbuses();
 	my @xpds = map { $_->xpds } @xbuses;
 	@xpds = grep { $_->spanno } @xpds;
 	@xpds = sort { $a->spanno <=> $b->spanno } @xpds;
@@ -181,7 +181,7 @@ sub new($$$$$) {
 	my $sysfsdir = shift || die;
 	my $self = {
 		XBUS		=> $xbus,
-		ID		=> "$unit$subunit",
+		ID		=> sprintf("%1d%1d", $unit, $subunit),
 		FQN		=> $xbus->name . "/" . "XPD-$unit$subunit",
 		UNIT		=> $unit,
 		SUBUNIT		=> $subunit,

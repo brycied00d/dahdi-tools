@@ -1,0 +1,93 @@
+#! /bin/sh
+
+me=`basename $0`
+dir=`dirname $0`
+LOGGER="logger -i -t '$me'"
+
+# Always redirect stderr somewhere, otherwise the shell script will die
+# when it tries to do I/O related stuff on closed file descriptor.
+# Our default is to throw it down the bit-bucket.
+#exec 2> /dev/console
+## If you wish to trace this script:
+#exec 2> "/tmp/${me}_$XBUS_NAME" 1>&2
+
+PATH="$dir:/usr/sbin:/sbin:/usr/bin:/bin"
+
+set -e
+
+TWS_SETUP="/etc/dahdi/twinstar_setup.conf"
+if [ ! -r "$TWS_SETUP" ]; then
+	echo "Skip($ACTION): No '$TWS_SETUP'" | $LOGGER
+	exit 0
+fi
+SYSTEMCONF="/tmp/xortel/dahdi/system.conf"
+dahdi_registration="/usr/sbin/dahdi_registration"
+dahdi_cfg="/usr/sbin/dahdi_cfg"
+xpp_blink="/usr/sbin/xpp_blink"
+twinstar="/usr/sbin/twinstar"
+
+TWS_DIR="/var/tmp"
+TWS_PREFIX="$TWS_DIR/twinstar-"
+LABELFILE="/sys/$DEVPATH/label"
+export XBUS_SORT='SORT_LABEL'
+
+echo "starting($ACTION): '$*'" | $LOGGER
+STAMP="${TWS_PREFIX}${XBUS_NAME}"
+TWS_TOTAL=`sed -e 's/#.*//' -e '/^[ 	]*$/d' "$TWS_SETUP" | wc -l`
+
+case "$ACTION" in
+online)
+	if [ ! -f "$LABELFILE" ]; then
+		echo "Missing labelfile '$LABELFILE'" | $LOGGER
+		exit 1
+	fi
+	LABEL=`cat $LABELFILE`
+	TWS_LINE=`awk "/^$LABEL/" $TWS_SETUP`
+	if [ "$TWS_LINE" = "" ]; then
+		echo "online($XBUS_NAME): '$LABEL' is not in '$TWS_SETUP'" | $LOGGER
+		exit 1
+	fi
+	echo "$LABEL" > "$STAMP"
+	HOW_MANY=`ls ${TWS_PREFIX}* | wc -l`
+	echo "online($XBUS_NAME): $LABEL (${HOW_MANY}/${TWS_TOTAL})" | $LOGGER
+	"$twinstar" enable-wd
+	if [ "$HOW_MANY" -eq "$TWS_TOTAL" ]; then
+		echo "online: GOT ALL $TWS_TOTAL" | $LOGGER
+		"$dahdi_registration" on
+		"$dahdi_registration" 2>&1 | $LOGGER
+		echo "Using '$SYSTEMCONF'" 2>&1 | $LOGGER
+		"$dahdi_cfg" -v -c "$SYSTEMCONF" 2>&1 | $LOGGER
+		asterisk -rx 'module load chan_dahdi.so' 2>&1 | $LOGGER
+		sleep 1	# Just for visual effect
+		"$xpp_blink" bzzt xpd "$XBUS_NUM"
+		ports=`"$twinstar" ports`
+		if [ "$ports" = 0 ]; then
+			play /usr/share/zaptel/primary-pbx-is-ready.wav || :
+		elif [ "$ports" = 1 ]; then
+			play /usr/share/zaptel/backup-pbx-is-ready.wav || :
+		fi
+		echo "online: READY" | $LOGGER
+	fi
+	;;
+offline)
+	LABEL=`cat $STAMP`
+	TWS_LINE=`awk "/^$LABEL/" $TWS_SETUP`
+	rm -f "$STAMP"
+	if [ "$TWS_LINE" = "" ]; then
+		echo "offline($XBUS_NAME): $LABEL is not in $TWS_SETUP" | $LOGGER
+		exit 1
+	fi
+	echo "offline($XBUS_NAME): $LABEL" | $LOGGER
+	"$twinstar" disable-wd
+	# If we want to disconnect everybody
+	"$twinstar" jump
+	asterisk -rx 'module unload chan_dahdi.so'
+	;;
+*)
+	echo "$0: Unknown ACTION='$ACTION'" | $LOGGER
+	echo "$0: ARGS='$*'" | $LOGGER
+	echo "$0: ENV:" | $LOGGER
+	env | $LOGGER
+	exit 1
+esac
+

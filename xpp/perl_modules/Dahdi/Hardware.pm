@@ -8,8 +8,6 @@ package Dahdi::Hardware;
 # $Id$
 #
 use strict;
-use Dahdi::Hardware::USB;
-use Dahdi::Hardware::PCI;
 
 =head1 NAME
 
@@ -44,6 +42,7 @@ system. It identifies devices by (USB/PCI) bus IDs.
 
 
 =head1 Device Attributes
+
 As usual, object attributes can be used in either upp-case or
 lower-case, or lower-case functions.
 
@@ -92,21 +91,26 @@ attributes).
 Astribank.
 
 =cut
+#
+# A global hardware handle
+#
 
-sub device_detected($$) {
-	my $dev = shift || die;
-	my $name =  shift || die;
-	die unless defined $dev->{'BUS_TYPE'};
+my %hardware_list = (
+			'PCI'	=> [],
+			'USB'	=> [],
+		);
+
+
+sub new($$) {
+	my $pack = shift || die "Wasn't called as a class method\n";
+	my $name =  shift || die "$0: Missing device name";
+	my $type =  shift || die "$0: Missing device type";
+	my $dev = {};
+	$dev->{'BUS_TYPE'} = $type;
 	$dev->{IS_ASTRIBANK} = 0 unless defined $dev->{'IS_ASTRIBANK'};
 	$dev->{'HARDWARE_NAME'} = $name;
+	return $dev;
 }
-
-sub device_removed($) {
-	my $dev = shift || die;
-	my $name = $dev->hardware_name;
-	die "Missing dahdi device hardware name" unless $name;
-}
-
 
 =head1 device_list()
 
@@ -117,17 +121,28 @@ You must run scan() first for this function to run meaningful output.
 =cut
 
 sub device_list($) {
-	my $self = shift || die;
+	my $pack = shift || die;
 	my @types = @_;
 	my @list;
 
 	@types = qw(USB PCI) unless @types;
 	foreach my $t (@types) {
-		@list = ( @list, @{$self->{$t}} );
+		my $lst = $hardware_list{$t};
+		@list = ( @list, @{$lst} );
 	}
 	return @list;
 }
 
+sub device_by_hwname($$) {
+	my $pack = shift || die;
+	my $name = shift || die;
+	my @list = device_list('localcall');
+
+	my @good = grep { $_->hardware_name eq $name } @list;
+	return undef unless @good;
+	@good > 1 && die "$pack: Multiple matches for '$name': @good";
+	return $good[0];
+}
 
 =head1 drivers()
 
@@ -139,7 +154,7 @@ loaded.
 
 sub drivers($) {
 	my $self = shift || die;
-	my @devs = $self->device_list;
+	my @devs = device_list('localcall');
 	my @drvs = map { $_->{DRIVER} } @devs;
 	# Make unique
 	my %drivers;
@@ -155,14 +170,52 @@ must be run to initialize the module.
 
 =cut
 
+my $hardware_scanned;
+
 sub scan($) {
 	my $pack = shift || die;
-	my $self = {};
-	bless $self, $pack;
 
-	$self->{USB} = [ Dahdi::Hardware::USB->devices ];
-	$self->{PCI} = [ Dahdi::Hardware::PCI->scan_devices ];
-	return $self;
+	return if $hardware_scanned++;
+	foreach my $type (qw(PCI USB)) {
+		eval "use Dahdi::Hardware::$type";
+		die $@ if $@;
+		$hardware_list{$type} = [ "Dahdi::Hardware::$type"->scan_devices ];
+	}
+}
+
+sub import {
+	Dahdi::Hardware->scan unless grep(/\bnoscan\b/i, @_);
+}
+
+sub showall {
+	my $pack = shift || die;
+	my @devs;
+
+	my $printer = sub {
+			my $title = shift;
+			my @devs = @_;
+
+			return unless @devs;
+			printf "%s:\n", $title;
+			foreach my $dev (@devs) {
+				printf "\t%s\n", $dev->hardware_name;
+				foreach my $k (sort keys %{$dev}) {
+					my $v = $dev->{$k};
+					if($k eq 'MPPINFO') {
+						printf "\t\tMPPINFO:\n";
+						eval "use Dahdi::Xpp::Mpp";
+						die $@ if $@;
+						$v->showinfo("\t\t  ");
+					} else {
+						printf "\t\t%-20s %s\n", $k, $v;
+					}
+				}
+			}
+		};
+	foreach my $type (qw(USB PCI)) {
+		my $lst = $hardware_list{$type};
+		&$printer("$type devices", @{$lst});
+	}
 }
 
 1;

@@ -10,8 +10,7 @@ package Dahdi::Hardware::USB;
 use strict;
 use Dahdi::Utils;
 use Dahdi::Hardware;
-use Dahdi::Xpp;
-use Dahdi::Xpp::Xbus;
+use Dahdi::Xpp::Mpp;
 
 our @ISA = qw(Dahdi::Hardware);
 
@@ -42,41 +41,75 @@ my %usb_ids = (
 
 $ENV{PATH} .= ":/usr/sbin:/sbin:/usr/bin:/bin";
 
-my @xbuses = Dahdi::Xpp::xbuses('SORT_CONNECTOR');
-
 sub usb_sorter() {
 	return $a->hardware_name cmp $b->hardware_name;
 }
 
-sub xbus_of_usb($) {
-	my $priv_device_name = shift;
-	my $dev = shift;
+sub mpp_addinfo($) {
+	my $self = shift || die;
 
-	my ($wanted) = grep {
-			defined($_->usb_devname) &&
-			$priv_device_name eq $_->usb_devname
-		} @xbuses;
-	return $wanted;
+	my $mppinfo = Dahdi::Xpp::Mpp->new($self);
+	$self->{MPPINFO} = $mppinfo if defined $mppinfo;
 }
 
-sub new($$) {
+sub new($@) {
 	my $pack = shift or die "Wasn't called as a class method\n";
-	my $self = { @_ };
+	my %attr = @_;
+	my $name = sprintf("usb:%s", $attr{PRIV_DEVICE_NAME});
+	my $self = Dahdi::Hardware->new($name, 'USB');
+	%{$self} = (%{$self}, %attr);
 	bless $self, $pack;
-	my $xbus = xbus_of_usb($self->priv_device_name);
-	if(defined $xbus) {
-		$self->{XBUS} = $xbus;
-		$self->{LOADED} = 'xpp_usb';
-	} else {
-		$self->{XBUS} = undef;
-		$self->{LOADED} = undef;
-	}
-	Dahdi::Hardware::device_detected($self,
-		sprintf("usb:%s", $self->{PRIV_DEVICE_NAME}));
 	return $self;
 }
 
-sub devices($) {
+sub readval($) {
+	my $fname = shift || warn;
+	open(F, $fname) || warn "Failed opening '$fname': $!";
+	my $val = <F>;
+	close F;
+	chomp $val;
+	warn "$fname is empty" unless defined $val and $val;
+	return $val;
+}
+
+sub set_transport($$) {
+	my $pack = shift || die;
+	my $xbus = shift || die;
+	my $xbus_dir = shift;
+	my $transportdir = "$xbus_dir/transport";
+	my $hwdev;
+	if(! -e "$transportdir/ep_00") {
+		warn "A trasnport in '$transportdir' is not USB";
+		return undef;
+	}
+	my ($usbdev) = glob("$transportdir/usb_device:*");
+	my $busnum;
+	my $devnum;
+	# Different kernels...
+	if(defined $usbdev) {	# It's USB
+		if($usbdev =~ /.*usb_device:usbdev(\d+)\.(\d+)/) {
+			$busnum = $1;
+			$devnum = $2;
+		} else {
+			warn "Bad USB transportdir='$transportdir' usbdev='$usbdev'\n";
+		}
+	} elsif(-d "$transportdir/usb_endpoint") {
+		$busnum = readval("$transportdir/busnum");
+		$devnum = readval("$transportdir/devnum");
+	}
+	my $usbname = sprintf("%03d/%03d", $busnum, $devnum);
+	#printf STDERR "DEBUG: %03d/%03d\n", $busnum, $devnum;
+	$xbus->{USB_DEVNAME} = $usbname;
+	$hwdev = Dahdi::Hardware->device_by_hwname("usb:$usbname");
+	#print "set_transport: ", $hwdev, "\n";
+	$xbus->{TRANSPORT} = $hwdev;
+	$hwdev->{XBUS} = $xbus;
+	$hwdev->{LOADED} = 'xpp_usb';
+	$xbus->{IS_TWINSTAR} = $hwdev->is_twinstar;
+	return $hwdev;
+}
+
+sub scan_devices($) {
 	my $pack = shift || die;
 	my $usb_device_list = "/proc/bus/usb/devices";
 	return unless (-r $usb_device_list);
@@ -102,7 +135,6 @@ sub devices($) {
 		next unless defined $model;
 		my $d = Dahdi::Hardware::USB->new(
 			IS_ASTRIBANK		=> ($model->{DRIVER} eq 'xpp_usb')?1:0,
-			BUS_TYPE		=> 'USB',
 			PRIV_DEVICE_NAME	=> $devname,
 			VENDOR			=> $vendor,
 			PRODUCT			=> $product,
@@ -114,6 +146,7 @@ sub devices($) {
 	}
 	close F;
 	@devices = sort usb_sorter @devices;
+	return @devices;
 }
 
 1;

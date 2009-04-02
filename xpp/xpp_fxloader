@@ -3,7 +3,7 @@
 # xpp_fxloader: load Xorcom Astribank (XPP) firmware
 #
 # Written by Tzafrir Cohen <tzafrir.cohen@xorcom.com>
-# Copyright (C) 2006-2008, Xorcom
+# Copyright (C) 2006, 2007, 2008, Xorcom
 #
 # All rights reserved.
 #
@@ -25,17 +25,17 @@
 #
 # This script can be run manually or from hotplug/udev.
 #
-# Firmware files should be located in $XPP_FIRMWARE_DIR which defaults:
+# Firmware files should be located in $FIRMWARE_DIR which defaults:
 # 	1. /usr/share/dahdi
-#	2. Can be overidden by setting $XPP_FIRMWARE_DIR in the environment
-#	3. Can be overidden by setting $XPP_FIRMWARE_DIR in /etc/dahdi/init.conf
+#	2. Can be overidden by setting $FIRMWARE_DIR in the environment
+#	3. Can be overidden by setting $FIRMWARE_DIR in /etc/dahdi/init.conf
 #
 # Manual Run
 # ##########
 #
 #   path/to/xpp_fxloader load
 #
-# Make sure the firmware files are in $XPP_FIRMWARE_DIR
+# Make sure the firmware files are in $FIRMWARE_DIR
 #
 # UDEV Installation
 # #################
@@ -86,9 +86,10 @@ USBFS_PREFIX=/proc/bus/usb
 DEVUSB_PREFIX=/dev/bus/usb
 USB_PREFIX=
 
-XPP_FIRMWARE_DIR="${XPP_FIRMWARE_DIR:-/usr/share/dahdi}"
+FIRMWARE_DIR="${FIRMWARE_DIR:-/usr/share/dahdi}"
+ASTRIBANK_HEXLOAD=${ASTRIBANK_HEXLOAD:-/usr/sbin/astribank_hexload}
+ASTRIBANK_TOOL=${ASTRIBANK_TOOL:-/usr/sbin/astribank_tool}
 
-FPGA_LOAD=${FPGA_LOAD:-/usr/sbin/fpga_load}
 USB_FW="${USB_FW:-USB_FW.hex}"
 
 if [ -r "$DEFAULTS" ]; then
@@ -121,12 +122,37 @@ find_dev() {
   lsusb | tr -d : | awk "/ ID $v_id$p_id/{printf \"$USB_PREFIX/%s/%s \",\$2,\$4}"
 }
 
-do_fxload() {
+run_fxload() {
   sleep_if_race
-  ( fxload -t fx2 $* 2>&1 1>/dev/null || exit 1 ) | $LOGGER
+  fxload -t fx2 $* 2>&1 1>/dev/null | $LOGGER
+  status=$PIPESTATUS
+  if [ $status != 0 ]; then
+    $LOGGER "fxload failed with status $status"
+    exit 55
+  fi
 }
 
-load_fw() {
+run_astribank_hexload() {
+	$LOGGER "Running: $ASTRIBANK_HEXLOAD $*"
+	$ASTRIBANK_HEXLOAD "$@" | $LOGGER
+	status=$PIPESTATUS
+	if [ $status != 0 ]; then
+		$LOGGER "$ASTRIBANK_HEXLOAD failed with status $status"
+		exit 77
+	fi
+}
+
+run_astribank_tool() {
+	$LOGGER "Running: $ASTRIBANK_TOOL $*"
+	$ASTRIBANK_TOOL "$@" | $LOGGER
+	status=$PIPESTATUS
+	if [ $status != 0 ]; then
+		$LOGGER "$ASTRIBANK_TOOL failed with status $status"
+		exit 77
+	fi
+}
+
+load_usb_fw() {
   v_id=$1
   p_id=$2
   fw=$3
@@ -134,35 +160,48 @@ load_fw() {
   devices=`find_dev $v_id $p_id`
   for dev in $devices
   do
-    ver=$(awk '/\$Id:/ { print $4 }' $XPP_FIRMWARE_DIR/$fw)
-    $LOGGER "USB Firmware $XPP_FIRMWARE_DIR/$fw (Version=$ver) into $dev"
-    do_fxload -D $dev -I $XPP_FIRMWARE_DIR/$fw || exit 1
+    ver=$(awk '/\$Id:/ { print $4 }' $FIRMWARE_DIR/$fw)
+    $LOGGER "USB Firmware $FIRMWARE_DIR/$fw (Version=$ver) into $dev"
+    run_fxload -D $dev -I $FIRMWARE_DIR/$fw || exit 1
   done
 }
 
-load_fpga() {
+load_fw_device() {
+	dev=$1
+	fw=$2
+	$LOGGER "FPGA loading $fw into $dev"
+	run_astribank_hexload -D "$dev" -F "$FIRMWARE_DIR/$fw"
+	pic_files=`echo "$FIRMWARE_DIR"/PIC_TYPE_[1-4].hex`
+	$LOGGER "PIC burning into $dev: $pic_files"
+	run_astribank_hexload -D "$dev" -p $pic_files
+	run_astribank_tool -D "$dev" -n		# Do renumeration!
+	$LOGGER "PIC burning finished $pic_files"
+}
+
+#
+# Use in manual loading. Parallelize loading
+# firmwares to all of our devices
+#
+firmware_by_id() {
   v_id=$1
   p_id=$2
   fw=$3
   
   devices=`find_dev $v_id $p_id`
+  childs=""
   for dev in $devices
   do
 	(
-	card_ver=`$FPGA_LOAD -g -D $dev | sed -n 's/^.*Release: *//'`
+	set -e
 
-	$LOGGER "FPGA Firmware into $dev"
+	load_fw_device "$dev" "$fw"
 	sleep_if_race
-	$FPGA_LOAD -D "$dev" -I "$XPP_FIRMWARE_DIR/$fw" -i | $LOGGER
-	status=$PIPESTATUS
-	if [ "$status" != 0 ]; then
-		echo "fpga_load failed with status $status" | $LOGGER
-		exit 77
-	fi
 	) &
+	childs="$childs $!"
 	sleep 0.4
   done
-  wait
+  # Wait for specific childs to get their exit status
+  wait $childs
 }
 
 numdevs() {
@@ -198,17 +237,12 @@ wait_renumeration() {
 reset_fpga() {
   totaldevs=`numdevs e4e4 '11[3456][012]'`
   devices=`find_dev e4e4 '11[3456][12]'`
-  echo "Reseting devices [$totaldevs devices]"
+  $LOGGER "Reseting devices [$totaldevs devices]"
   for dev in $devices
   do
 	$LOGGER "Resetting FPGA Firmware on $dev"
 	sleep_if_race
-	$FPGA_LOAD -D "$dev" -r 2>&1 >/dev/null | $LOGGER
-	status=$PIPESTATUS
-	if [ "$status" != 0 ]; then
-		echo "fpga_load failed removing with status $status" | $LOGGER
-		exit 78
-	fi
+	run_astribank_tool -D "$dev" -r full 2>&1 >/dev/null
   done
   if [ "$1" = 'wait' ]; then
 	  wait_renumeration $totaldevs e4e4 '11[3456]0'
@@ -236,24 +270,24 @@ reset)
 	;;
 xppdetect|load|usb)
 	numdevs=`numdevs e4e4 '11[3456][01]'`
-	echo "--------- FIRMWARE LOADING: ($1) [$numdevs devices]"
+	$LOGGER -- "--------- FIRMWARE LOADING: ($1) [$numdevs devices]"
 
-	load_fw e4e4 1130 $USB_FW
-	load_fw e4e4 1140 $USB_FW
-	load_fw e4e4 1150 $USB_FW
-	load_fw e4e4 1160 $USB_FW
+	load_usb_fw e4e4 1130 $USB_FW
+	load_usb_fw e4e4 1140 $USB_FW
+	load_usb_fw e4e4 1150 $USB_FW
+	load_usb_fw e4e4 1160 $USB_FW
 	wait_renumeration $numdevs e4e4 '11[3456]1'
 	if [ "$1" != 'usb' ]
 	then
-		load_fpga e4e4 1131 FPGA_FXS.hex
-		load_fpga e4e4 1141 FPGA_1141.hex
-		load_fpga e4e4 1151 FPGA_1151.hex
-		load_fpga e4e4 1161 FPGA_1161.hex
+		firmware_by_id e4e4 1131 FPGA_FXS.hex
+		firmware_by_id e4e4 1141 FPGA_1141.hex
+		firmware_by_id e4e4 1151 FPGA_1151.hex
+		firmware_by_id e4e4 1161 FPGA_1161.hex
 		wait_renumeration $numdevs e4e4 '11[3456]2'
 	fi
 
 	sleep 3		# Let it stabilize
-	echo "--------- FIRMWARE IS LOADED"
+	$LOGGER -- "--------- FIRMWARE IS LOADED"
 	exit 0
 	;;
 help)
@@ -284,19 +318,19 @@ then
 	$LOGGER "Trying to find what to do for product $PRODUCT, device $DEVICE"
 	prod_id=`echo "$PRODUCT" | cut -d/ -f2`
 	case "$PRODUCT" in
-	e4e4/11[345]0/*)
-		FIRM_USB="$XPP_FIRMWARE_DIR/$USB_FW"
+	e4e4/11[3456]0/*)
+		FIRM_USB="$FIRMWARE_DIR/$USB_FW"
 		$LOGGER "Loading firmware '$FIRM_USB' into '$DEVICE'"
-		do_fxload -D "$DEVICE" -I "$FIRM_USB"
+		run_fxload -D "$DEVICE" -I "$FIRM_USB"
 		;;
-	e4e4/11[345]1/*)
+	e4e4/11[3456]1/*)
 		if [ "$prod_id" = 1131 ]; then
-			FIRM_FPGA="$XPP_FIRMWARE_DIR/FPGA_FXS.hex"	# Legacy
+			FIRM_FPGA="FPGA_FXS.hex"	# Legacy
 		else
-			FIRM_FPGA="$XPP_FIRMWARE_DIR/FPGA_$prod_id.hex"
+			FIRM_FPGA="FPGA_$prod_id.hex"
 		fi
 		sleep_if_race
-		$FPGA_LOAD -D "$DEVICE" -I "$FIRM_FPGA" 2>&1 >/dev/null | $LOGGER
+		load_fw_device "$DEVICE" "$FIRM_FPGA"
 		;;
 	esac	
 fi

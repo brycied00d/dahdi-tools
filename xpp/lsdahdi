@@ -17,7 +17,7 @@ use Dahdi::Xpp;
 use Dahdi::Xpp::Xbus;
 use Dahdi::Xpp::Xpd;
 
-my @xbuses = Dahdi::Xpp::xbuses("SORT_CONNECTOR");
+my @xbuses = Dahdi::Xpp::xbuses;
 my @xpds = map { $_->xpds } @xbuses;
 
 foreach my $span (Dahdi::spans()) {

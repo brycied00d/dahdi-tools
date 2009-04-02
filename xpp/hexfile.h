@@ -1,6 +1,6 @@
 /*
  * Written by Oron Peled <oron@actcom.co.il>
- * Copyright (C) 2006, Xorcom
+ * Copyright (C) 2006, 2007, 2008, Xorcom
  *
  * All rights reserved.
  *
@@ -24,49 +24,12 @@
 #define	PARSE_HEXFILE_H
 
 #include <stdarg.h>
-
-/*
- * Some portability workarounds
- */
-#ifdef	_WINDOWS
-
-#include <windows.h>	/* for UCHAR USHORT */
-typedef UCHAR	uint8_t;
-typedef USHORT	uint16_t;
-#define	PACKED
-#define	sscanf	sscanf_s
-#define	ZERO_SIZE	1
-
-/* From /usr/include/syslog.h */
-#define	LOG_EMERG	0	/* system is unusable */
-#define	LOG_ALERT	1	/* action must be taken immediately */
-#define	LOG_CRIT	2	/* critical conditions */
-#define	LOG_ERR		3	/* error conditions */
-#define	LOG_WARNING	4	/* warning conditions */
-#define	LOG_NOTICE	5	/* normal but significant condition */
-#define	LOG_INFO	6	/* informational */
-#define	LOG_DEBUG	7	/* debug-level messages */
-
-#ifdef  __cplusplus
-# define __BEGIN_DECLS  extern "C" {
-# define __END_DECLS    }
-#else
-# define __BEGIN_DECLS
-# define __END_DECLS
-#endif
-
-#elif	__GNUC__
-
+#include <stdio.h>
 #include <stdint.h>
+#include <sys/param.h>
 #include <syslog.h>
 #define	PACKED	__attribute__((packed))
-#define	ZERO_SIZE	1
-
-#else
-
-#error "Cannot compile on this platform"
-
-#endif
+#define	ZERO_SIZE	0
 
 /* Record types in hexfile */
 enum {
@@ -101,6 +64,7 @@ struct hexdata {
 	unsigned int		maxlines;
 	unsigned int		last_line;
 	int			got_eof;
+	char			fname[PATH_MAX];
 	char			version_info[BUFSIZ];
 	struct hexline		*lines[ZERO_SIZE];
 };

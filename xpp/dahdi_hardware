@@ -17,16 +17,16 @@ use Dahdi::Span;
 use Dahdi::Xpp;
 use Dahdi::Xpp::Xbus;
 use Dahdi::Hardware;
+use Dahdi::Xpp::Mpp;
 
 sub usage {
-	die "Usage: $0 [-v][-x]\n";
+	die "Usage: $0 [-v][-x][-t]\n";
 }
 
-our ($opt_v, $opt_x);
-getopts('vx') || usage;
+my %opts;
+getopts('vxt', \%opts) || usage;
 @ARGV == 0 or usage;
 
-my $hardware = Dahdi::Hardware->scan;
 my @spans = Dahdi::spans;
 
 sub show_xbus($) {
@@ -59,37 +59,69 @@ sub show_disconnected(%) {
 	my %seen = @_;
 
 	my $notified_lost = 0;
-	foreach my $xbus (Dahdi::Xpp::xbuses('SORT_CONNECTOR')) {
+	foreach my $xbus (Dahdi::Xpp::xbuses) {
 		if(!$seen{$xbus->name}) {
 			print "----------- XPP Spans with disconnected hardware -----------\n"
 				unless $notified_lost++;
 			printf($format, $xbus->name, '', '', '', "NO HARDWARE");
-			show_xbus($xbus) if $opt_v;
+			show_xbus($xbus) if $opts{'v'};
 		}
 	}
 }
 
-foreach my $dev ($hardware->device_list) {
+# FIXME: For verbose display we also need to see the XPP devices.
+# If no spans are registered, this won't happen. A brute-force
+# methood for making it happe:
+Dahdi::Xpp::xbuses if ($opts{'v'});
+
+my @devices = Dahdi::Hardware->device_list;
+Dahdi::Xpp::Mpp->set_astribank_tool('./astribank_tool');
+foreach my $dev (@devices) {
 	my $driver = $dev->driver || "";
 	my $xbus;
 	my $loaded;
+	my $tws_port;
+	my $tws_power;
+	my $tws_watchdog;
+	my $mppinfo;
 	if($dev->is_astribank) {
 		$xbus = $dev->xbus;
+		if($opts{'v'} || $opts{'t'}) {
+			Dahdi::Xpp::Mpp->mpp_addinfo($dev);
+			$mppinfo = $dev->mppinfo;
+			if(defined $mppinfo) {
+				$tws_port = $mppinfo->{TWINSTAR_PORT};
+				$tws_power = $mppinfo->{TWINSTAR_POWER};
+				$tws_watchdog = $mppinfo->{TWINSTAR_WATCHDOG};
+			}
+		}
 	}
 	$loaded = $dev->loaded;
 	warn "driver should be '$driver' but is actually '$loaded'\n"
 		if defined($loaded) && $driver ne $loaded;
 	$driver = "$driver" . (($loaded) ? "+" : "-");
+	if(defined $tws_power && defined $tws_watchdog) {
+		my $tws_active = $tws_watchdog && $tws_power->[0] && $tws_power->[1];
+		$driver .= "[T]" if $tws_active;
+	}
 	my $description = $dev->description || "";
 	printf $format, $dev->hardware_name, $driver, $dev->vendor, $dev->product, $description;
+	if($opts{'v'} && defined $mppinfo) {
+		printf " MPP: TWINSTAR_PORT=$tws_port\n" if defined $tws_port;
+		printf " MPP: TWINSTAR_WATCHDOG=$tws_watchdog\n";
+		for(my $i = 0; $i < 2; $i++) {
+			printf " MPP: TWINSTAR_POWER[%d]=%d\n",
+				$i, $tws_power->[$i] if defined $tws_power;
+		}
+	}
 	if(!defined $xbus || !$xbus) {
 		next;
 	}
 	$seen{$xbus->name} = 1;
-	show_xbus($xbus) if $opt_v;
+	show_xbus($xbus) if $opts{'v'};
 }
 
-show_disconnected(%seen) if $opt_x;
+show_disconnected(%seen) if $opts{'x'};
 
 __END__
 

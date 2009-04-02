@@ -39,7 +39,7 @@ if(@ARGV == 1) {
 sub get_sorted_xpds() {
 	my @good_xpds;
 
-	foreach my $xbus (Dahdi::Xpp::xbuses('SORT_CONNECTOR')) {
+	foreach my $xbus (Dahdi::Xpp::xbuses) {
 		next unless $xbus->status eq 'CONNECTED';
 		foreach my $xpd ($xbus->xpds()) {
 			my $isreg = $xpd->dahdi_registration();
@@ -200,17 +200,9 @@ The parameter it is called with defaults to
 I<auto>, but it is possible to override that parameter (e.g: set it to
 I<dahdi>) through the value of XPP_SYNC in /etc/dahdi/init.conf .
 
-It should be run after dahdi_cfg as the configuration of a PRI module
-is set from it. It must be run after dahdi_registration as it only
-handles XPDs that are registered spans.
-
 =head1 FILES
 
 =over
-
-=item /sys/bus/astribanks/drivers/xppdrv/sync
-
-The low-level interface used by xpp_sync to set / read registration.
 
 =item /proc/xpp/sync
 

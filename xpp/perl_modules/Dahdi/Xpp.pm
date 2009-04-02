@@ -8,6 +8,7 @@ package Dahdi::Xpp;
 # $Id$
 #
 use strict;
+use Dahdi::Hardware;
 use Dahdi::Xpp::Xbus;
 
 =head1 NAME
@@ -28,11 +29,28 @@ Dahdi::Xpp - Perl interface to the Xorcom Astribank drivers.
   }
 =cut
 
+#
+# A global handle for all xbuses
+#
+my @xbuses;
 
 my $proc_base = "/proc/xpp";
 our $sysfs_astribanks = "/sys/bus/astribanks/devices";
 our $sysfs_xpds = "/sys/bus/xpds/devices";
 our $sysfs_ab_driver = "/sys/bus/astribanks/drivers/xppdrv";
+
+sub scan($) {
+	my $pack = shift || die;
+
+	opendir(D, $sysfs_astribanks) || return();
+	while(my $entry = readdir D) {
+		next unless $entry =~ /xbus-(\d+)/;
+		my $xbus = Dahdi::Xpp::Xbus->new($1);
+		push(@xbuses, $xbus);
+	}
+	closedir D;
+	return @xbuses;
+}
 
 # Nominal sorters for xbuses
 sub by_name {
@@ -72,6 +90,11 @@ sub by_type {
 	return $res;
 }
 
+sub by_xpporder {
+	my $cmp = $a->xpporder cmp $b->xpporder;
+	return $cmp if $cmp != 0;
+	return $a->connector cmp $b->connector;
+}
 
 =head1 xbuses([sort_order])
 
@@ -90,6 +113,19 @@ and returned as is.
 The built in sorters are:
 
 =over
+
+=item SORT_XPPORDER
+
+Sort by ordering defined in F</etc/dahdi/xpp_order> file.
+Astribanks can be listed in this file by their label or by
+their connector string (prefixed with <@>).
+
+Astribanks not listed in the F<xpp_order> file are sorted
+via ordering number 999 -- So they come after the Astribanks
+that are listed.
+
+Astribanks with same ordering number (e.g: 999) are sorted
+by their connector string (to preserve legacy behaviour).
 
 =item SORT_CONNECTOR
 
@@ -129,38 +165,73 @@ sub sorters {
 		SORT_NAME	=> \&by_name,
 		SORT_LABEL	=> \&by_label,
 		SORT_TYPE	=> \&by_type,
+		SORT_XPPORDER	=> \&by_xpporder,
 		# Aliases
 		connector	=> \&by_connector,
 		name		=> \&by_name,
 		label		=> \&by_label,
 		type		=> \&by_type,
+		xpporder	=> \&by_xpporder,
 	);
 	my $which_sorter = shift || return sort keys %sorter_table;
 	return $which_sorter if ref($which_sorter) eq 'CODE';
 	return $sorter_table{$which_sorter};
 }
 
-sub xbuses {
-	my $optsort = shift || 'SORT_CONNECTOR';
-	my @xbuses;
+sub add_xpporder(@) {
+	my @xbuses = @_;
+	my $cfg = $ENV{XPPORDER_CONF} || '/etc/dahdi/xpp_order';
+	my %order;
 
-	opendir(D, $sysfs_astribanks) || return();
-	while(my $entry = readdir D) {
-		next unless $entry =~ /xbus-(\d+)/;
-		my $xbus = Dahdi::Xpp::Xbus->new($1);
-		push(@xbuses, $xbus);
+	# Set defaults
+	foreach my $xbus (@xbuses) {
+		$xbus->{XPPORDER} = 99;
 	}
-	closedir D;
+	# Read from optional config file
+	if(!open(F, $cfg)) {
+		warn "$0: Failed opening '$cfg': $!"
+			unless $! == 2;		# ENOENT
+		return;
+	}
+	my $count = 1;
+	while(<F>) {
+		chomp;
+		s/#.*//;
+		s/^\s*//;
+		s/\s*$//;
+		next unless /\S/;
+		$order{$_} = $count++;
+	}
+	close F;
+	# Overrides from config file
+	foreach my $xbus (@xbuses) {
+		my $label = $xbus->label;
+		my $connector = '@' . $xbus->connector;
+		my $val;
+		$val = $order{$label};
+		$val = $order{$connector} unless defined $val;
+		$xbus->{XPPORDER} = $val if defined $val;
+	}
+}
+
+sub xbuses {
+	my $optsort = shift || 'SORT_XPPORDER';
+	my @sorted_xbuses;
+
+	if(! @xbuses) {
+		@xbuses = Dahdi::Xpp->scan();
+	}
+	add_xpporder(@xbuses);
 	my $sorter = sorters($optsort);
 	die "Unknown optional sorter '$optsort'" unless defined $sorter;
-	@xbuses = sort $sorter @xbuses;
-	return @xbuses;
+	@sorted_xbuses = sort $sorter @xbuses;
+	return @sorted_xbuses;
 }
 
 sub xpd_of_span($) {
 	my $span = shift or die "Missing span parameter";
 	return undef unless defined $span;
-	foreach my $xbus (Dahdi::Xpp::xbuses('SORT_CONNECTOR')) {
+	foreach my $xbus (Dahdi::Xpp::xbuses) {
 		foreach my $xpd ($xbus->xpds()) {
 			return $xpd if $xpd->fqn eq $span->name;
 		}

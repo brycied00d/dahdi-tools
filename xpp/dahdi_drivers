@@ -5,8 +5,8 @@ BEGIN { my $dir = dirname($0); unshift(@INC, "$dir", "$dir/perl_modules"); }
 
 use Dahdi::Hardware;
 
-my $hardware = Dahdi::Hardware->scan;
-print join("\n", $hardware->drivers),"\n";
+my @drivers = Dahdi::Hardware->drivers;
+print join("\n", @drivers),"\n";
 __END__
 
 =head1 NAME
