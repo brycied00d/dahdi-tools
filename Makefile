@@ -69,6 +69,7 @@ endif
 
 RCCONF_FILE	= /etc/dahdi/init.conf
 MODULES_FILE	= /etc/dahdi/modules
+GENCONF_FILE	= /etc/dahdi/genconf_parameters
 MODPROBE_FILE	= /etc/modprobe.d/dahdi
 BLACKLIST_FILE	= /etc/modprobe.d/dahdi.blacklist
 
@@ -275,6 +276,9 @@ ifeq (,$(wildcard $(DESTDIR)$(RCCONF_FILE)))
 endif
 ifeq (,$(wildcard $(DESTDIR)$(MODULES_FILE)))
 	$(INSTALL) -D -m 644 modules.sample $(DESTDIR)$(MODULES_FILE)
+endif
+ifeq (,$(wildcard $(DESTDIR)$(GENCONF_FILE)))
+	$(INSTALL) -D -m 644 xpp/genconf_parameters $(DESTDIR)$(GENCONF_FILE)
 endif
 ifeq (,$(wildcard $(DESTDIR)$(MODPROBE_FILE)))
 	$(INSTALL) -D -m 644 modprobe.conf.sample $(DESTDIR)$(MODPROBE_FILE)
