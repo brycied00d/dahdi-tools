@@ -27,6 +27,7 @@
 
 #include <stdio.h>
 #include <fcntl.h>
+#include <getopt.h>
 #include <string.h>
 #include <errno.h>
 #include <stdio.h>
@@ -49,6 +50,7 @@
 #define BLOCK_SIZE 2041
 
 static int hdlcmode = 0;
+static int bri_delay = 0;
 
 
 static unsigned short fcstab[256] =
@@ -144,19 +146,27 @@ void send_packet(unsigned char *buf, int len)
 
 int main(int argc, char *argv[])
 {
-	int res, x;
+	int res, ch, x;
 	struct dahdi_params tp;
 	struct dahdi_bufferinfo bi;
 	int bs = BLOCK_SIZE;
 	unsigned char c=0;
 	unsigned char outbuf[BLOCK_SIZE];
-	if (argc < 2) {
-		fprintf(stderr, "Usage: %s <DAHDI device>\n", argv[0]);
+
+	while((ch = getopt(argc, argv, "b")) != -1) {
+		switch(ch) {
+			case 'b': bri_delay = 300000; break;
+			case '?': exit(1);
+		}
+	}
+
+	if (argc - optind != 1) {
+		fprintf(stderr, "Usage: %s [-b] <DAHDI device>\n", argv[0]);
 		exit(1);
 	}
-	fd = open(argv[1], O_RDWR, 0600);
+	fd = open(argv[optind], O_RDWR, 0600);
 	if (fd < 0) {
-		fprintf(stderr, "Unable to open %s: %s\n", argv[1], strerror(errno));
+		fprintf(stderr, "Unable to open %s: %s\n", argv[optind], strerror(errno));
 		exit(1);
 	}
 	if (ioctl(fd, DAHDI_SET_BLOCKSIZE, &bs)) {
@@ -209,6 +219,11 @@ int main(int argc, char *argv[])
 #if 0
 		printf("Wrote %d of %d bytes\n", res, c);
 #endif		
+		/* The HFC chip can't be bombarded too much. If a write has 
+		   failed, let it recover */
+		if (bri_delay)
+			usleep(bri_delay);
+
 		c = bit_next(c);
 #if 0
 		printf("(%d) Wrote %d bytes\n", packets++, res);
