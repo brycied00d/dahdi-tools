@@ -1,6 +1,6 @@
 /*
  * Written by Oron Peled <oron@actcom.co.il>
- * Copyright (C) 2006, Xorcom
+ * Copyright (C) 2006, 2007, 2008, Xorcom
  *
  * All rights reserved.
  *
@@ -426,6 +426,7 @@ struct hexdata *parse_hexfile(const char *fname, unsigned int maxlines)
 			report_func(LOG_ERR, "Failed to open hexfile '%s'\n", fname);
 		goto err;
 	}
+	snprintf(hexdata->fname, PATH_MAX, "%s", fname);
 	for(line = 1; fgets(buf, BUFSIZ, fp); line++) {
 		if(dos_eof) {
 			if(report_func)
