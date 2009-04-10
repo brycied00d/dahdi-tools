@@ -81,7 +81,7 @@ install: all
 	$(INSTALL) -d $(DESTDIR)$(SBINDIR)
 	$(INSTALL) $(PROG_INSTALL) $(DESTDIR)$(SBINDIR)/
 	$(INSTALL) -d $(DESTDIR)$(DATADIR)
-	$(INSTALL) xpp_fxloader $(DESTDIR)$(DATADIR)/
+	$(INSTALL) xpp_fxloader astribank_hook $(DESTDIR)$(DATADIR)/
 	$(INSTALL) waitfor_xpds $(DESTDIR)$(DATADIR)/
 	$(INSTALL) -d $(DESTDIR)$(MANDIR)
 	$(INSTALL_DATA) $(MAN_INSTALL) $(DESTDIR)$(MANDIR)/
