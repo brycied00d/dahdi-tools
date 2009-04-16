@@ -249,6 +249,14 @@ reset_fpga() {
   fi
 }
 
+usage() {
+	echo "$0: Astribank firmware loading script."
+	echo "Usage: "
+	echo "$0 load  : manual firmware loading."
+	echo "$0 usb   : manual firmware loading: USB firmware only."
+	echo "$0 help  : this text."
+}
+
 #########################
 ##
 ## Manual run
@@ -291,14 +299,16 @@ xppdetect|load|usb)
 	exit 0
 	;;
 help)
-	echo "$0: Astribank firmware loading script."
-	echo "Usage: "
-	echo "$0 load  : manual firmware loading."
-	echo "$0 usb   : manual firmware loading: USB firmware only."
-	echo "$0 help  : this text."
-	echo ""
-	echo "('xppdetect' is an alias of 'load')"
+	usage
 	exit 0
+	;;
+*)
+	if [ "$ACTION" = '' ]; then # not called from hotplug
+		echo "$0: Error: unknown command \"$1\""
+		echo ''
+		usage
+		exit 1
+	fi
 	;;
 esac
 
