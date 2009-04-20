@@ -102,15 +102,10 @@ sub showinfo($$) {
 	}
 }
 
-sub new($$$) {
-	my $pack = shift || die;
+sub astribank_tool_cmd($) {
 	my $dev = shift || die;
-	my $product = $dev->product;
 	my $usb_top;
 
-	return undef unless $dev->is_astribank;
-	return undef unless $dev->bus_type eq 'USB';
-	return undef unless $product =~ /116./;
 	# Find USB bus toplevel
 	$usb_top = '/dev/bus/usb';
 	$usb_top = '/proc/bus/usb' unless -d $usb_top;
@@ -118,6 +113,17 @@ sub new($$$) {
 	my $name = $dev->priv_device_name();
 	die "$0: Unkown private device name" unless defined $name;
 	my $path = "$usb_top/$name";
+	return ($astribank_tool, '-D', "$path");
+}
+
+sub new($$$) {
+	my $pack = shift || die;
+	my $dev = shift || die;
+	my $product = $dev->product;
+
+	return undef unless $dev->is_astribank;
+	return undef unless $dev->bus_type eq 'USB';
+	return undef unless $product =~ /116./;
 	my $mppinfo = {
 			DEV	=> $dev,
 			HAS_MPP	=> 1,
@@ -130,11 +136,13 @@ sub new($$$) {
 	}
 	return $mppinfo unless $product =~ /116[12]/;
 	$mppinfo->{'MPP_TALK'} = 1;
+	my @cmd = astribank_tool_cmd($dev);
+	my $name = $dev->priv_device_name();
 	my $dbg_file = "$name";
 	$dbg_file =~ s/\W/_/g;
 	#$dbg_file = "/tmp/twinstar-debug-$dbg_file";
 	$dbg_file = "/dev/null";
-	unless(open(F, "$astribank_tool -D '$path' 2> '$dbg_file' |")) {
+	unless(open(F, "@cmd 2> '$dbg_file' |")) {
 		warn "Failed running '$astribank_tool': $!";
 		return undef;
 	}
@@ -142,6 +150,7 @@ sub new($$$) {
 	local $_;
 	while(<F>) {
 		chomp;
+		#printf STDERR "'%s'\n", $_;
 		if(s/^INFO:\s*//) {
 			$mppinfo->{'PROTOCOL'} = $1 if /^protocol\s+version:\s*(\d+)/i;
 		} elsif(s/^EEPROM:\s*//) {
@@ -149,6 +158,9 @@ sub new($$$) {
 			$mppinfo->{'EEPROM_LABEL'} = $1 if /^label\s*:\s*([\w._'-]+)/i;
 		} elsif(s/^Extrainfo:\s+:\s*(.+?)$//) {
 			$mppinfo->{'EEPROM_EXTRAINFO'} = $1;
+		} elsif(s/^Capabilities:\s*TwinStar\s*:\s*(.+?)$//) {
+			my $cap = $1;
+			$mppinfo->{'TWINSTAR_CAPABLE'} = ($cap =~ /yes/i) ? 1 : 0;
 		} elsif(s/^TwinStar:\s*//) {
 			$mppinfo->{'TWINSTAR_PORT'} = $1 if /^connected\s+to\s*:\s*usb-(\d+)/i;
 			if(s/^USB-(\d+)\s*POWER\s*:\s*//) {
@@ -170,6 +182,31 @@ sub new($$$) {
 	}
 	#$mppinfo->showinfo;
 	return $mppinfo;
+}
+
+sub mpp_setwatchdog($$) {
+	my $mppinfo = shift || die;
+	my $on = shift;
+	die "$0: Bad value '$on'" unless defined($on) && $on =~ /^[0-1]$/;
+	my $dev = $mppinfo->dev || die;
+	return undef unless defined $mppinfo->mpp_talk;
+	my $old = $mppinfo->tws_watchdog;
+	my @cmd = astribank_tool_cmd($dev);
+	print STDERR "DEBUG($on): '@cmd'\n";
+	system(@cmd, '-w', $on);
+	die "Running $astribank_tool failed: $?" if $?;
+}
+
+sub mpp_jump($) {
+	my $mppinfo = shift || die;
+	my $dev = $mppinfo->dev || die;
+	return undef unless defined $mppinfo->mpp_talk;
+	my $port = $mppinfo->twinstar_port;
+	$port = ($port == 1) ? 0 : 1;
+	die "Unknown TwinStar port" unless defined $port;
+	my @cmd = astribank_tool_cmd($dev);
+	system(@cmd, '-p', $port);
+	die "Running $astribank_tool failed: $?" if $?;
 }
 
 sub mpp_addinfo($@) {

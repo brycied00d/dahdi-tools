@@ -37,6 +37,7 @@ sub show_xbus($) {
 	printf " LABEL=%-20s CONNECTOR=%-20s\n", $label, $connector;
 	foreach my $xpd (@xpds) {
 		my $reg = $xpd->dahdi_registration;
+		my $channels = '(' . $xpd->channels . ')';
 		my $span;
 		my $spanstr;
 		if($reg && @spans) {
@@ -48,7 +49,7 @@ sub show_xbus($) {
 		my $master = '';
 		#$master = "XPP-SYNC" if $xpd->is_sync_master;
 		$master .= " DAHDI-SYNC" if defined($span) && $span->is_dahdi_sync_master;
-		printf "\t%-10s: %-8s %s %s\n", $xpd->fqn, $xpd->type, $spanstr, $master;
+		printf "\t%-10s: %-8s %-5s %s %s\n", $xpd->fqn, $xpd->type, $channels, $spanstr, $master;
 	}
 }
 
@@ -75,7 +76,6 @@ sub show_disconnected(%) {
 Dahdi::Xpp::xbuses if ($opts{'v'});
 
 my @devices = Dahdi::Hardware->device_list;
-Dahdi::Xpp::Mpp->set_astribank_tool('./astribank_tool');
 foreach my $dev (@devices) {
 	my $driver = $dev->driver || "";
 	my $xbus;
@@ -106,9 +106,9 @@ foreach my $dev (@devices) {
 	}
 	my $description = $dev->description || "";
 	printf $format, $dev->hardware_name, $driver, $dev->vendor, $dev->product, $description;
-	if($opts{'v'} && defined $mppinfo) {
+	if($opts{'v'} && defined $mppinfo && exists $mppinfo->{MPP_TALK}) {
 		printf " MPP: TWINSTAR_PORT=$tws_port\n" if defined $tws_port;
-		printf " MPP: TWINSTAR_WATCHDOG=$tws_watchdog\n";
+		printf " MPP: TWINSTAR_WATCHDOG=$tws_watchdog\n" if defined $tws_watchdog;
 		for(my $i = 0; $i < 2; $i++) {
 			printf " MPP: TWINSTAR_POWER[%d]=%d\n",
 				$i, $tws_power->[$i] if defined $tws_power;

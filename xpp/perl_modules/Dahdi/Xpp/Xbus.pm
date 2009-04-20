@@ -88,6 +88,8 @@ sub read_attrs() {
 		if($attr eq 'STATUS') {
 			# Some values are in all caps as well
 			$val = uc($val);
+		} elsif($attr eq 'CONNECTOR') {
+			$val =~ s/^/@/;	# Add prefix
 		} elsif($attr eq 'LABEL') {
 			# Fix badly burned labels.
 			$val =~ s/[[:^print:]]/_/g;

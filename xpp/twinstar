@@ -17,8 +17,7 @@ use Dahdi::Hardware;
 use Dahdi::Span;
 use Dahdi::Xpp;
 use Dahdi::Xpp::Xbus;
-
-my $astribank_tool = '/usr/sbin/astribank_tool';
+use Dahdi::Xpp::Mpp;
 
 sub usage {
 	die "Usage: $0 {status|jump|enable-wd|disable-wd|ports}\n";
@@ -54,96 +53,108 @@ sub tws_usb_devfile($) {
 	return "$usb_top/$name";
 }
 
-sub tws_show() {
-	my @usb_devs = grep { /usb:/ } tws_devs();
+sub tws_show(@) {
+	my @usb_devs = @_;
+	my $format = "%-15s %-10s %-15s %-10s %-10s\n";
 
+	printf $format, 'DEVICE', 'PORT', 'WATCHDOG', 'POWER0', 'POWER1';
 	foreach my $dev (@usb_devs) {
-		my $path = tws_usb_devfile($dev);
-		print "$path:\n";
-		open(F, "$astribank_tool -D '$path' 2>&1 |") or
-			die "Failed running '$astribank_tool': $!";
-		while(<F>) {
-			chomp;
-			next unless /twinstar/i;
-			printf "\t%s\n", $_;
+		my $mppinfo = $dev->mppinfo;
+		if(!defined $mppinfo) {
+			printf STDERR "%s: no MPP information\n", $dev->hardware_name;
+			next;
 		}
-		close F || die "Failed running '$astribank_tool': $!";
+		if(!defined $mppinfo->{TWINSTAR_PORT}) {
+			printf STDERR "%s: no TWINSTAR_PORT information\n", $dev->hardware_name;
+			next;
+		}
+		my $power = $mppinfo->twinstar_power;
+		printf $format,
+			$dev->hardware_name,
+			$mppinfo->twinstar_port,
+			($mppinfo->twinstar_watchdog) ? "on" : "off",
+			($power->[0]) ? "yes" : "no",
+			($power->[1]) ? "yes" : "no";
 	}
 }
 
 sub tws_portnum($) {
 	my $dev = shift || die "Missing dev";
-	my $path = tws_usb_devfile($dev);
-	my $port;
-	open(F, "$astribank_tool -D '$path' 2>&1 |") or
-		die "Failed running '$astribank_tool': $!";
-	while(<F>) {
-		chomp;
-		next unless /twinstar/i;
-		next unless /connected\s+to/i;
-		if(/USB-(\d+)/i) {
-			$port = $1;
+	my $mppinfo = $dev->mppinfo;
+	if(!defined $mppinfo) {
+		printf STDERR "%s: no MPP information\n", $dev->hardware_name;
+		return undef;
+	}
+	return $mppinfo->twinstar_port;
+}
+
+sub tws_showports(@) {
+	my @usb_devs = @_;
+	foreach my $dev (@usb_devs) {
+		my $mppinfo = $dev->mppinfo;
+		if(!defined $mppinfo) {
+			printf STDERR "%s: no MPP information\n", $dev->hardware_name;
+			next;
 		}
-	}
-	close F || die "Failed running '$astribank_tool': $!";
-	return $port;
-}
-
-sub tws_jumpdev($$) {
-	my $dev = shift || die;
-	my $port = shift;
-	my $path = tws_usb_devfile($dev);
-	print "$path -> $port\n";
-	system($astribank_tool, "-D", $path, "-p", $port);
-}
-
-sub tws_jump() {
-	my @usb_devs = grep { /usb:/ } tws_devs();
-	my %ports;
-
-	foreach my $dev (@usb_devs) {
-		my $path = tws_usb_devfile($dev);
-		my $port = tws_portnum($dev);
-		# The "other" port
-		$port = ($port == 1) ? 0 : 1;
-		$ports{$dev} = $port;
-	}
-	foreach my $usbdev (sort keys %ports) {
-		tws_jumpdev($usbdev, $ports{$usbdev});
+		if(!defined $mppinfo->{TWINSTAR_PORT}) {
+			printf STDERR "%s: no TWINSTAR_PORT information\n", $dev->hardware_name;
+			next;
+		}
+		printf "%s\n", $mppinfo->{TWINSTAR_PORT};
 	}
 }
 
-sub tws_showports() {
-	my @usb_devs = grep { /usb:/ } tws_devs();
-	foreach my $dev (@usb_devs) {
-		my $port = tws_portnum($dev);
-		print "$port\n";
-	}
-}
-
-sub tws_watchdog($) {
+sub tws_watchdog($@) {
 	my $on = shift;
 	die "tws_watchdog() on/off?" unless defined $on;
-	my @usb_devs = grep { /usb:/ } tws_devs();
+	my @usb_devs = @_;
 
 	foreach my $dev (@usb_devs) {
-		my $path = tws_usb_devfile($dev);
-		print "$path:\n";
-		system($astribank_tool, "-D", $path, "-w", $on);
-		die "Running $astribank_tool failed: $?" if $?;
+		my $mppinfo = $dev->mppinfo;
+		if(!defined $mppinfo) {
+			printf STDERR "%s: no MPP information\n", $dev->hardware_name;
+			next;
+		}
+		$mppinfo->mpp_setwatchdog($on);
 	}
 }
 
+sub tws_jump(@) {
+	my @usb_devs = @_;
+
+	foreach my $dev (@usb_devs) {
+		my $mppinfo = $dev->mppinfo;
+		if(!defined $mppinfo) {
+			printf STDERR "%s: no MPP information\n", $dev->hardware_name;
+			next;
+		}
+		$mppinfo->mpp_jump;
+	}
+}
+
+sub dev_list() {
+	my @devs;
+	foreach my $dev (Dahdi::Hardware->device_list) {
+		next unless $dev->is_astribank;
+		next unless $dev->product =~ /116./;
+		Dahdi::Xpp::Mpp->mpp_addinfo($dev);
+		push(@devs, $dev);
+	}
+	return @devs;
+}
+
+my @usb_devices = dev_list();
+
 if($ARGV[0] eq 'status') {
-	tws_show();
+	tws_show(@usb_devices);
 } elsif($ARGV[0] eq 'jump') {
-	tws_jump();
+	tws_jump(@usb_devices);
 } elsif($ARGV[0] eq 'disable-wd') {
-	tws_watchdog(0);
+	tws_watchdog(0, @usb_devices);
 } elsif($ARGV[0] eq 'enable-wd') {
-	tws_watchdog(1);
+	tws_watchdog(1, @usb_devices);
 } elsif($ARGV[0] eq 'ports') {
-	tws_showports();
+	tws_showports(@usb_devices);
 }
 
 __END__
