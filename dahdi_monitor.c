@@ -343,7 +343,7 @@ int main(int argc, char *argv[])
 				fprintf(stderr, "Cannot specify option '%c' more than once.\n", opt);
 				exit(EXIT_FAILURE);
 			}
-			if ((ofh[MON_BRX] = fopen(optarg, "w")) < 0) {
+			if ((ofh[MON_BRX] = fopen(optarg, "w")) == NULL) {
 				fprintf(stderr, "Could not open %s for writing: %s\n", optarg, strerror(errno));
 				exit(EXIT_FAILURE);
 			}
@@ -359,7 +359,7 @@ int main(int argc, char *argv[])
 				fprintf(stderr, "Cannot specify option '%c' more than once.\n", opt);
 				exit(EXIT_FAILURE);
 			}
-			if ((ofh[MON_PRE_BRX] = fopen(optarg, "w")) < 0) {
+			if ((ofh[MON_PRE_BRX] = fopen(optarg, "w")) == NULL) {
 				fprintf(stderr, "Could not open %s for writing: %s\n", optarg, strerror(errno));
 				exit(EXIT_FAILURE);
 			}
@@ -376,7 +376,7 @@ int main(int argc, char *argv[])
 				fprintf(stderr, "Cannot specify option '%c' more than once.\n", opt);
 				exit(EXIT_FAILURE);
 			}
-			if ((ofh[MON_BRX] = fopen(optarg, "w")) < 0) {
+			if ((ofh[MON_BRX] = fopen(optarg, "w")) == NULL) {
 				fprintf(stderr, "Could not open %s for writing: %s\n", optarg, strerror(errno));
 				exit(EXIT_FAILURE);
 			}
@@ -393,7 +393,7 @@ int main(int argc, char *argv[])
 				fprintf(stderr, "Cannot specify option '%c' more than once.\n", opt);
 				exit(EXIT_FAILURE);
 			}
-			if ((ofh[MON_PRE_BRX] = fopen(optarg, "w")) < 0) {
+			if ((ofh[MON_PRE_BRX] = fopen(optarg, "w")) == NULL) {
 				fprintf(stderr, "Could not open %s for writing: %s\n", optarg, strerror(errno));
 				exit(EXIT_FAILURE);
 			}
@@ -411,7 +411,7 @@ int main(int argc, char *argv[])
 				fprintf(stderr, "Cannot specify option '%c' more than once.\n", opt);
 				exit(EXIT_FAILURE);
 			}
-			if ((ofh[MON_TX] = fopen(optarg, "w")) < 0) {
+			if ((ofh[MON_TX] = fopen(optarg, "w")) == NULL) {
 				fprintf(stderr, "Could not open %s for writing: %s\n", optarg, strerror(errno));
 				exit(EXIT_FAILURE);
 			}
@@ -428,7 +428,7 @@ int main(int argc, char *argv[])
 				fprintf(stderr, "Cannot specify option '%c' more than once.\n", opt);
 				exit(EXIT_FAILURE);
 			}
-			if ((ofh[MON_PRE_TX] = fopen(optarg, "w")) < 0) {
+			if ((ofh[MON_PRE_TX] = fopen(optarg, "w")) == NULL) {
 				fprintf(stderr, "Could not open %s for writing: %s\n", optarg, strerror(errno));
 				exit(EXIT_FAILURE);
 			}
@@ -446,7 +446,7 @@ int main(int argc, char *argv[])
 				fprintf(stderr, "Cannot specify option '%c' more than once.\n", opt);
 				exit(EXIT_FAILURE);
 			}
-			if ((ofh[MON_STEREO] = fopen(optarg, "w")) < 0) {
+			if ((ofh[MON_STEREO] = fopen(optarg, "w")) == NULL) {
 				fprintf(stderr, "Could not open %s for writing: %s\n", optarg, strerror(errno));
 				exit(EXIT_FAILURE);
 			}
@@ -463,7 +463,7 @@ int main(int argc, char *argv[])
 				fprintf(stderr, "Cannot specify option '%c' more than once.\n", opt);
 				exit(EXIT_FAILURE);
 			}
-			if ((ofh[MON_PRE_STEREO] = fopen(optarg, "w")) < 0) {
+			if ((ofh[MON_PRE_STEREO] = fopen(optarg, "w")) == NULL) {
 				fprintf(stderr, "Could not open %s for writing: %s\n", optarg, strerror(errno));
 				exit(EXIT_FAILURE);
 			}
