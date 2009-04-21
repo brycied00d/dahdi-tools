@@ -25,7 +25,7 @@
  * this program for more details.
  */
 
-#include <stdio.h> 
+#include <stdio.h>
 #include <getopt.h>
 #include <string.h>
 #include <stdarg.h>
@@ -58,9 +58,8 @@
 
 #define FRAG_SIZE 8
 
-/* Put the ofh (output file handles) outside
- * the main loop in case we ever add a signal
- * handler.
+/* Put the ofh (output file handles) outside the main loop in case we ever add a
+ * signal handler.
  */
 static FILE *ofh[6];
 
@@ -100,12 +99,13 @@ int audio_open(void)
 		close(fd);
 		return -1;
 	}
-	if (speed != 8000) 
+	if (speed != 8000) {
 		fprintf(stderr, "Warning: Requested 8000 Hz, got %d\n", speed);
+	}
 	if (ioctl(fd, SNDCTL_DSP_SETFRAGMENT, &fragsize)) {
 		fprintf(stderr, "Sound card won't let me set fragment size to %u %u-byte buffers (%x)\n"
 						"so sound may be choppy: %s.\n", BUFFERS, (1 << FRAG_SIZE), fragsize, strerror(errno));
-	}	
+	}
 	bzero(&ispace, sizeof(ispace));
 	bzero(&ospace, sizeof(ospace));
 
@@ -117,9 +117,9 @@ int audio_open(void)
 		/* They don't support block size stuff, so just return but notify the user */
 		fprintf(stderr, "Sound card won't let me know the output buffering...\n");
 	}
-	fprintf(stderr, "New input space:  %d of %d %d byte fragments (%d bytes left)\n", 
+	fprintf(stderr, "New input space:  %d of %d %d byte fragments (%d bytes left)\n",
 		ispace.fragments, ispace.fragstotal, ispace.fragsize, ispace.bytes);
-	fprintf(stderr, "New output space:  %d of %d %d byte fragments (%d bytes left)\n", 
+	fprintf(stderr, "New output space:  %d of %d %d byte fragments (%d bytes left)\n",
 		ospace.fragments, ospace.fragstotal, ospace.fragsize, ospace.bytes);
 	return fd;
 }
@@ -181,10 +181,10 @@ void draw_bar(int avg, int max)
 		avg = barlen;
 	if (max > barlen)
 		max = barlen;
-	
-	if (avg > 0) 
+
+	if (avg > 0)
 		memset(bar, '#', avg);
-	if (max > 0) 
+	if (max > 0)
 		memset(bar + max, '*', 1);
 
 	bar[barlen+1] = '\0';
@@ -206,25 +206,25 @@ void visualize(short *tx, short *rx, int cnt)
 	float ms;
 	static struct timeval last;
 	struct timeval tv;
-	
+
 	gettimeofday(&tv, NULL);
 	ms = (tv.tv_sec - last.tv_sec) * 1000.0 + (tv.tv_usec - last.tv_usec) / 1000.0;
-	for (x=0;x<cnt;x++) {
+	for (x = 0; x < cnt; x++) {
 		txavg += abs(tx[x]);
 		rxavg += abs(rx[x]);
 	}
 	txavg = abs(txavg / cnt);
 	rxavg = abs(rxavg / cnt);
-	
+
 	if (txavg > txbest)
 		txbest = txavg;
 	if (rxavg > rxbest)
 		rxbest = rxavg;
-	
+
 	/* Update no more than 10 times a second */
 	if (ms < 100)
 		return;
-	
+
 	/* Save as max levels, if greater */
 	if (txbest > txmax) {
 		txmax = txbest;
@@ -246,7 +246,7 @@ void visualize(short *tx, short *rx, int cnt)
 		printf("   Rx: %5d (%5d) Tx: %5d (%5d)", rxbest, rxmax, txbest, txmax);
 	txbest = 0;
 	rxbest = 0;
-	
+
 	/* If we have had the same max hits for x times, clear the values */
 	sametxmax++;
 	samerxmax++;
@@ -310,9 +310,9 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "        dahdi_monitor 1 -m -r streamrx.raw -t streamtx.raw -R streampreechorx.raw -T streampreechotx.raw\n");
 		exit(1);
 	}
-    
+
 	chan = atoi(argv[1]);
-    
+
 	while ((opt = getopt(argc, argv, "vmol:f:r:t:s:F:R:T:S:")) != -1) {
 		switch (opt) {
 		case '?':
@@ -585,7 +585,7 @@ int main(int argc, char *argv[])
 				x = fwrite(buf_tx, 1, res_tx, ofh[MON_TX]);
 
 			if (stereo_output && ofh[MON_STEREO]) {
-				for (x=0;x<res_tx;x++) {
+				for (x = 0; x < res_tx; x++) {
 					stereobuf[x*2] = buf_brx[x];
 					stereobuf[x*2+1] = buf_tx[x];
 				}
@@ -615,23 +615,24 @@ int main(int argc, char *argv[])
 					x = fwrite(buf_tx, 1, res_tx, ofh[MON_PRE_TX]);
 
 				if (stereo_output && ofh[MON_PRE_STEREO]) {
-					for (x=0;x<res_brx;x++) {
+					for (x = 0; x < res_brx; x++) {
 						stereobuf[x*2] = buf_brx[x];
 						stereobuf[x*2+1] = buf_tx[x];
 					}
-					x = fwrite(stereobuf, 1, res_brx*2, ofh[MON_PRE_STEREO]);
+					x = fwrite(stereobuf, 1, res_brx * 2, ofh[MON_PRE_STEREO]);
 				}
 			}
 		}
 
 		if (ossoutput && afd) {
 			if (stereo) {
-				for (x=0;x<res_brx;x++) {
-					buf_tx[x<<1] = buf_tx[(x<<1) + 1] = buf_brx[x];
+				for (x = 0; x < res_brx; x++) {
+					buf_tx[x << 1] = buf_tx[(x << 1) + 1] = buf_brx[x];
 				}
 				x = write(afd, buf_tx, res_brx << 1);
-			} else
+			} else {
 				x = write(afd, buf_brx, res_brx);
+			}
 		}
 
 		if (limit && readcount >= limit) {
