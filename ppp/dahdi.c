@@ -71,7 +71,7 @@ static int dahdi_chan = 0;
 static int connect_dahdi(void)
 {
     
-    DAHDI_PARAMS dahdi_params;
+    struct dahdi_params dahdi_params;
     int res;
     int x;
 
