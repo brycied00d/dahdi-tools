@@ -278,7 +278,7 @@ int main(int argc, char *argv[])
 	int readcount = 0;
 	int x, chan;
 	struct dahdi_confinfo zc;
-	char opt;
+	int opt;
 	extern char *optarg;
 
 	if ((argc < 2) || (atoi(argv[1]) < 1)) {
