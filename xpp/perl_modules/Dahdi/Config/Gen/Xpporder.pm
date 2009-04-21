@@ -58,7 +58,7 @@ sub get_sorted_xbuses(@) {
 	foreach my $span (@spans) {
 		my $spanno = $span->num;
 		if(!defined($seen_spans{$spanno})) {
-			warn "Span $span does not belong to any XPD!\n";
+			warn "Span $spanno: Ignored: Does not belong to any XPD\n";
 		}
 	}
 	@sorted_xbuses = sort { $xbus_beginning{$a} <=> $xbus_beginning{$b} } @xbuses;
