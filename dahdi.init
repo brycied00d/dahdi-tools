@@ -230,9 +230,9 @@ case "$1" in
 	#shutdown_dynamic # FIXME: needs test from someone with dynamic spans
 	echo -n "Unloading DAHDI hardware modules: "
 	if unload_module dahdi; then
-		echo -n "done"
+		echo "done"
 	else
-		echo -n "error"
+		echo "error"
 	fi
 	if [ "$LOCKFILE" != '' ]; then
 		[ $RETVAL -eq 0 ] && rm -f $LOCKFILE
