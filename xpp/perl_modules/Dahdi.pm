@@ -46,6 +46,7 @@ sub spans() {
 	-d $proc_base or return ();
 	foreach my $zfile (glob "$proc_base/*") {
 		$zfile =~ s:$proc_base/::;
+		next unless ($zfile =~ /^\d+$/);
 		my $span = Dahdi::Span->new($zfile);
 		push(@spans, $span);
 	}
