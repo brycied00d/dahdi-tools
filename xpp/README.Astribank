@@ -1182,8 +1182,8 @@ If you have multiple Astribank devices, dahdi_registration will register
 them by the order of the "connector" field. This means that as long as
 the same Astribank is connected to the same port, the order of plugging
 is not important. Alternatively you can set an explicit registration
-order using /etc/dahdi/xpp_order . See above in section 
-<<_xpp_order__explicitly_order_Astribanks>>.
+order using /etc/dahdi/xpp_order . See above in section about
+<<_xpp_order_explicitly_order_astribanks,xpp_order>>.
 
 The registration is performed through the sysfs interface. See below
 <<_sys_devices_xpp_xbus_nn_nn_m_p_span,the span attribute>>. Also note 
