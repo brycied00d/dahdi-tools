@@ -50,6 +50,11 @@ or libusb-devel on RedHat (and derivatives like CentOS/Trixbox).
 
 Patch for BRI
 ~~~~~~~~~~~~~
+(As of DAHDI 2.2 this patch is no longer needed. Furthermore, it does
+not apply. The same directory has a newer patch that applies. This
+section is kept in the document for the time being for the benefit of
+those with older versions)
+
 In order for the BRI module (xpd_bri.ko) to build, you still need an
 external patch: 
 
@@ -162,6 +167,68 @@ modules:
 -----------------------------------------------------------
 
 
+xpp_order: Explicitly order Astribanks
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+(This feature is available as of DAHDI 2.2)
+
+On a system with multiple Astribank you would normally want to guarantee
+that Astribanks are registered in the same order regardless of the order
+in which they are connected or detected. Assuming that you register them
+all at the same time. In order to do that, you should list the
+Astribanks explicitly under /etc/dahdi/xpp_order .
+
+Astribanks that are listed there are registered first (according to the
+order of lines in the files). Astribanks not listed there are added
+last, and sorted by the 'USB connector' string.
+
+You can identify an Astribank in two ways: 
+
+Label::
+  each Astribank (except some really old ones) has a label . This 
+  identifies the actual Astribank box.
+
+Connector::
+  Identify the path the Astribank is connected through. E.g.: to what
+  USB port you connected it.
+
+Identifying an Astribank by the label seems simpler and more
+predictable. Though it may have some slightly surprising effects if
+replace one Astribank with another.
+
+The sample configuration file:
+-----------------------------------------------------------
+#
+# This is an optional configuration file for ordering
+# Dahdi registration.
+#
+# It is read from /etc/dahdi/xpp_order. This location
+# may be overriden via the environment variable XPPORDER_CONF
+#
+# Lines may contain:
+#   - The Astribank label (verbatim)
+#   - The Astribank connector string (prefixed with @)
+# Ordering number of each listed Astribank is determined
+# by its position in this file.
+# Astribanks not listed in this file, get an ordering
+# number of 99 (last).
+#
+# Astribanks with same ordering number are sorted by their
+# connectors (to preserve legacy behaviour).
+#
+# Examples:
+#usb:1234
+#@usb-0000:06:02.2-2
+-----------------------------------------------------------
+
+In order to generate one that includes all the Astribanks in the system
+with the current order in which they are connected, use:
+
+  dahdi_genconf xpporder
+
+For more technical details see the section <<_registering_in_dahdi>>
+below.
+
+
 /etc/dahdi/system.conf
 ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -189,7 +256,9 @@ Astribank 4 BRI
     span=3,2,1,ccs,ami
     span=4,0,1,ccs,ami
     bchan=1-2,4-5,7-8,10-11
-    dchan=3,6,9,12
+    ; if you applied the bri_dchan patch:
+    ;dchan=3,6,9,12
+    hardhdlc=3,6,9,12
 
 Astribank 4 PRI E1
 ^^^^^^^^^^^^^^^^^^
@@ -662,7 +731,7 @@ once a new call needs to be made.
 
 
 Astribank in lsusb but not in dahdi_hardware
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .Symptoms:
 You fail to find an Astribank device in the output of lsusb . But you
 see it in `lsusb | grep e4e4`
@@ -824,30 +893,31 @@ during the DAHDI installation.
 
 The Astribank needs a firmware loaded into it. Without the firmware, 
 the device will appear in lsusb with Vendor ID e4e4 and Product ID 11x0
-(1130, 1140 or 1150). The firmware loading process consists of two stages. 
-In the first stage the "USB" firmware is loaded by using program fxload. 
-When the first stage is completed the Vendor ID is e4e4 and the Product ID 
-is 11x1. (e.g. 1151 if it were 1150 previously).
+(1130, 1140, 1150 or 1160). The firmware loading process consists of two
+stages. In the first stage the "USB" firmware is loaded by using program
+fxload. When the first stage is completed the Vendor ID is e4e4 and the
+Product ID is 11x1. (e.g. 1151 if it were 1150 previously).
 
 You can use the following command in order to load the "USB" firmware
 manually:
 
-  fxload -t fx2 -D /proc/bus/usb/MMM/NNN -I /usr/share/dahdi/USB_FW.hex
+  fxload -t fx2 -D /dev/bus/usb/MMM/NNN -I /usr/share/dahdi/USB_FW.hex
 
 where,
 
 fxload::
   A standard program that is typically part either of package 'fxload' 
   or 'hotplug-utils' . 
-/proc/bus/usb::
-  The mount point of the USB file-system (usbfs).
+/dev/bus/usb::
+  On some old systems it is mmissing . /proc/bus/usb (usbfs) could be
+  used instead.
 MMM::
   the first number (bus number)
 NNN::
   the second number (device number) you see for the device in lsusb
 
 If the loading process has been completed successfully, the device 
-disconnects and then connects again itself with USB Product ID 1131 
+disconnects and then connects again itself with USB Product ID 11x1 
 (and a new device number).
 
 In the second stage, the "FPGA" firmware is loaded.
@@ -858,7 +928,20 @@ which is built in the directory xpp/utils and then copied to folder
 The command syntax is similar to the syntax of fxload. You can use the 
 following command in order to load the FPGA firmware manually:
 
-  fpga_load -D /proc/bus/usb/MMM/NNN -I /usr/share/dahdi/FPGA_1151.hex
+  # pick the right name according to the device ID. FPGA_1161.hex is for
+  # 116x Astribanks:
+  astribank_hexload -D /dev/bus/usb/MMM/NNN -F /usr/share/dahdi/FPGA_1161.hex
+  # Note the shell expantion in this line:
+  astribank_hexload -D /dev/bus/usb/MMM/NNN -p /usr/share/dahdi/PIC_TYPE_[1-4].hex
+  # reenumerate (disconnect and reconnect)
+  astribank_tool  -D /dev/bus/usb/MMM/NNN -n
+
+With older USB firmwares (before the one included in e.g. dahdi-linux
+2.2) you needed to use instead of all the above:
+
+  # pick the right name according to the device ID. FPGA_1151.hex is for
+  # 115x Astribanks:
+  fpga_load -D /dev/bus/usb/MMM/NNN -I /usr/share/dahdi/FPGA_1151.hex
 
 Please note, that  NNN value differs from that that was used for the 
 fxload command due to the fact that device has "reconnected" itself 
@@ -866,9 +949,8 @@ with another Product ID number. So you need to run lsusb again and get
 the new NNN value. Usually, the new value is equal to the old value 
 incremented by 1.
 
-On newer systems usbfs (/prob/bus/usb) is replaced by basically the same
-structure under /dev/bus/usb . Note, however, that dahdi_hardware still
-relies on some data from usbfs that is not found in /dev/usb .
+On newer systems (e.g. Centos 4) /dev/bus/usb may not be available. In
+that case, use /proc/bus/usb . usbfs should be mounted there.
 
 
 Automatic Firmware Loading
@@ -911,6 +993,14 @@ usb 7-1: configuration #1 chosen from 1 choice
 usb 7-1: reset high speed USB device using ehci_hcd and address 46
 INFO-xpp_usb: XUSB: Xorcom LTD -- Astribank -- FPGA
 -------------------------------------
+
+Another useful tool for tracing UDEV-related issue is the udev monitor:
+
+  udevadm monitor
+
+Or with some older versions of udev:
+
+  udevmonitor
 
 
 Firmware Loading with Hotplug
@@ -1002,7 +1092,13 @@ NOTICE-xpp: xproto_get: Failed to load module for type=3. exit status=256.
 NOTICE-xpp: XBUS-00: CARD 0: missing protocol table for type 3. Ignored.
 --------------------------------------------------
 In this case it was because I maliciously removed the module xpd_bri
-(type 3) from the system. 
+(type 3) from the system.
+
+This can also happen if you accidentally blacklist the relevant xpd-*
+module. 'blacklist some_module' in modprobe.conf or modprobe.d/*.conf
+means that a direct insmod or modprobe of their name will work, but any
+attempt to load a module through its aliases will fail. Recall that the
+cpd-* modules are loaded on-demand using the alias 'xpd-type-N' .
 
 
 Device Initializations Scripts
@@ -1038,11 +1134,8 @@ Connect / Disconnect Hook
 When the Astribank has finished initialization it also notifies
 userspace applications. This can be used to run a custom command when an
 Astribank is connected (after it has finished initialization) or when it
-has disconnected. 
-
-To use that you need to comment-out the last line in the udev rules file
-xpp.rules. A sample hook script is included in dahdi-linux:
-drivers/dahdi/xpp/astribank_hook.sample . 
+has disconnected. The hook script is installed by default to
+/usr/share/dahdi/astribank_hook .
 
 
 Registering in DAHDI
@@ -1063,7 +1156,7 @@ they are registered. To register:
 
 For a system with several spans you'll see a "fast train of lights".
 
-"If you have multiple Astribank devices, dahdi_registration will
+If you have multiple Astribank devices, dahdi_registration will
 register them by the ascending order of the USB connector ID. This
 means that as long as the same Astribank is connected to the same
 port, the order of plugging is not important.
@@ -1088,7 +1181,9 @@ usb:004/007     xpp_usb+     e4e4:1152 Astribank-multi FPGA-firmware
 If you have multiple Astribank devices, dahdi_registration will register
 them by the order of the "connector" field. This means that as long as
 the same Astribank is connected to the same port, the order of plugging
-is not important.
+is not important. Alternatively you can set an explicit registration
+order using /etc/dahdi/xpp_order . See above in section 
+<<_xpp_order__explicitly_order_Astribanks>>.
 
 The registration is performed through the sysfs interface. See below
 <<_sys_devices_xpp_xbus_nn_nn_m_p_span,the span attribute>>. Also note 
@@ -1239,43 +1334,6 @@ For the status of the D channel of the ports on all PRI spans, run:
 Note: the layer 2 status is much more of a guesswork based on changes in
 the contents of the channel that is supposed to be the D channel.
 
-Writing to this file can be used to change the type of the device. The
-device type can only be changed when the XPD is not registered as a
-DAHDI span. The value is a whitespace-separated list of values that can 
-be of:
-
-E1::
-  Provides 31 channels, of which channel 16 is normally the D-channel. 
-  Common in places outside of North America and Japan. This is the 
-  default setup.
-
-T1::
-  T1 provides 24 channels. The last one is normally the D-Channel.
-  Common in North America.
-
-TE::
-  Use the bottom port (green LED) and don't invert any wiring. Hint to
-  higher layers that this will be the TE side of the connection. This is
-  the default setup.
-
-NT::
-  Use the top port (orange LED) and invert wiring (this is done to allow
-  connecting an NT port and a TE port using a standard straight 8 wires 
-  "ethernet" cable). Hint to higher layers that this will be the NT side 
-  of the connection.
-
-LOCALOOP::
-  Set the device into local loop mode: loops the transmitted channels
-  directly into the received channels.
-
-NOLOCALLOOP::
-  Ends local loop mode.
-
-Normally those are set by the PRI initialization script . See the
-definition of XPP_PRI_SETUP in 
-xref:dahdi_init_configuration_file[the sample DAHDI init 
-configuration file] .
-
 
 There are a bunch of other status files under /proc/xpp/.
 
@@ -1424,6 +1482,26 @@ have a link called "driver" to the directory of the driver that
 handles it. One specific interesting thing is that this allows you to
 easily see all the XPDs of the same type, as they are linked again
 from the driver's directory.
+
+
+===== /sys/bus/astribanks/devices/xbus-NN/NN:M:P/pri_protocol
+Can have either of those two:
+
+E1::
+  Provides 31 channels, of which channel 16 is normally the D-channel. 
+  Common in places outside of North America and Japan. This is the 
+  default setup.
+
+T1::
+  T1 provides 24 channels. The last one is normally the D-Channel.
+  Common in North America.
+
+This can also be set by writing the strings explicitly to the file. But
+can only be done when an XPD is not a registered span.
+
+This writing is normally done by the device initialization script, based
+on the 'pri_protocol' settings in 
+xref:_xpp_conf_astribank_initialization[/etc/dahdi/xpp.conf] .
 
 
 Useful Module Parameters
