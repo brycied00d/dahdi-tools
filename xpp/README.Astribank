@@ -612,11 +612,11 @@ Asterisk Level Information
   Check /var/log/asterisk/messages or /var/log/asterisk/full .
 - If you get the error that "there is no such command" then it means that
   chan_zap.so is not loaded. There are two reasons for such problem:
-  * chan_zap.so is not even built. Check if the file exists:
+  * chan_dahdi.so is not even built. Check if the file exists:
 
        ls -l /usr/lib/asterisk/modules/chan_dahdi.so
 
-  * the chan_zap.so file exists but it is not loaded. Try to load it manually:
+  * the chan_dahdi.so file exists but it is not loaded. Try to load it manually:
 
        asterisk -rx 'load module chan_dahdi.so'
 
