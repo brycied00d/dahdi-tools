@@ -254,14 +254,16 @@ struct mpp_command *recv_command(struct astribank_device *astribank, int timeout
 		ERR("Out of memory\n");
 		goto err;
 	}
+	reply->header.len = 0;
 	ret = recv_usb(astribank, (char *)reply, PACKET_SIZE, timeout);
 	if(ret < 0) {
 		ERR("Receive from usb failed.\n");
 		goto err;
 	}
 	if(ret != reply->header.len) {
-		ERR("Wrong length received: got %d bytes, but length field says %d bytes\n",
-				ret, reply->header.len);
+		ERR("Wrong length received: got %d bytes, but length field says %d bytes%s\n",
+				ret, reply->header.len,
+				(ret == 1)? ". Old USB firmware?": "");
 		goto err;
 	}
 	//dump_packet(LOG_DEBUG, __FUNCTION__, (char *)reply, ret);
