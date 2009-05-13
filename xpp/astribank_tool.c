@@ -31,6 +31,11 @@
 #include "debug.h"
 
 #define	DBG_MASK	0x80
+/* if enabled, adds support for resetting pre-MPP USB firmware - if we 
+ * failed opening a device and we were asked to reset it, try also the
+ * old protocol.
+ */
+#define SUPPORT_OLD_RESET
 
 static char	*progname;
 
@@ -106,6 +111,36 @@ static int show_hardware(struct astribank_device *astribank)
 	return 0;
 }
 
+#ifdef SUPPORT_OLD_RESET
+/* Try to reset a device using USB_FW.hex, up to Xorcom rev. 6885 */
+int old_reset(const char* devpath)
+{
+	struct astribank_device *astribank;
+	int ret;
+	struct {
+		uint8_t		op;
+	} PACKED header = {0x20}; /* PT_RESET */
+	char *buf = (char*) &header;
+
+	/* Note that the function re-opens the connection to the Astribank
+	 * as any reference to the previous connection was lost when mpp_open
+	 * returned NULL as the astribank reference. */
+	astribank = astribank_open(devpath, 1);
+	if (!astribank) {
+		DBG("Failed re-opening astribank device for old_reset\n");
+		return -ENODEV;
+	}
+	ret = send_usb(astribank, buf, 1, 5000);
+
+	/* If we just had a reenumeration, we may get -ENODEV */
+	if(ret < 0 && ret != -ENODEV)
+			return ret;
+	/* We don't astribank_close(), as it has likely been
+	 * reenumerated by now. */
+	return 0;
+}	
+#endif /* SUPPORT_OLD_RESET */
+
 int main(int argc, char *argv[])
 {
 	char			*devpath = NULL;
@@ -164,6 +199,16 @@ int main(int argc, char *argv[])
 	DBG("Startup %s\n", devpath);
 	if((astribank = mpp_init(devpath)) == NULL) {
 		ERR("Failed initializing MPP\n");
+#ifdef SUPPORT_OLD_RESET
+		INFO("opt_reset = %s\n", opt_reset);
+		if (opt_reset) {
+			INFO("Trying old reset method\n");
+			if ((ret = old_reset(devpath)) != 0) {
+				ERR("Old reset method failed as well: %d\n", ret);
+			}
+		}
+#endif /* SUPPORT_OLD_RESET */
+
 		return 1;
 	}
 	show_hardware(astribank);

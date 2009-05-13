@@ -928,14 +928,19 @@ struct astribank_device *mpp_init(const char devpath[])
 	ret = mpp_proto_query(astribank);
 	if(ret < 0) {
 		ERR("Protocol handshake failed: %d\n", ret);
-		return NULL;
+		goto err;
 	}
 	ret = mpp_status_query(astribank);
 	if(ret < 0) {
 		ERR("Status query failed: %d\n", ret);
-		return NULL;
+		goto err;
 	}
 	return astribank;
+
+err:
+	if (astribank)
+		astribank_close(astribank, 0);
+	return NULL;
 }
 
 void mpp_exit(struct astribank_device *astribank)
