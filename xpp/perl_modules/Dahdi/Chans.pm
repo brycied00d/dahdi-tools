@@ -142,13 +142,14 @@ sub new($$$$$$) {
 		$type = "FXO"; # likely Rhino
 	} elsif ($fqn =~ m{---/.*}) {
 		$type = "EMPTY"; # likely Rhino, empty slot.
-	} elsif ($fqn =~ m{\b(TE[24]|WCT1|Tor2|TorISA|WP[TE]1|cwain[12])/.*}) {
+	} elsif ($fqn =~ m{\b(TE[24]|WCT1|Tor2|TorISA|WP[TE]1|cwain[12]|R[124]T1)/.*}) {
 		# TE[24]: Digium wct4xxp
 		# WCT1: Digium single span card drivers?
 		# Tor2: Tor PCI cards
 		# TorISA: ISA ones (still used?) 
 		# WP[TE]1: Sangoma. TODO: this one tells us if it is TE or NT.
 		# cwain: Junghanns E1 card.
+		# R[124]: Rhino r1t1/rxt1 cards
 		$type = "PRI";
 	} elsif ($fqn =~ m{\b(B4|ZTHFC\d*|ztqoz\d*)/.*}) {
 		# B4: The Digium wcb4xxp DAHDI driver
