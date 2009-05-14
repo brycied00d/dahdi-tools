@@ -1628,6 +1628,12 @@ finish:
 			exit(1);
 		}
 	}
+	if (0 == numzones) {
+		/* Default to the us zone if one wasn't specified. */
+		dahdi_copy_string(zonestoload[numzones++], "us", sizeof(zonestoload[0]));
+		deftonezone = 0;
+	}
+
 	for (x=0;x<numzones;x++) {
 		if (debug & DEBUG_APPLY) {
 			printf("Loading tone zone for %s\n", zonestoload[x]);
