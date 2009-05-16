@@ -89,7 +89,7 @@ sub generate($$$) {
 # Dahdi registration.
 #
 # It is read from /etc/dahdi/xpp_order. This location
-# may be overriden via the environment variable XPPORDER_CONF
+# may be overridden via the environment variable XPPORDER_CONF
 #
 # Lines may contain:
 #   - The Astribank label (verbatim)
@@ -97,13 +97,13 @@ sub generate($$$) {
 # Ordering number of each listed Astribank is determined
 # by its position in this file.
 # Astribanks not listed in this file, get an ordering
-# number of 999 (last).
+# number of 99 (last).
 #
 # Astribanks with same ordering number are sorted by their
-# connectors (to preserve legacy behaviour).
+# connectors (to preserve legacy behavior).
 #
 # Examples:
-#usb:TWS-08
+#usb:1234
 #@usb-0000:06:02.2-2
 HEAD
 	foreach my $xbus (@xbuses) {

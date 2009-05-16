@@ -21,7 +21,7 @@ Dahdi::Xpp::Mpp - Perl interface to C<astribank_tool(8)>
 =head1 DESCRIPTION
 
 This package uses C<astribank_tool(8)> to collect information
-about Astribanks via MPP (Managment Processor Protocol).
+about Astribanks via MPP (Management Processor Protocol).
 
 The binary default location is F</usr/sbin/astribank_tool>. It may be
 overridden via module parameter C<astribank_tool=> and the
