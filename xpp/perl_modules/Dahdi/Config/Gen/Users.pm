@@ -4,6 +4,11 @@ use strict;
 use File::Basename;
 use Dahdi::Config::Gen qw(is_true);
 
+# Generate a complete users.conf for the asterisk-gui
+# As the asterisk-gui provides no command-line interface of its own and
+# no decent support of #include, we have no choice but to nuke users.conf
+# if we're to provide a working system
+
 sub new($$$) {
 	my $pack = shift || die;
 	my $gconfig = shift || die;
@@ -18,22 +23,70 @@ sub new($$$) {
 	return $self;
 }
 
-sub gen_channel($) {
+# A single analog trunk for all the FXO channels
+sub gen_analog_trunk {
+	my @fxo_ports = @_;
+	return unless (@fxo_ports); # no ports
+
+	my $ports = join(',', @fxo_ports);
+
+	print << "EOF"
+[trunk_1]
+trunkname = analog
+hasexten = no
+hasiax = no
+hassip = no
+hasregisteriax = no
+hasregistersip = no
+trunkstyle = analog
+dahdichan = $ports
+
+EOF
+}
+
+# A digital trunk for a single span.
+# FIXME: how do I create the DID context?
+sub gen_digital_trunk($) {
+	my $span = shift;
+	my $num = $span->num;
+	my $sig = $span->signalling;
+	my $type = $span->type;
+	my $bchan_range = Dahdi::Config::Gen::bchan_range($span);
+
+	print << "EOF";
+[span_$num]
+group = $num
+hasexten = no
+signalling = $sig
+trunkname = Span $num $type
+trunkstyle = digital  ; GUI metadata
+hassip = no
+hasiax = no
+context = DID_span_$num
+dahdichan = $bchan_range
+
+EOF
+}
+
+my $ExtenNum;
+
+# A single user for a FXS channel
+sub gen_channel($$) {
 	my $self = shift || die;
 	my $chan = shift || die;
 	my $gconfig = $self->{GCONFIG};
 	my $type = $chan->type;
 	my $num = $chan->num;
 	die "channel $num type $type is not an analog channel\n" if $chan->span->is_digital();
-	my $exten = $gconfig->{'base_exten'} + $num;
+	my $exten = $ExtenNum++;
 	my $sig = $gconfig->{'chan_dahdi_signalling'}{$type};
 	my $full_name = "$type $num";
 
 	die "missing default_chan_dahdi_signalling for chan #$num type $type" unless $sig;
 	print << "EOF";
 [$exten]
+context = DLPN_DialPlan1
 callwaiting = yes
-context = numberplan-custom-1
 fullname = $full_name
 cid_number = $exten
 hasagent = no
@@ -42,32 +95,18 @@ hasiax = no
 hasmanager = no
 hassip = no
 hasvoicemail = yes
-host = dynamic
 mailbox = $exten
 threewaycalling = yes
-vmsecret = 1234
-secret = 1234
+vmsecret = $exten
 signalling = $sig
 dahdichan = $num
 registeriax = no
 registersip = no
 canreinvite = no
-nat = no
-dtmfmode = rfc2833
-disallow = all
-allow = all
 
 EOF
 }
 
-# generate users.conf . The specific users.conf is strictly oriented
-# towards using with the asterisk-gui .
-#
-# This code could have generated a much simpler and smaller
-# configuration file, had there been minimal level of support for
-# configuration templates in the asterisk configuration rewriting. Right
-# now Asterisk's configuration rewriting simply freaks out in the face
-# of templates: http://bugs.digium.com/11442 .
 sub generate($) {
 	my $self = shift || die;
 	my $file = $self->{FILE};
@@ -88,14 +127,10 @@ sub generate($) {
 ;! Filename: @{[basename($file)]} ($file)
 ;! Generator: $0
 ;! Creation Date: @{[scalar(localtime)]}
-;! If you edit this file and execute $0 again,\n";
-;! your manual changes will be LOST.\n";
+;! If you edit this file and execute $0 again,
+;! your manual changes will be LOST.
 ;!
 [general]
-;
-; Full name of a user
-;
-fullname = New User
 ;
 ; Starting point of allocation of extensions
 ;
@@ -144,14 +179,25 @@ localextenlength = @{[length($gconfig->{'base_exten'})]}
 
 
 HEAD
+	my @fxo_ports = ();
+	$ExtenNum = $self->{GCONFIG}->{'base_exten'};
 	foreach my $span (@spans) {
-		next unless grep { $_ eq $span->type} ( 'FXS', 'IN', 'OUT' );
 		printf "; Span %d: %s %s\n", $span->num, $span->name, $span->description;
+		if ($span->type =~ /^(BRI_(NT|TE)|E1|T1)$/) {
+			gen_digital_trunk($span);
+			next;
+		}
 		foreach my $chan ($span->chans()) {
-			$self->gen_channel($chan);
+			if (grep { $_ eq $span->type} ( 'FXS', 'IN', 'OUT' )) {
+				$self->gen_channel($chan);
+			} elsif ($chan->type eq 'FXO') {
+				# TODO: "$first_chan-$last_chan"
+				push @fxo_ports,($chan->num);
+			}
 		}
 		print "\n";
 	}
+	gen_analog_trunk(@fxo_ports);
 	close F;
 	select $old;
 }
@@ -174,6 +220,8 @@ users - Generate configuration for users.conf.
 =head1 DESCRIPTION
 
 Generate the F</etc/asterisk/users.conf> which is used by asterisk(1) 
-and AsteriskGUI.
+and AsteriskGUI. This will replace your entire configuration including
+any SIP/IAX users and trunks you may have set. Thus it's probably only
+appropriate for an initial setup.
 
 Its location may be overriden via the environment variable F<USERS_FILE>.
