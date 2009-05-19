@@ -2,6 +2,7 @@ package Dahdi::Config::Gen::Xpporder;
 use strict;
 
 use Dahdi::Config::Gen qw(is_true);
+use Dahdi::Xpp;
 
 sub new($$$) {
 	my $pack = shift || die;

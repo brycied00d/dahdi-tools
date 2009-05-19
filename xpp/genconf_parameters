@@ -89,10 +89,17 @@
 #echo_can		oslec
 #echo_can		none  # to avoid echo canceler altogether
 
-# bri_hardhdlc: If this parameter is set to 'yes', in the entries for
-# BRI cards 'hardhdlc' will be used instead of 'dchan' (an alias for
-# 'fcshdlc').
-#bri_hardhdlc		yes
+# bri_hardhdlc:
+#   'yes'  - forces BRI cards to use 'hardhdlc' signalling.
+#   'no'   - forces BRI cards to use 'dchan' (an alias for 'fcshdlc').
+#            It is usefull only for dahdi with the bristuff patch.
+#
+# If it is left out or set to 'auto':
+#   * Information supplied by the driver is used to decide:
+#     - Currently implemented for Astribanks.
+#     - Taken from /sys/bus/xpds/drivers/bri/dchan_hardhdlc.
+#   * Without this info, falls back to 'hardhdlc'.
+#bri_hardhdlc		auto
 
 # For MFC/R2 Support: 'R2' will make E1 spans CAS and with the
 # 'r2_idle_bits' bit in system.conf . It will also make dahdi_genconf default

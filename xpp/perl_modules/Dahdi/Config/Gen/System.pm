@@ -48,11 +48,6 @@ sub gen_digital($$) {
 		$span_crc4 = '';
 		$framing = 'cas';
 	}
-	my $dchan_type = 'dchan';
-	if ($span->is_bri() && is_true($gconfig->{'bri_hardhdlc'})) {
-		$dchan_type = 'hardhdlc';
-	}
-
 	$timing = ($termtype eq 'NT') ? 0 : $bri_te_last_timing++;
 	printf "span=%d,%d,%d,%s,%s%s%s\n",
 			$num,
@@ -63,14 +58,42 @@ sub gen_digital($$) {
 			$span_crc4,
 			$span_yellow;
 	printf "# termtype: %s\n", lc($termtype);
-	if ($gconfig->{'pri_connection_type'} eq 'PRI') {
+	my $dchan_type;
+	if ($span->is_bri()) {
+		my $use_bristuff = 0;
+		my $cfg_hardhdlc = $gconfig->{'bri_hardhdlc'};
+		my $xpd = $span->xpd();
+		if(!defined($cfg_hardhdlc) || $cfg_hardhdlc =~ /AUTO/i) {
+			# Autodetect
+			if(defined($xpd)) {
+				# Bristuff?
+				if(defined($xpd->dchan_hardhdlc) && !is_true($xpd->dchan_hardhdlc)) {
+					$use_bristuff = 1;
+				}
+			}
+		} elsif(!is_true($cfg_hardhdlc)) {
+			$use_bristuff = 1;
+		}
+		if($use_bristuff) {
+			$dchan_type = 'dchan';
+		} else {
+			$dchan_type = 'hardhdlc';
+		}
 		printf "bchan=%s\n", Dahdi::Config::Gen::bchan_range($span);
 		my $dchan = $span->dchan();
 		printf "$dchan_type=%d\n", $dchan->num();
-	} elsif ($gconfig->{'pri_connection_type'} eq 'R2' ) {
-		my $idle_bits = $gconfig->{'r2_idle_bits'};
-		printf "cas=%s:$idle_bits\n", Dahdi::Config::Gen::bchan_range($span);
-		printf "dchan=%d\n", $span->dchan()->num();
+	} elsif($span->is_pri()) {
+		if ($gconfig->{'pri_connection_type'} eq 'PRI') {
+			printf "bchan=%s\n", Dahdi::Config::Gen::bchan_range($span);
+			my $dchan = $span->dchan();
+			printf "dchan=%d\n", $dchan->num();
+		} elsif ($gconfig->{'pri_connection_type'} eq 'R2' ) {
+			my $idle_bits = $gconfig->{'r2_idle_bits'};
+			printf "cas=%s:$idle_bits\n", Dahdi::Config::Gen::bchan_range($span);
+			printf "dchan=%d\n", $span->dchan()->num();
+		}
+	} else {
+		die "Digital span $num is not BRI, nor PRI?";
 	}
 	print_echo_can($gconfig, Dahdi::Config::Gen::bchan_range($span));
 }

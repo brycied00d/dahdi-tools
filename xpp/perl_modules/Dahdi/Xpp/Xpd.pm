@@ -85,6 +85,25 @@ sub xpd_old_getoffhook($) {
 
 my %attr_missing_warned;	# Prevent duplicate warnings
 
+sub xpd_driver_getattr($$) {
+	my $xpd = shift || die;
+	my $attr = shift || die;
+	$attr = lc($attr);
+	my ($busnum, $unitnum, $subunitnum) = ($xpd->xbus->num, $xpd->unit, $xpd->subunit);
+	my $file = sprintf "$Dahdi::Xpp::sysfs_xpds/%02d:%1d:%1d/driver/$attr",
+			$busnum, $unitnum, $subunitnum;
+	if(!defined($file)) {
+		warn "$0: xpd_driver_getattr($attr) -- Missing attribute.\n" if
+			$attr_missing_warned{$attr};
+		return undef;
+	}
+	open(F, $file) || return undef;
+	my $val = <F>;
+	close F;
+	chomp $val;
+	return $val;
+}
+
 sub xpd_getattr($$) {
 	my $xpd = shift || die;
 	my $attr = shift || die;
@@ -198,6 +217,7 @@ sub new($$$$$) {
 	if($type =~ /BRI_(NT|TE)/) {
 		$self->{IS_BRI} = 1;
 		$self->{TERMTYPE} = $1;
+		$self->{DCHAN_HARDHDLC} = $self->xpd_driver_getattr('dchan_hardhdlc');
 	}
 	$self->{IS_PRI} = ($type =~ /[ETJ]1/);
 	$self->{IS_DIGITAL} = ( $self->{IS_BRI} || $self->{IS_PRI} );

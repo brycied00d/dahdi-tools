@@ -106,7 +106,7 @@ sub item($$) {
 			brint_overlap		=> 'no',
 			bri_sig_style		=> 'bri_ptmp',
 			echo_can		=> 'mg2',
-			bri_hardhdlc		=> 'no',
+			bri_hardhdlc		=> 'auto',
 			pri_connection_type	=> 'PRI',
 			r2_idle_bits		=> '1101',
 			'pri_termtype'		=> [ 'SPAN/* TE' ],
