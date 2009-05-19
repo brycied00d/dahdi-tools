@@ -66,7 +66,7 @@ TARGETS	+= fpga_load		\
 	   astribank_hexload	\
 	   astribank_allow	\
 	   test_parse
-PROG_INSTALL	+= fpga_load astribank_tool astribank_hexload
+PROG_INSTALL	+= fpga_load astribank_tool astribank_hexload astribank_allow
 endif
 ifneq	(,$(PERLLIBDIR))
 PROG_INSTALL	+= $(PERL_SCRIPTS)
