@@ -25,6 +25,10 @@
 
 set -e
 
+# For lab testing
+mydir=`dirname $0`
+PATH="${mydir}:${PATH}"
+
 ab_list() {
 	# Only check /sys info (don't use /proc anymore).
 	ab=`find /sys/bus/astribanks/devices/xbus-*/ -name waitfor_xpds 2> /dev/null || :`
@@ -32,7 +36,11 @@ ab_list() {
 }
 
 # Any hardware?
-if [ "`dahdi_hardware | grep xpp_usb`" = "" ]; then
+if ! dahdi_hardware="`which dahdi_hardware 2>/dev/null`"; then
+	echo >&2 "$0: Missing $dahdi_hardware"
+	exit 0
+fi
+if [ "`$dahdi_hardware | grep xpp_usb`" = "" ]; then
 	exit 0
 fi
 
@@ -42,6 +50,7 @@ tries=10
 while [ ! -e "/sys/bus/astribanks/devices/xbus-00" ]
 do
 	if [ "$tries" -le 0 ]; then
+		echo 1>&2 "TIMEOUT"
 		exit 1
 	fi
 	echo -n 1>&2 "."
