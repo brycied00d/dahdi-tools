@@ -294,13 +294,17 @@ ifneq (,$(ADD_INITD))
 endif
 	@echo "DAHDI has been configured."
 	@echo ""
-	@echo "If you have any DAHDI hardware it is now recommended you "
-	@echo "edit /etc/dahdi/modules in order to load support for only"
-	@echo "the DAHDI hardware installed in this system.  By default "
-	@echo "support for all DAHDI hardware is loaded at DAHDI start. "
+	@echo "List of detected DAHDI devices:"
 	@echo ""
-	@echo "I think that the DAHDI hardware you have on your system is:"
-	@xpp/dahdi_hardware || true
+	@if [ `xpp/dahdi_hardware | tee /dev/stderr | wc -l` -eq 0 ]; then \
+		echo "No hardware found"; \
+	else \
+		@echo ""; \
+		echo "run 'dahdi_genconf modules' to load support for only " ;\
+		echo "the DAHDI hardware installed in this system.  By "; \
+		echo "default support for all DAHDI hardware is loaded at "; \
+		echo "DAHDI start. "; \
+	fi
 
 update:
 	@if [ -d .svn ]; then \
