@@ -299,7 +299,7 @@ endif
 	@if [ `xpp/dahdi_hardware | tee /dev/stderr | wc -l` -eq 0 ]; then \
 		echo "No hardware found"; \
 	else \
-		@echo ""; \
+		echo ""; \
 		echo "run 'dahdi_genconf modules' to load support for only " ;\
 		echo "the DAHDI hardware installed in this system.  By "; \
 		echo "default support for all DAHDI hardware is loaded at "; \
