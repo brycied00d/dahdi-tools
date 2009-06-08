@@ -390,19 +390,19 @@ nmenuselect: menuselect/nmenuselect menuselect-tree
 MAKE_MENUSELECT=CC="$(HOST_CC)" CXX="$(CXX)" LD="" AR="" RANLIB="" CFLAGS="" $(MAKE) -C menuselect CONFIGURE_SILENT="--silent"
 
 menuselect/menuselect: menuselect/makeopts
-	$(MAKE_MENUSELECT) menuselect
+	+$(MAKE_MENUSELECT) menuselect
 
 menuselect/cmenuselect: menuselect/makeopts
-	$(MAKE_MENUSELECT) cmenuselect
+	+$(MAKE_MENUSELECT) cmenuselect
 
 menuselect/gmenuselect: menuselect/makeopts
-	$(MAKE_MENUSELECT) gmenuselect
+	+$(MAKE_MENUSELECT) gmenuselect
 
 menuselect/nmenuselect: menuselect/makeopts
-	$(MAKE_MENUSELECT) nmenuselect
+	+$(MAKE_MENUSELECT) nmenuselect
 
 menuselect/makeopts: makeopts
-	$(MAKE_MENUSELECT) makeopts
+	+$(MAKE_MENUSELECT) makeopts
 
 menuselect-tree: dahdi.xml
 	@echo "Generating input for menuselect ..."
