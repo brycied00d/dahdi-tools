@@ -200,6 +200,16 @@ case "$1" in
 		modprobe dahdi_dummy 2> /dev/null
 	fi
 
+	conf_file=/etc/dahdi/system.conf
+	temp_conf_file=""
+	if [ `dahdi_scan | grep "^type=" | sed -n 1p | grep "^type=digital"` ]; then
+		if [ "`cat $conf_file | grep "^span=1"`" = "" ]; then
+			temp_conf_file=`mktemp /tmp/tmp.dahdi_system_conf.XXX`
+			echo "span=1,1,0,esf,b8zs" > $temp_conf_file
+			DAHDI_CFG_CMD="$DAHDI_CFG -c $temp_conf_file"
+		fi
+	fi
+
 	if [ $system = debian ]; then
 	    echo -n "Running dahdi_cfg: "
 	    $DAHDI_CFG_CMD 2> /dev/null && echo -n "done"
@@ -208,6 +218,10 @@ case "$1" in
 	    action "Running dahdi_cfg: " $DAHDI_CFG_CMD
 	fi
 	RETVAL=$?
+
+	if [ -f $temp_conf_file ]; then
+		rm $temp_conf_file;
+	fi
 
 	if [ "$LOCKFILE" != '' ]; then
 		[ $RETVAL -eq 0 ] && touch $LOCKFILE
