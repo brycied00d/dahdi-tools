@@ -36,9 +36,11 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <ctype.h>
+#include <signal.h>
 
 #include <dahdi/user.h>
 #include "dahdi_tools_version.h"
+#include "wavformat.h"
 
 #include <linux/soundcard.h>
 
@@ -58,13 +60,53 @@
 
 #define FRAG_SIZE 8
 
+#define MAX_OFH 6
+
 /* Put the ofh (output file handles) outside the main loop in case we ever add a
  * signal handler.
  */
-static FILE *ofh[6];
+static FILE *ofh[MAX_OFH];
+static int run = 1;
 
 static int stereo;
 static int verbose;
+
+/* handler to catch ctrl-c */
+void cleanup_and_exit(int signal)
+{
+	fprintf(stderr, "cntrl-c pressed\n");
+	run = 0; /* stop reading */
+}
+
+int filename_is_wav(char *filename)
+{
+	if (NULL != strstr(filename, ".wav"))
+		return 1;
+	return 0;
+}
+
+/*
+ * Fill the wav header with default info
+ * num_chans - 0 = mono; 1 = stereo
+ */
+void wavheader_init(struct wavheader *wavheader, int num_chans)
+{
+	memset(wavheader, 0, sizeof(struct wavheader));
+
+	memcpy(&wavheader->riff_chunk_id, "RIFF", 4);
+	memcpy(&wavheader->riff_type, "WAVE", 4);
+
+	memcpy(&wavheader->fmt_chunk_id, "fmt ", 4);
+	wavheader->fmt_data_size = 16;
+	wavheader->fmt_compression_code = 1;
+	wavheader->fmt_num_channels = num_chans;
+	wavheader->fmt_sample_rate = 8000;
+	wavheader->fmt_avg_bytes_per_sec = 16000;
+	wavheader->fmt_block_align = 2;
+	wavheader->fmt_significant_bps = 16;
+
+	memcpy(&wavheader->data_chunk_id, "data", 4);
+}
 
 int audio_open(void)
 {
@@ -280,6 +322,10 @@ int main(int argc, char *argv[])
 	struct dahdi_confinfo zc;
 	int opt;
 	extern char *optarg;
+	struct wavheader wavheaders[MAX_OFH]; /* we have one for each potential filehandle */
+	unsigned int bytes_written[MAX_OFH] = {0};
+	int file_is_wav[MAX_OFH] = {0};
+	int i;
 
 	if ((argc < 2) || (atoi(argv[1]) < 1)) {
 		fprintf(stderr, "Usage: dahdi_monitor <channel num> [-v[v]] [-m] [-o] [-l limit] [-f FILE | -s FILE | -r FILE1 -t FILE2] [-F FILE | -S FILE | -R FILE1 -T FILE2]\n");
@@ -289,7 +335,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "        -l LIMIT: Stop after reading LIMIT bytes\n");
 		fprintf(stderr, "        -m: Separate rx/tx streams.\n");
 		fprintf(stderr, "        -o: Output audio via OSS.  Note: Only 'normal' combined rx/tx streams are output via OSS.\n");
-		fprintf(stderr, "        -f FILE: Save combined rx/tx stream to FILE. Cannot be used with -m.\n");
+		fprintf(stderr, "        -f FILE: Save combined rx/tx stream to mono FILE. Cannot be used with -m.\n");
 		fprintf(stderr, "        -r FILE: Save rx stream to FILE. Implies -m.\n");
 		fprintf(stderr, "        -t FILE: Save tx stream to FILE. Implies -m.\n");
 		fprintf(stderr, "        -s FILE: Save stereo rx/tx stream to FILE. Implies -m.\n");
@@ -348,6 +394,14 @@ int main(int argc, char *argv[])
 				exit(EXIT_FAILURE);
 			}
 			fprintf(stderr, "Writing combined stream to %s\n", optarg);
+			file_is_wav[MON_BRX] = filename_is_wav(optarg);
+			if (file_is_wav[MON_BRX]) {
+				wavheader_init(&wavheaders[MON_BRX], 1);
+				if (fwrite(&wavheaders[MON_BRX], 1, sizeof(struct wavheader), ofh[MON_BRX]) != sizeof(struct wavheader)) {
+					fprintf(stderr, "Could not write wav header to %s: %s\n", optarg, strerror(errno));
+					exit(EXIT_FAILURE);
+				}
+			}
 			savefile = 1;
 			break;
 		case 'F':
@@ -381,6 +435,14 @@ int main(int argc, char *argv[])
 				exit(EXIT_FAILURE);
 			}
 			fprintf(stderr, "Writing receive stream to %s\n", optarg);
+			file_is_wav[MON_BRX] = filename_is_wav(optarg);
+			if (file_is_wav[MON_BRX]) {
+				wavheader_init(&wavheaders[MON_BRX], 1);
+				if (fwrite(&wavheaders[MON_BRX], 1, sizeof(struct wavheader), ofh[MON_BRX]) != sizeof(struct wavheader)) {
+					fprintf(stderr, "Could not write wav header to %s: %s\n", optarg, strerror(errno));
+					exit(EXIT_FAILURE);
+				}
+			}
 			multichannel = 1;
 			savefile = 1;
 			break;
@@ -398,6 +460,14 @@ int main(int argc, char *argv[])
 				exit(EXIT_FAILURE);
 			}
 			fprintf(stderr, "Writing pre-echo receive stream to %s\n", optarg);
+			file_is_wav[MON_PRE_BRX] = filename_is_wav(optarg);
+			if (file_is_wav[MON_PRE_BRX]) {
+				wavheader_init(&wavheaders[MON_PRE_BRX], 1);
+				if (fwrite(&wavheaders[MON_PRE_BRX], 1, sizeof(struct wavheader), ofh[MON_PRE_BRX]) != sizeof(struct wavheader)) {
+					fprintf(stderr, "Could not write wav header to %s: %s\n", optarg, strerror(errno));
+					exit(EXIT_FAILURE);
+				}
+			}
 			preecho = 1;
 			multichannel = 1;
 			savefile = 1;
@@ -416,6 +486,14 @@ int main(int argc, char *argv[])
 				exit(EXIT_FAILURE);
 			}
 			fprintf(stderr, "Writing transmit stream to %s\n", optarg);
+			file_is_wav[MON_TX] = filename_is_wav(optarg);
+			if (file_is_wav[MON_TX]) {
+				wavheader_init(&wavheaders[MON_TX], 1);
+				if (fwrite(&wavheaders[MON_TX], 1, sizeof(struct wavheader), ofh[MON_TX]) != sizeof(struct wavheader)) {
+					fprintf(stderr, "Could not write wav header to %s: %s\n", optarg, strerror(errno));
+					exit(EXIT_FAILURE);
+				}
+			}
 			multichannel = 1;
 			savefile = 1;
 			break;
@@ -433,6 +511,14 @@ int main(int argc, char *argv[])
 				exit(EXIT_FAILURE);
 			}
 			fprintf(stderr, "Writing pre-echo transmit stream to %s\n", optarg);
+			file_is_wav[MON_PRE_TX] = filename_is_wav(optarg);
+			if (file_is_wav[MON_PRE_TX]) {
+				wavheader_init(&wavheaders[MON_PRE_TX], 1);
+				if (fwrite(&wavheaders[MON_PRE_TX], 1, sizeof(struct wavheader), ofh[MON_PRE_TX]) != sizeof(struct wavheader)) {
+					fprintf(stderr, "Could not write wav header to %s: %s\n", optarg, strerror(errno));
+					exit(EXIT_FAILURE);
+				}
+			}
 			preecho = 1;
 			multichannel = 1;
 			savefile = 1;
@@ -451,8 +537,17 @@ int main(int argc, char *argv[])
 				exit(EXIT_FAILURE);
 			}
 			fprintf(stderr, "Writing stereo stream to %s\n", optarg);
+			file_is_wav[MON_STEREO] = filename_is_wav(optarg);
+			if (file_is_wav[MON_STEREO]) {
+				wavheader_init(&wavheaders[MON_STEREO], 2);
+				if (fwrite(&wavheaders[MON_STEREO], 1, sizeof(struct wavheader), ofh[MON_STEREO]) != sizeof(struct wavheader)) {
+					fprintf(stderr, "Could not write wav header to %s: %s\n", optarg, strerror(errno));
+					exit(EXIT_FAILURE);
+				}
+			}
 			multichannel = 1;
 			savefile = 1;
+			stereo_output = 1;
 			break;
 		case 'S':
 			if (!multichannel && ofh[MON_PRE_BRX]) {
@@ -468,9 +563,18 @@ int main(int argc, char *argv[])
 				exit(EXIT_FAILURE);
 			}
 			fprintf(stderr, "Writing pre-echo stereo stream to %s\n", optarg);
+			file_is_wav[MON_PRE_STEREO] = filename_is_wav(optarg);
+			if (file_is_wav[MON_PRE_STEREO]) {
+				wavheader_init(&wavheaders[MON_PRE_STEREO], 2);
+				if (fwrite(&wavheaders[MON_PRE_STEREO], 1, sizeof(struct wavheader), ofh[MON_PRE_STEREO]) != sizeof(struct wavheader)) {
+					fprintf(stderr, "Could not write wav header to %s: %s\n", optarg, strerror(errno));
+					exit(EXIT_FAILURE);
+				}
+			}
 			preecho = 1;
 			multichannel = 1;
 			savefile = 1;
+			stereo_output = 1;
 			break;
 		}
 	}
@@ -561,6 +665,9 @@ int main(int argc, char *argv[])
 			}
 		}
 	}
+	if (signal(SIGINT, cleanup_and_exit) == SIG_ERR) {
+		fprintf(stderr, "Error registering signal handler: %s\n", strerror(errno));
+	}
 	if (visual) {
 		printf("\nVisual Audio Levels.\n");
 		printf("--------------------\n");
@@ -569,27 +676,27 @@ int main(int argc, char *argv[])
 		draw_barheader();
 	}
 	/* Now, copy from pseudo to audio */
-	for (;;) {
+	while (run) {
 		res_brx = read(pfd[MON_BRX], buf_brx, sizeof(buf_brx));
 		if (res_brx < 1)
 			break;
 		readcount += res_brx;
 		if (ofh[MON_BRX])
-			x = fwrite(buf_brx, 1, res_brx, ofh[MON_BRX]);
+			bytes_written[MON_BRX] += fwrite(buf_brx, 1, res_brx, ofh[MON_BRX]);
 
 		if (multichannel) {
 			res_tx = read(pfd[MON_TX], buf_tx, res_brx);
 			if (res_tx < 1)
 				break;
 			if (ofh[MON_TX])
-				x = fwrite(buf_tx, 1, res_tx, ofh[MON_TX]);
+				bytes_written[MON_TX] += fwrite(buf_tx, 1, res_tx, ofh[MON_TX]);
 
 			if (stereo_output && ofh[MON_STEREO]) {
 				for (x = 0; x < res_tx; x++) {
 					stereobuf[x*2] = buf_brx[x];
 					stereobuf[x*2+1] = buf_tx[x];
 				}
-				x = fwrite(stereobuf, 1, res_tx*2, ofh[MON_STEREO]);
+				bytes_written[MON_STEREO] += fwrite(stereobuf, 1, res_tx*2, ofh[MON_STEREO]);
 			}
 
 			if (visual) {
@@ -605,21 +712,21 @@ int main(int argc, char *argv[])
 			if (res_brx < 1)
 				break;
 			if (ofh[MON_PRE_BRX])
-				x = fwrite(buf_brx, 1, res_brx, ofh[MON_PRE_BRX]);
+				bytes_written[MON_PRE_BRX] += fwrite(buf_brx, 1, res_brx, ofh[MON_PRE_BRX]);
 
 			if (multichannel) {
 				res_tx = read(pfd[MON_PRE_TX], buf_tx, res_brx);
 				if (res_tx < 1)
 					break;
 				if (ofh[MON_PRE_TX])
-					x = fwrite(buf_tx, 1, res_tx, ofh[MON_PRE_TX]);
+					bytes_written[MON_PRE_TX] += fwrite(buf_tx, 1, res_tx, ofh[MON_PRE_TX]);
 
 				if (stereo_output && ofh[MON_PRE_STEREO]) {
 					for (x = 0; x < res_brx; x++) {
 						stereobuf[x*2] = buf_brx[x];
 						stereobuf[x*2+1] = buf_tx[x];
 					}
-					x = fwrite(stereobuf, 1, res_brx * 2, ofh[MON_PRE_STEREO]);
+					bytes_written[MON_PRE_STEREO] += fwrite(stereobuf, 1, res_brx * 2, ofh[MON_PRE_STEREO]);
 				}
 			}
 		}
@@ -640,11 +747,23 @@ int main(int argc, char *argv[])
 			break;
 		}
 	}
-	if (ofh[MON_BRX]) fclose(ofh[MON_BRX]);
-	if (ofh[MON_TX]) fclose(ofh[MON_TX]);
-	if (ofh[MON_PRE_BRX]) fclose(ofh[MON_PRE_BRX]);
-	if (ofh[MON_PRE_TX]) fclose(ofh[MON_PRE_TX]);
-	if (ofh[MON_STEREO]) fclose(ofh[MON_STEREO]);
-	if (ofh[MON_PRE_STEREO]) fclose(ofh[MON_PRE_STEREO]);
-	exit(0);
+	/* write filesize info */
+	for (i = 0; i < MAX_OFH; i++) {
+		if (NULL == ofh[i])
+			continue;
+		if (!(file_is_wav[i]))
+			continue;
+
+		rewind(ofh[i]);
+		fread(&wavheaders[i], 1, sizeof(struct wavheader), ofh[i]);
+
+		wavheaders[i].riff_chunk_size = (bytes_written[i]) + sizeof(struct wavheader) - 8; /* filesize - 8 */
+		wavheaders[i].data_data_size = bytes_written[i];
+
+		rewind(ofh[i]);
+		fwrite(&wavheaders[i], 1, sizeof(struct wavheader), ofh[i]);
+		fclose(ofh[i]);
+	}
+	printf("done cleaning up ... exiting.\n");
+	return 0;
 }
