@@ -93,6 +93,9 @@ my %pci_ids = (
 	'10b5:d00d'		=> { DRIVER => 'tor2', DESCRIPTION => 'Tormenta 2 Quad T1/PRI or E1/PRA' },
 	'10b5:4000'		=> { DRIVER => 'tor2', DESCRIPTION => 'Tormenta 2 Quad T1/E1 (non-Digium clone)' },
 
+	# # from wctc4xxp
+	'd161:3400'		=> { DRIVER => 'wctc4xxp', DESCRIPTION => 'Wildcard TC400P' },
+
         # Cologne Chips:
         # (Still a partial list)
         '1397:08b4/1397:b556'   => { DRIVER => 'wcb4xxp', DESCRIPTION => 'Junghanns DuoBRI ISDN card' },
