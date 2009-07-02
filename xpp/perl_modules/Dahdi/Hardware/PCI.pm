@@ -93,13 +93,21 @@ my %pci_ids = (
 	'10b5:d00d'		=> { DRIVER => 'tor2', DESCRIPTION => 'Tormenta 2 Quad T1/PRI or E1/PRA' },
 	'10b5:4000'		=> { DRIVER => 'tor2', DESCRIPTION => 'Tormenta 2 Quad T1/E1 (non-Digium clone)' },
 
-	# Cologne Chips:
-	# (Still a partial list)
-	'1397:08b4/b556'	=> { DRIVER => 'qozap', DESCRIPTION => 'Junghanns DuoBRI ISDN card' },
-	'1397:08b4'		=> { DRIVER => 'qozap', DESCRIPTION => 'Junghanns QuadBRI ISDN card' },
-	'1397:16b8'		=> { DRIVER => 'qozap', DESCRIPTION => 'Junghanns OctoBRI ISDN card' },
-	'1397:30b1'		=> { DRIVER => 'cwain', DESCRIPTION => 'HFC-E1 ISDN E1 card' },
-	'1397:2bd0'		=> { DRIVER => 'zaphfc', DESCRIPTION => 'HFC-S ISDN BRI card' },
+        # Cologne Chips:
+        # (Still a partial list)
+        '1397:08b4/1397:b556'   => { DRIVER => 'wcb4xxp', DESCRIPTION => 'Junghanns DuoBRI ISDN card' },
+        '1397:08b4/1397:b520'   => { DRIVER => 'wcb4xxp', DESCRIPTION => 'Junghanns QuadBRI ISDN card' },
+        '1397:16b8/1397:e552'   => { DRIVER => 'wcb4xxp', DESCRIPTION => 'Junghanns OctoBRI ISDN card' },
+        '1397:08b4/1397:e884'   => { DRIVER => 'wcb4xxp', DESCRIPTION => 'OpenVox B200P' },
+        '1397:08b4/1397:e888'   => { DRIVER => 'wcb4xxp', DESCRIPTION => 'OpenVox B400P' },
+        '1397:16b8/1397:e998'   => { DRIVER => 'wcb4xxp', DESCRIPTION => 'OpenVox B800P' },
+        '1397:08b4/1397:b566'   => { DRIVER => 'wcb4xxp', DESCRIPTION => 'BeroNet BN2S0' },
+        '1397:08b4/1397:b560'   => { DRIVER => 'wcb4xxp', DESCRIPTION => 'BeroNet BN4S0' },
+        '1397:16b8/1397:b562'   => { DRIVER => 'wcb4xxp', DESCRIPTION => 'BeroNet BN8S0' },
+        '1397:08b4'             => { DRIVER => 'qozap', DESCRIPTION => 'Generic Cologne ISDN card' },
+        '1397:16b8'             => { DRIVER => 'qozap', DESCRIPTION => 'Generic OctoBRI ISDN card' },
+        '1397:30b1'             => { DRIVER => 'cwain', DESCRIPTION => 'HFC-E1 ISDN E1 card' },
+        '1397:2bd0'             => { DRIVER => 'zaphfc', DESCRIPTION => 'HFC-S ISDN BRI card' },
 	# Has three submodels. Tested with 0675:1704:
 	'1043:0675'		=> { DRIVER => 'zaphfc', DESCRIPTION => 'ASUSTeK Computer Inc. ISDNLink P-IN100-ST-D' },
 	'1397:f001'		=> { DRIVER => 'ztgsm', DESCRIPTION => 'HFC-GSM Cologne Chips GSM' },
