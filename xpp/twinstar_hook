@@ -101,9 +101,9 @@ online)
 		xpp_blink bzzt xpd "$XBUS_NUM"
 		ports=`twinstar ports`
 		if [ "$ports" = 0 ]; then
-			play /usr/share/zaptel/primary-pbx-is-ready.wav || :
+			play /usr/share/dahdi/primary-pbx-is-ready.wav || :
 		elif [ "$ports" = 1 ]; then
-			play /usr/share/zaptel/backup-pbx-is-ready.wav || :
+			play /usr/share/dahdi/backup-pbx-is-ready.wav || :
 		fi
 		echo "online: READY" | $LOGGER
 	fi

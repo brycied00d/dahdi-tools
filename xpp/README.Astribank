@@ -909,7 +909,7 @@ fxload::
   A standard program that is typically part either of package 'fxload' 
   or 'hotplug-utils' . 
 /dev/bus/usb::
-  On some old systems it is mmissing . /proc/bus/usb (usbfs) could be
+  On some old systems it is missing . /proc/bus/usb (usbfs) could be
   used instead.
 MMM::
   the first number (bus number)
@@ -1056,7 +1056,7 @@ However the xpd_* modules are installed on-demand: no need to load
 xpd_fxo if you have only Astribank FXS.
 
 Once an Astribank device connected and the firmware is loaded, the
-Vendor-ID/Product-ID of the device will be  e4e4/1152 . The handler for that
+Vendor-ID/Product-ID of the device will be  e4e4/11x2 . The handler for that
 combination is listed as the kernel module xpp_usb. Therefore, the system
 runs 'modprobe xpp_usb' if that module is not already loaded.
 
