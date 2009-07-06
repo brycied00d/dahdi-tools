@@ -18,6 +18,7 @@ Dahdi::Config::Params -- Object oriented representation of F<genconf_parameters>
  use Dahdi::Config::Params;
  my $params = Dahdi::Config::Params->new('the-config-file');
  print $params->item{'some-key'};
+ print $params->item{'some-key', NODEFAULTS => 1};
  $params->dump;	# For debugging
 
 =head1 DESCRIPTION
@@ -41,6 +42,9 @@ The access to config keys should only be done via the C<item()> method:
 =item * It contains all hard-coded defaults.
 
 =item * All these values are overriden by directives in the config file.
+
+=item * Calling it with C<NODEFAULTS =E<gt> 1> option, returns C<undef> for keys that
+do not appear in the configuration file.
 
 =back
 
@@ -87,9 +91,10 @@ sub new($$) {
 	return $self;
 }
 
-sub item($$) {
+sub item($$@) {
 	my $self = shift || die;
 	my $key = shift || die;
+	my %options = @_;
 	my %defaults = (
 			base_exten		=> '4000',
 			freepbx			=> 'no',	# Better via -F command line
@@ -111,8 +116,8 @@ sub item($$) {
 			r2_idle_bits		=> '1101',
 			'pri_termtype'		=> [ 'SPAN/* TE' ],
 		);
-
-	return (exists($self->{$key})) ? $self->{$key} :$defaults{$key};
+	return $self->{$key} if exists($self->{$key}) or $options{NODEFAULTS};
+	return $defaults{$key};
 }
 
 sub dump($) {
