@@ -755,7 +755,10 @@ int main(int argc, char *argv[])
 			continue;
 
 		rewind(ofh[i]);
-		fread(&wavheaders[i], 1, sizeof(struct wavheader), ofh[i]);
+
+		if (fread(&wavheaders[i], 1, sizeof(struct wavheader), ofh[i]) != sizeof(struct wavheader)) {
+			fprintf(stderr, "Failed to read in a full wav header.  Expect bad things.\n");
+		}
 
 		wavheaders[i].riff_chunk_size = (bytes_written[i]) + sizeof(struct wavheader) - 8; /* filesize - 8 */
 		wavheaders[i].data_data_size = bytes_written[i];
