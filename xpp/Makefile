@@ -38,7 +38,7 @@ PERL_MODS	:= $(shell cd perl_modules; echo $(PERL_MODS_PAT))
 HOSTCC		?= $(CC)
 
 
-CFLAGS		= -g -Wall $(EXTRA_CFLAGS)
+CFLAGS		+= -g -Wall $(USB_INCLUDE)
 
 %.8: %
 	pod2man --section 8 $^ > $@ || $(RM) $@
@@ -102,21 +102,21 @@ ifneq	(,$(PERLLIBDIR))
 endif
 
 fpga_load: fpga_load.o hexfile.o
-	$(CC) -L. -o $@ $^ $(EXTRA_LIBS) -lusb
+	$(CC) -L. -o $@ $^ $(EXTRA_LIBS) $(USB_LIB)
 
 astribank_hexload: $(ABHEXLOAD_OBJS)
-	$(CC) -L. -o $@ $(ABHEXLOAD_OBJS) $(EXTRA_LIBS) -lusb
+	$(CC) -L. -o $@ $(ABHEXLOAD_OBJS) $(EXTRA_LIBS) $(USB_LIB)
 
 astribank_tool: $(ABTOOL_OBJS)
-	$(CC) -L. -o $@ $(ABTOOL_OBJS) $(EXTRA_LIBS) -lusb
+	$(CC) -L. -o $@ $(ABTOOL_OBJS) $(EXTRA_LIBS) $(USB_LIB)
 
 astribank_allow: $(ABALLOW_OBJS)
-	$(CC) -L. -o $@ $(ABALLOW_OBJS) $(EXTRA_LIBS) -lusb
+	$(CC) -L. -o $@ $(ABALLOW_OBJS) $(EXTRA_LIBS) $(USB_LIB)
 
 fpga_load.o: CFLAGS+=-D_GNU_SOURCE	# We use memrchr()
 
 test_parse: test_parse.o hexfile.o
-	$(CC) -L. -o $@ $^ $(EXTRA_LIBS) -lusb
+	$(CC) -L. -o $@ $^ $(EXTRA_LIBS) $(USB_LIB)
 
 
 .perlcheck: $(PERL_SCRIPTS)
