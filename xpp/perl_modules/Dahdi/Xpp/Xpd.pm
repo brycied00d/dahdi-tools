@@ -12,6 +12,94 @@ use Dahdi::Utils;
 use Dahdi::Xpp;
 use Dahdi::Xpp::Line;
 
+=head1 NAME
+
+Dahdi::Xpp::Xpd - Perl interface to the Xorcom Astribank XPDs (spans)
+
+=head1 SYNOPSIS
+
+  # Listing all Astribanks:
+  use Dahdi::Xpp;
+  # scans hardware:
+  my @xbuses = Dahdi::Xpp::xbuses("SORT_CONNECTOR");
+  for my $xbus (@xbuses) {
+    print $xbus->name." (".$xbus->label .", ". $xbus->connector .")\n";
+    for my $xpd ($xbus->xpds) {
+      print " - ".$xpd->fqn,"\n";
+    }
+  }
+
+=head1 xbus
+
+The parent L<Dahdi::Xpp::Xbus>
+
+=head1 id
+
+The two-digit ID in the Xbus. Normally 0I<x> for digital spans and 
+I<x>0 for analog ones (for some digit, I<x>).
+
+=head1 unit
+
+First digit of the ID. Zero-based number of the module inside the
+Astribank,
+
+=head1 subunit
+
+Second digit of the ID. Zero-based sub-part inside the module.
+Applicable only to digital (BRI/PRI) modules and always 0 for others.
+
+=head1 FQN
+
+Textual name: E.g. C<XPD-10>.
+
+=head1 dir
+
+The ProcFS directory with information about the XPD. e.g.
+C</proc/xpp/XBUS-00/XPD-10>.
+
+=head1 sysfs_dir
+
+The SysFS directory with information about the module. E.g.
+C</sys/bus/astribanks/devices/xbus-00/00:1:0>.
+
+=head1 channels
+
+A list of L<Dahdi::Xpp:Chan> channels of this span. In a scalar context
+this will be the number of channels in the span.
+
+=head1 spanno
+
+0 if not registered with Dahdi. Otherwise, the number of the span it is
+registered as.
+
+=head1 type
+
+The type of the XPD. One of: C<FXS>, C<FXO>, C<BRI_TE>, C<BRI_NT>,
+C<E1>, C<T1>.
+
+=head1 is_bri
+
+True if this XPD is BRI.
+
+=head1 is_pri
+
+True if this XPD is PRI (E1/T1).
+
+=head1 is_digital
+
+True if this XPD is a digital port (BRI / PRI).
+
+=head1 termtype
+
+For a digital span: C<TE> or C<NT>.
+
+=head1 dchan_hardhdlc
+
+For a BRI port: true if the driver with hardhdlc support (rather than
+bri_dchan).
+
+=cut
+
 my %file_warned;	# Prevent duplicate warnings about same file.
 
 sub xpd_attr_path($@) {
