@@ -46,6 +46,12 @@
 #define CLIP 32635
 #define BIAS 0x84
 
+#if 0
+# define PRINT_DEBUG(x, ...) printf(x, __VA_ARGS__)
+#else
+# define PRINT_DEBUG(x, ...)
+#endif
+
 struct tone_zone *tone_zone_find(char *country)
 {
 	struct tone_zone *z;
@@ -88,42 +94,28 @@ static int build_tone(void *data, int size, struct tone_zone_sound *t, int *coun
 		if (s[0] == '!') 
 			s++;
 		else if (firstnobang < 0) {
-#if 0
-			printf("First no bang: %s\n", s);
-#endif			
+			PRINT_DEBUG("First no bang: %s\n", s);
 			firstnobang = *count;
 		}
 		if (sscanf(s, "%d+%d/%d", &freq1, &freq2, &time) == 3) {
 			/* f1+f2/time format */
-#if 0
-			printf("f1+f2/time format: %d, %d, %d\n", freq1, freq2, time);
-#endif			
+			PRINT_DEBUG("f1+f2/time format: %d, %d, %d\n", freq1, freq2, time);
 		} else if (sscanf(s, "%d*%d/%d", &freq1, &freq2, &time) == 3) {
 			/* f1*f2/time format */
+			PRINT_DEBUG("f1+f2/time format: %d, %d, %d\n", freq1, freq2, time);
 			modulate = 1;
-#if 0
-			printf("f1+f2/time format: %d, %d, %d\n", freq1, freq2, time);
-#endif			
 		} else if (sscanf(s, "%d+%d", &freq1, &freq2) == 2) {
-#if 0
-			printf("f1+f2 format: %d, %d\n", freq1, freq2);
-#endif			
+			PRINT_DEBUG("f1+f2 format: %d, %d\n", freq1, freq2);
 			time = 0;
 		} else if (sscanf(s, "%d*%d", &freq1, &freq2) == 2) {
+			PRINT_DEBUG("f1+f2 format: %d, %d\n", freq1, freq2);
 			modulate = 1;
-#if 0
-			printf("f1+f2 format: %d, %d\n", freq1, freq2);
-#endif			
 			time = 0;
 		} else if (sscanf(s, "%d/%d", &freq1, &time) == 2) {
-#if 0
-			printf("f1/time format: %d, %d\n", freq1, time);
-#endif			
+			PRINT_DEBUG("f1/time format: %d, %d\n", freq1, time);
 			freq2 = 0;
 		} else if (sscanf(s, "%d", &freq1) == 1) {
-#if 0		
-			printf("f1 format: %d\n", freq1);
-#endif			
+			PRINT_DEBUG("f1 format: %d\n", freq1);
 			firstnobang = *count;
 			freq2 = 0;
 			time = 0;
@@ -131,9 +123,9 @@ static int build_tone(void *data, int size, struct tone_zone_sound *t, int *coun
 			fprintf(stderr, "tone component '%s' of '%s' is a syntax error\n", s,t->data);
 			return -1;
 		}
-#if 0
-		printf("Using %d samples for %d and %d\n", time * 8, freq1, freq2);
-#endif
+
+		PRINT_DEBUG("Using %d samples for %d and %d\n", time * 8, freq1, freq2);
+
 		if (size < sizeof(*td)) {
 			fprintf(stderr, "Not enough space for tones\n");
 			return -1;
@@ -380,9 +372,8 @@ int tone_zone_register_zone(int fd, struct tone_zone *z)
 		if (!strlen(z->tones[x].data))
 			continue;
 
-#if 0
-		printf("Tone: %d, string: %s\n", z->tones[x].toneid, z->tones[x].data);
-#endif			
+		PRINT_DEBUG("Tone: %d, string: %s\n", z->tones[x].toneid, z->tones[x].data);
+
 		if ((res = build_tone(ptr, space, &z->tones[x], &count)) < 0) {
 			fprintf(stderr, "Tone %d not built.\n", x);
 			return -1;
