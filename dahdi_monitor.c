@@ -764,7 +764,9 @@ int main(int argc, char *argv[])
 		wavheaders[i].data_data_size = bytes_written[i];
 
 		rewind(ofh[i]);
-		fwrite(&wavheaders[i], 1, sizeof(struct wavheader), ofh[i]);
+		if (fwrite(&wavheaders[i], 1, sizeof(struct wavheader), ofh[i]) != sizeof(struct wavheader)) {
+			fprintf(stderr, "Failed to write out a full wav header.\n");
+		}
 		fclose(ofh[i]);
 	}
 	printf("done cleaning up ... exiting.\n");
