@@ -770,10 +770,10 @@ of the driver does not match the driver gives an ugly message and fails
 the initialization.
 
 However in the change of the protocol between versions 2.9 (29) and 3.0
-(30), the response that the new driver recieves from a device with the
+(30), the response that the new driver receives from a device with the
 old version is now considered to be an illegal packet and gets
 discarded. As a result, the Astribank waits till time-out for the
-initilization to end.
+initialization to end.
 
 .Fix:
 Reset the firmware of the Astribank by either:
