@@ -60,8 +60,14 @@ int main(int argc, char *argv[])
 			span_filter[filter_count++] = s;
 		}
 	}
-	
+
 	for (x = 1; x < DAHDI_MAX_SPANS; x++) {
+
+		memset(&s, 0, sizeof(s));
+		s.spanno = x;
+		if (ioctl(ctl, DAHDI_SPANSTAT, &s))
+			continue;
+
 		if (filter_count > 0) {
 			int match = 0;
 			for (z = 0; z < filter_count; z++) {
@@ -71,13 +77,10 @@ int main(int argc, char *argv[])
 				}
 			}
 			if (!match) {
+				basechan += s.totalchans;
 				continue;
 			}
 		}
-		memset(&s, 0, sizeof(s));
-		s.spanno = x;
-		if (ioctl(ctl, DAHDI_SPANSTAT, &s))
-			continue;
 
 		alarms[0] = '\0';
 		if (s.alarms) {
