@@ -210,7 +210,7 @@ struct usb_device *dev_of_path(const char *path)
 		return NULL;
 	}
 	/* Find last '/' */
-	if((p = memrchr(path, '/', strlen(path))) == NULL) {
+	if((p = (const char *)memrchr(path, '/', strlen(path))) == NULL) {
 		ERR("Missing a '/' in %s\n", path);
 		return NULL;
 	}
@@ -221,7 +221,7 @@ struct usb_device *dev_of_path(const char *path)
 		return NULL;
 	}
 	/* Search for a '/' before that */
-	p = memrchr(path, '/', p - path);
+	p = (const char *)memrchr(path, '/', p - path);
 	if(p == NULL)
 		p = path;		/* Relative path */
 	else

@@ -605,9 +605,9 @@ int mpp_eeprom_blk_rd(struct astribank_device *astribank, uint8_t *buf, uint16_t
 		size = ret;
 		goto out;
 	}
+	size = reply->header.len - sizeof(struct mpp_header) - sizeof(struct d_EEPROM_BLK_RD_REPLY);
 	INFO("size=%d offset=0x%X\n", size, CMD_FIELD(reply, EEPROM_BLK_RD_REPLY, offset));
 	dump_packet(LOG_DEBUG, "BLK_RD", (char *)reply, ret);
-	size = reply->header.len - sizeof(struct mpp_header) - sizeof(struct d_EEPROM_BLK_RD_REPLY);
 	if(size > len) {
 		ERR("Truncating reply (was %d, now %d)\n", size, len);
 		size = len;

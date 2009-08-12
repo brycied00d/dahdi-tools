@@ -150,8 +150,6 @@ int main(int argc, char *argv[])
 	char			*opt_port = NULL;
 	char			*opt_watchdog = NULL;
 	char			*opt_reset = NULL;
-	int			tws_portnum;
-	int			full_reset;
 	int			ret;
 
 	progname = argv[0];
@@ -177,7 +175,11 @@ int main(int argc, char *argv[])
 				break;
 			case 'r':
 				opt_reset = optarg;
-				if((full_reset = reset_kind(opt_reset)) < 0)
+				/*
+				 * Sanity check so we can reject bad
+				 * arguments before device access.
+				 */
+				if(reset_kind(opt_reset) < 0)
 					usage();
 				break;
 			case 'v':
@@ -213,6 +215,12 @@ int main(int argc, char *argv[])
 	}
 	show_hardware(astribank);
 	if(opt_reset) {
+		int	full_reset;
+
+		if((full_reset = reset_kind(opt_reset)) < 0) {
+			ERR("Bad reset kind '%s'\n", opt_reset);
+			return 1;
+		}
 		if((ret = mpp_reset(astribank, full_reset)) < 0) {
 			ERR("%s Reseting astribank failed: %d\n",
 				(full_reset) ? "Full" : "Half", ret);
@@ -232,6 +240,7 @@ int main(int argc, char *argv[])
 		}
 	} else if(opt_port) {
 		int	new_portnum = strtoul(opt_port, NULL, 0);
+		int	tws_portnum = mpp_tws_portnum(astribank);
 		char	*msg = (new_portnum == tws_portnum)
 					? " Same same, never mind..."
 					: "";
