@@ -131,7 +131,7 @@ sub by_number($) {
 
 my @bri_strings = (
 		'BRI_(NT|TE)',
-		'(?:quad|octo)BRI PCI ISDN Card.* \[(NT|TE)\]\ ',
+		'(?:quad|octo)BRI PCI ISDN Card.* \[(NT|TE)\]',
 		'octoBRI \[(NT|TE)\] ',
 		'HFC-S PCI A ISDN.* \[(NT|TE)\] ',
 		'(B4XXP) \(PCI\) Card', # Does not expose NT/TE type
