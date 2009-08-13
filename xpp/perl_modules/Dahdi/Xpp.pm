@@ -206,10 +206,9 @@ sub add_xpporder(@) {
 	# Overrides from config file
 	foreach my $xbus (@xbuses) {
 		my $label = $xbus->label;
-		my $connector = '@' . $xbus->connector;
 		my $val;
 		$val = $order{$label};
-		$val = $order{$connector} unless defined $val;
+		$val = $order{$xbus->connector} unless defined $val;
 		$xbus->{XPPORDER} = $val if defined $val;
 	}
 }
