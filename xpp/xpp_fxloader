@@ -74,6 +74,8 @@ PATH="$PATH:/usr/local/sbin:/sbin:/usr/sbin"
 export PATH
 
 me=`basename $0`
+dir=`dirname $0`
+PATH="$dir:$PATH"
 DEFAULTS="/etc/dahdi/init.conf"
 
 if [ -t 2 ]; then
