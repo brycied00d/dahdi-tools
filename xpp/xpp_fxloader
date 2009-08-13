@@ -257,6 +257,9 @@ usage() {
 	echo "$0 help  : this text."
 }
 
+# We have a potential astribank
+astribank_is_starting -a
+
 #########################
 ##
 ## Manual run

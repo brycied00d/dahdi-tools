@@ -65,8 +65,9 @@ TARGETS	+= fpga_load		\
 	   astribank_tool	\
 	   astribank_hexload	\
 	   astribank_allow	\
+	   astribank_is_starting	\
 	   test_parse
-PROG_INSTALL	+= fpga_load astribank_tool astribank_hexload astribank_allow
+PROG_INSTALL	+= fpga_load astribank_tool astribank_hexload astribank_allow astribank_is_starting
 endif
 ifneq	(,$(PERLLIBDIR))
 PROG_INSTALL	+= $(PERL_SCRIPTS)
@@ -112,6 +113,9 @@ astribank_tool: $(ABTOOL_OBJS)
 
 astribank_allow: $(ABALLOW_OBJS)
 	$(CC) -L. -o $@ $(ABALLOW_OBJS) $(EXTRA_LIBS) $(USB_LIB)
+
+astribank_is_starting: astribank_is_starting.o
+	$(CC) -L. -o $@ $^ $(EXTRA_LIBS)
 
 fpga_load.o: CFLAGS+=-D_GNU_SOURCE	# We use memrchr()
 
