@@ -55,31 +55,87 @@ sub is_true($) {
 	return $val =~ /^(1|y|yes)$/i;
 }
 
-# Generate channel range strings from span objects
+sub range_string($$) {
+	my ($start, $end) = @_;
+
+	if($start == $end) {
+		sprintf "%d", $start;
+	} else {
+		sprintf "%d-%d", $start, $end;
+	}
+}
+
+# Generate channel range strings from arrays of chan numbers
 # E.g: "63-77,79-93"
-sub bchan_range($) {
-	my $span = shift || die;
-	my $first_chan = ($span->chans())[0];
-	my $first_num = $first_chan->num();
+sub channo_range(@) {
+	my @channos = sort { $a <=> $b } @_;
+	my $first_num = $channos[0];
 	my $range_start = $first_num;
 	my @range;
 	my $prev = undef;
 
-	die unless $span->is_digital();
-	foreach my $c (@{$span->bchan_list()}) {
-		my $curr = $c + $first_num;
+	foreach my $c (@channos) {
+		my $curr = $c;
 		if(!defined($prev)) {
+			# First iteration
 			$prev = $curr;
 		} elsif($curr != $prev + 1) {
-			push(@range, sprintf("%d-%d", $range_start, $prev));
+			# New range
+			push(@range, range_string($range_start, $prev));
 			$range_start = $curr;
 		}
 		$prev = $curr;
 	}
 	if($prev >= $first_num) {
-		push(@range, sprintf("%d-%d", $range_start, $prev));
+		# Last range
+		push(@range, range_string($range_start, $prev));
 	}
 	return join(',', @range);
+}
+
+# Generate channel range strings from chan objects
+# E.g: "63-77,79-93"
+sub chan_range(@) {
+	my @chans = sort { $a->num <=> $b->num } @_;
+	my @channos = map { $_->num } @chans;
+	channo_range(@channos);
+}
+
+# Generate channel range strings from digital span objects
+# E.g: "63-77,79-93"
+sub bchan_range($) {
+	my $span = shift || die;
+	die unless $span->is_digital();
+	my $first_chan = ($span->chans())[0];
+	my $first_num = $first_chan->num();
+	my $bchan_ref = $span->bchan_list();
+	my @channos = map { $_ + $first_num } @{$bchan_ref};
+	channo_range(@channos);
+}
+
+# Returns a channel numbers array from a channel range string
+sub parse_chan_range($) {
+	my $rangestr = shift;
+	$rangestr =~ s/\s*//g;	# Squeeze
+	die "Bad characters in '$rangestr'" if $rangestr =~ /[^\d\s,-]/;
+	my @ranges = split(/,/, $rangestr);
+	my @channos;
+	my $last_end;
+
+	foreach my $range (@ranges) {
+		my ($start, $end) = split(/-/, $range, 2);
+		$end = $start unless defined $end;
+		die "Bad characters in '$start'" if $start =~ /\D/;
+		die "Bad characters in '$end'" if $end =~ /\D/;
+		die "Reversed range $end < $start" if $end < $start;
+		die "Channel number < 1" if $start < 1;
+		die "New range begins below previous $start <= $last_end" if defined($last_end) && $last_end >= $start;
+		for(my $i = $start + 0; $i <= $end; $i++) {
+			push(@channos, $i);
+		}
+		$last_end = $end;
+	}
+	return sort { $a <=> $b } @channos;
 }
 
 sub new($) {
