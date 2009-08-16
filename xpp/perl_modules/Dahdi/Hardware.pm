@@ -183,6 +183,20 @@ sub scan($) {
 	}
 }
 
+=head1 rescan
+
+Rescan for devices. In case new devices became available since the script
+has started.
+
+=cut
+
+sub rescan($) {
+	my $pack = shift || die;
+
+	$hardware_scanned = 0;
+	$pack->scan();
+}
+
 sub import {
 	Dahdi::Hardware->scan unless grep(/\bnoscan\b/i, @_);
 }
