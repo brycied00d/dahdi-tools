@@ -28,7 +28,61 @@ sub print_echo_can($$) {
 	print "echocanceller=$echo_can,$chans\n";
 }
 
-sub gen_digital($$) {
+sub gen_cas($$) {
+	my $self = shift || die;
+	my $gconfig = shift || die;
+	my $span = shift || die;
+	my $num = $span->num() || die;
+	my $pri_connection_type = $gconfig->{pri_connection_type} || die;
+	die "Span #$num is analog" unless $span->is_digital();
+	die "Span #$num is not CAS" unless $span->is_pri && $gconfig->{pri_connection_type} eq 'CAS';
+	my $termtype = $span->termtype() || die "$0: Span #$num -- unkown termtype [NT/TE]\n";
+	my $timing;
+	my $lbo = 0;
+	my $framing = $span->framing() || die "$0: No framing information for span #$num\n";
+	my $coding =  $span->coding() || die "$0: No coding information for span #$num\n";
+	my $span_crc4 = $span->crc4();
+	$span_crc4 = (defined $span_crc4) ? ",$span_crc4" : '';
+	my $span_yellow = $span->yellow();
+	$span_yellow = (defined $span_yellow) ? ",$span_yellow" : '';
+	$timing = ($termtype eq 'NT') ? 0 : $bri_te_last_timing++;
+	printf "span=%d,%d,%d,%s,%s%s%s\n",
+			$num,
+			$timing,
+			$lbo,
+			$framing,
+			$coding,
+			$span_crc4,
+			$span_yellow;
+	printf "# termtype: %s\n", lc($termtype);
+	my $dchan_type;
+	my $chan_range;
+	if($span->is_pri()) {
+		if ($gconfig->{'pri_connection_type'} eq 'PRI') {
+			$chan_range = Dahdi::Config::Gen::bchan_range($span);
+			printf "bchan=%s\n", $chan_range;
+			my $dchan = $span->dchan();
+			printf "dchan=%d\n", $dchan->num();
+		} elsif ($gconfig->{'pri_connection_type'} eq 'R2' ) {
+			my $idle_bits = $gconfig->{'r2_idle_bits'};
+			$chan_range = Dahdi::Config::Gen::bchan_range($span);
+			printf "cas=%s:$idle_bits\n", $chan_range;
+			printf "dchan=%d\n", $span->dchan()->num();
+		} elsif ($gconfig->{'pri_connection_type'} eq 'CAS' ) {
+			my $type = ($termtype eq 'TE') ? 'FXO' : 'FXS';
+			my $sig = $gconfig->{'dahdi_signalling'}{$type};
+			die "unknown default dahdi signalling for chan $num type $type" unless defined $sig;
+			$chan_range = Dahdi::Config::Gen::chan_range($span->chans());
+			printf "%s=%s\n", $sig, $chan_range;
+		}
+	} else {
+		die "Digital span $num is not PRI";
+	}
+	print_echo_can($gconfig, $chan_range);
+}
+
+sub gen_digital($$$) {
+	my $self = shift || die;
 	my $gconfig = shift || die;
 	my $span = shift || die;
 	my $num = $span->num() || die;
@@ -145,8 +199,16 @@ sub generate($$$) {
 HEAD
 	foreach my $span (@spans) {
 		printf "# Span %d: %s %s\n", $span->num, $span->name, $span->description;
-		if($span->is_digital()) {
-			gen_digital($gconfig, $span);
+		if($span->is_digital) {
+			if($span->is_pri) {
+				if($gconfig->{'pri_connection_type'} eq 'CAS') {
+					$self->gen_cas($gconfig, $span);
+				} else {
+					$self->gen_digital($gconfig, $span);
+				}
+			} elsif($span->is_bri) {
+				$self->gen_digital($gconfig, $span);
+			}
 		} else {
 			foreach my $chan ($span->chans()) {
 				if(1 || !defined $chan->type) {

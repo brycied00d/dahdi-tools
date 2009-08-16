@@ -80,6 +80,31 @@ EOF
 	reset_chandahdi_values(@to_reset);
 }
 
+sub gen_cas($$$) {
+	my $self = shift || die;
+	my $gconfig = shift || die;
+	my $span = shift || die;
+	my $num = $span->num() || die;
+	my $termtype = $span->termtype() || die "$0: Span #$num -- unkown termtype [NT/TE]\n";
+	my $type = $span->type;
+	my $group = $gconfig->{'group'}{"$type"};
+	die "$0: missing default group (termtype=$termtype)\n" unless defined($group);
+	my $context = $gconfig->{'context'}{"$type"};
+	die "$0: missing default context\n" unless $context;
+	# Fake type for signalling
+	my $faketype = ($termtype eq 'TE') ? 'FXO' : 'FXS';
+	my $sig = $gconfig->{'chan_dahdi_signalling'}{$faketype};
+	my @to_reset = qw/context group/;
+	my $chans = Dahdi::Config::Gen::chan_range($span->chans());
+	$group .= "," . (10 + $num);	# Invent unique group per span
+	printf "group=$group\n";
+	printf "context=$context\n";
+	printf "switchtype = %s\n", $span->switchtype;
+	printf "signalling = %s\n", $sig;
+	printf "channel => %s\n", $chans;
+	reset_chandahdi_values(@to_reset);
+}
+
 sub gen_digital($$$) {
 	my $self = shift || die;
 	my $gconfig = shift || die;
@@ -134,6 +159,7 @@ sub gen_channel($$) {
 
 	return if $type eq 'EMPTY';
 	die "missing default_chan_dahdi_signalling for chan #$num type $type" unless $sig;
+	die "missing context for chan #$num type $type" unless $context;
 	$callerid = ($type eq 'FXO')
 			? 'asreceived'
 			: sprintf "\"Channel %d\" <%04d>", $num, $exten;
@@ -199,6 +225,8 @@ HEAD
 			if($span->is_pri) {
 				if($gconfig->{'pri_connection_type'} eq 'R2') {
 					$self->gen_openr2($gconfig, $span);
+				} elsif($gconfig->{'pri_connection_type'} eq 'CAS') {
+					$self->gen_cas($gconfig, $span);
 				} else {
 					$self->gen_digital($gconfig, $span);
 				}
