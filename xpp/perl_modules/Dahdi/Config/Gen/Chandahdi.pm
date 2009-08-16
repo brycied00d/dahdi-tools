@@ -38,10 +38,52 @@ sub reset_chandahdi_values {
 	}
 }
 
-sub gen_digital($$) {
+sub gen_openr2($$$) {
 	my $self = shift || die;
+	my $gconfig = shift || die;
 	my $span = shift || die;
-	my $gconfig = $self->{GCONFIG};
+	my $num = $span->num() || die;
+	my $termtype = $span->termtype() || die "$0: Span #$num -- unkown termtype [NT/TE]\n";
+	my $type = $span->type;
+	# Fake type for signalling
+	my $faketype = ($termtype eq 'TE') ? 'FXO' : 'FXS';
+	my $group = $gconfig->{'group'}{"$type"};
+	die "$0: missing default group (termtype=$termtype)\n" unless defined($group);
+	my $context = $gconfig->{'context'}{"$faketype"};
+	die "$0: missing default context\n" unless $context;
+	my @to_reset = qw/context group/;
+	my $chans = Dahdi::Config::Gen::bchan_range($span);
+	$group .= "," . (10 + $num);	# Invent unique group per span
+	my $country = $gconfig->{'loadzone'};
+	my @valid_countries = qw( ar br cn cz co ec itu mx ph ve );
+	die "Country '$country' is invalid for R2. Use one of: @valid_countries\n"
+		unless grep { $_ eq $country } @valid_countries;
+	printf "group=$group\n";
+	printf "context=$context\n";
+	printf "switchtype = %s\n", $span->switchtype;
+	printf "signalling = %s\n", 'mfcr2';
+	printf "caller = %s\n", ($termtype eq 'TE') ? 'no' : 'yes';
+	printf "mfcr2_logdir = span%d\n", $span->num;
+	print <<"EOF";
+mfcr2_variant=$country
+mfcr2_get_ani_first=no
+mfcr2_max_ani=10
+mfcr2_max_dnis=4
+mfcr2_category=national_subscriber
+mfcr2_call_files=yes
+mfcr2_logging=all
+mfcr2_mfback_timeout=-1
+mfcr2_metering_pulse_timeout=-1
+EOF
+	printf "channel => %s\n", $chans;
+
+	reset_chandahdi_values(@to_reset);
+}
+
+sub gen_digital($$$) {
+	my $self = shift || die;
+	my $gconfig = shift || die;
+	my $span = shift || die;
 	my $num = $span->num() || die;
 	die "Span #$num is analog" unless $span->is_digital();
 	if($span->is_pri && $gconfig->{'pri_connection_type'} eq 'R2') {
@@ -66,7 +108,7 @@ sub gen_digital($$) {
 		print "overlapdial = yes\n";
 		push(@to_reset, qw/overlapdial/);
 	}
-		
+
 	$group .= "," . (10 + $num);	# Invent unique group per span
 	printf "group=$group\n";
 	printf "context=$context\n";
@@ -153,8 +195,16 @@ sub generate($) {
 HEAD
 	foreach my $span (@spans) {
 		printf "; Span %d: %s %s\n", $span->num, $span->name, $span->description;
-		if($span->is_digital()) {
-			$self->gen_digital($span);
+		if($span->is_digital) {
+			if($span->is_pri) {
+				if($gconfig->{'pri_connection_type'} eq 'R2') {
+					$self->gen_openr2($gconfig, $span);
+				} else {
+					$self->gen_digital($gconfig, $span);
+				}
+			} elsif($span->is_bri) {
+				$self->gen_digital($gconfig, $span);
+			}
 		} else {
 			foreach my $chan ($span->chans()) {
 				if(is_true($genopts->{'freepbx'}) || is_true($gconfig->{'freepbx'})) {
