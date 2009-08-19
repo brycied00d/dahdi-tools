@@ -27,6 +27,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdlib.h>
@@ -48,6 +49,58 @@ static int tones[] = {
 
 struct dahdi_vmwi_info mwisend_setting; /*!< Which VMWI methods to use */
 
+/* Use to translate a DTMF character to the value required by the dahdi call */
+static int digit_to_dtmfindex(char digit)
+{
+	if (isdigit(digit))
+		return DAHDI_TONE_DTMF_BASE + (digit - '0');
+	else if (digit >= 'A' && digit <= 'D')
+		return DAHDI_TONE_DTMF_A + (digit - 'A');
+	else if (digit >= 'a' && digit <= 'd')
+		return DAHDI_TONE_DTMF_A + (digit - 'a');
+	else if (digit == '*')
+		return DAHDI_TONE_DTMF_s;
+	else if (digit == '#')
+		return DAHDI_TONE_DTMF_p;
+	else
+		return -1;
+}
+
+/* Place a channel into ringing mode */
+static int dahdi_ring_phone(int fd)
+{
+	int x;
+	int res;
+	/* Make sure our transmit state is on hook */
+	x = 0;
+	x = DAHDI_ONHOOK;
+	res = ioctl(fd, DAHDI_HOOK, &x);
+	do {
+		x = DAHDI_RING;
+		res = ioctl(fd, DAHDI_HOOK, &x);
+		if (res) {
+			switch (errno) {
+				case EBUSY:
+				case EINTR:
+					/* Wait just in case */
+					fprintf(stderr, "Ring phone is busy:%s\n", strerror(errno));
+					usleep(10000);
+					continue;
+				case EINPROGRESS:
+					fprintf(stderr, "Ring In Progress:%s\n", strerror(errno));
+					res = 0;
+					break;
+				default:
+					fprintf(stderr, "Couldn't ring the phone: %s\n", strerror(errno));
+					res = 0;
+			}
+		} else {
+			fprintf(stderr, "Phone is ringing\n");
+		}
+	} while (res);
+	return res;
+}
+
 int main(int argc, char *argv[])
 {
 	int fd;
@@ -63,7 +116,8 @@ int main(int argc, char *argv[])
 		       "       ring - rings phone\n"
 		       "       vmwi - toggles VMWI LED lamp\n"
 		       "       hvdc - toggles VMWI HV lamp\n"
-		       "       neon - toggles VMWI NEON lamp\n");
+		       "       neon - toggles VMWI NEON lamp\n"
+		       "       dtmfcid - create a dtmf cid spill without polarity reversal\n");
 		exit(1);
 	}
 	fd = open(argv[1], O_RDWR);
@@ -209,6 +263,40 @@ int main(int argc, char *argv[])
 			else
 				printf("Success.\n");
 		}
+	} else if (!strcasecmp(argv[2], "dtmfcid")) {
+		char * outstring = "A5551212C";  /* Default string using A and C tones to bracket the number */
+		int dtmftone;
+		
+		if(argc >= 4) {	/* Use user supplied string */
+			outstring = argv[3];
+		}
+		printf("Going to send a set of DTMF tones >%s<\n", outstring);
+		/* Flush any left remaining characs in the buffer and place the channel into on-hook transfer mode */
+		x = DAHDI_FLUSH_BOTH;
+		res = ioctl(fd, DAHDI_FLUSH, &x);
+		x = 500 + strlen(outstring) * 100;
+		ioctl(fd, DAHDI_ONHOOKTRANSFER, &x);
+
+		/* Play the DTMF tones at a 50 mS on and 50 mS off rate which is standard for DTMF CID spills */
+		for (x = 0; '\0' != outstring[x]; x++) {
+
+			dtmftone = digit_to_dtmfindex(outstring[x]);
+			if (0 > dtmftone) {
+				dtmftone = -1;
+			}
+			res = tone_zone_play_tone(fd, dtmftone);
+			if (res) {
+				fprintf(stderr, "Unable to play DTMF tone %d (0x%x)\n", dtmftone, dtmftone);
+			}
+			usleep(50000);
+			tone_zone_play_tone(fd, -1);
+			usleep(50000);
+		}
+		/* Wait for 150 mS from end of last tone to initiating the ring */
+		usleep(100000);
+		dahdi_ring_phone(fd);
+		sleep(10);
+		printf("Ringing Done\n");
 	} else
 		fprintf(stderr, "Invalid command\n");
 	close(fd);
