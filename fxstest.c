@@ -117,6 +117,7 @@ int main(int argc, char *argv[])
 		       "       vmwi - toggles VMWI LED lamp\n"
 		       "       hvdc - toggles VMWI HV lamp\n"
 		       "       neon - toggles VMWI NEON lamp\n"
+		       "       dtmf <sequence> [<duration>]- Send a sequence of dtmf tones (\"-\" denotes no tone)\n"
 		       "       dtmfcid - create a dtmf cid spill without polarity reversal\n");
 		exit(1);
 	}
@@ -262,6 +263,38 @@ int main(int argc, char *argv[])
 				fprintf(stderr, "Unable to get registers on channel %s\n", argv[1]);
 			else
 				printf("Success.\n");
+		}
+	} else if (!strcasecmp(argv[2], "dtmf")) {
+		int duration = 50;  /* default to 50 mS duration */
+		char * outstring = "";
+		int dtmftone;
+
+		if(argc < 4) {	/* user supplied string */
+			fprintf(stderr, "You must specify a string of dtmf characters to send\n");
+		} else {
+			outstring = argv[3];
+			if(argc >= 5) {
+				sscanf(argv[4], "%30i", &duration);
+			}
+			printf("Going to send a set of DTMF tones >%s<\n", outstring);
+			printf("Using a duration of %d mS per tone\n", duration);
+					/* Flush any left remaining characs in the buffer and place the channel into on-hook transfer mode */
+			x = DAHDI_FLUSH_BOTH;
+			res = ioctl(fd, DAHDI_FLUSH, &x);
+			x = 500 + strlen(outstring) * duration;
+			ioctl(fd, DAHDI_ONHOOKTRANSFER, &x);
+
+			for (x = 0; '\0' != outstring[x]; x++) {
+				dtmftone = digit_to_dtmfindex(outstring[x]);
+				if (0 > dtmftone) {
+					dtmftone = -1;
+				}
+				res = tone_zone_play_tone(fd, dtmftone);
+				if (res) {
+					fprintf(stderr, "Unable to play DTMF tone %d (0x%x)\n", dtmftone, dtmftone);
+				}
+				usleep(duration * 1000);
+			}
 		}
 	} else if (!strcasecmp(argv[2], "dtmfcid")) {
 		char * outstring = "A5551212C";  /* Default string using A and C tones to bracket the number */
