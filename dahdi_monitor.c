@@ -41,11 +41,16 @@
 #include <dahdi/user.h>
 #include "dahdi_tools_version.h"
 #include "wavformat.h"
+#include "autoconfig.h"
 
-#if defined(__FreeBSD__)
-#include <sys/soundcard.h>
+#ifdef HAVE_SYS_SOUNDCARD_H
+# include <sys/soundcard.h>
 #else
-#include <linux/soundcard.h>
+# ifdef HAVE_LINUX_SOUNDCARD_H
+#  include <linux/soundcard.h>
+# else
+#  error "Your installation appears to be missing soundcard.h which is needed to continue."
+# endif
 #endif
 
 /*

@@ -26,8 +26,13 @@ if test ${localstatedir} = '${prefix}/var'; then
      localstatedir=/var
 fi
 
+# specify output header file
+AC_CONFIG_HEADER(autoconfig.h)
+
 # This needs to be before any macros that use the C compiler
 AC_GNU_SOURCE
+
+AC_CHECK_HEADERS([sys/soundcard.h linux/soundcard.h])
 
 # Checks for programs.
 AC_PROG_CC
