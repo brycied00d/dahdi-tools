@@ -241,7 +241,7 @@ ifeq (,$(DESTDIR))
 		/sbin/ldconfig || : ;\
 	fi
 endif
-	rm -f $(DESTDIR)$(LIB_DIR)$(LTZ_SO)
+	rm -f $(DESTDIR)$(LIB_DIR)/$(LTZ_SO)
 	$(LN) -sf $(LTZ_SO).$(LTZ_SO_MAJOR_VER).$(LTZ_SO_MINOR_VER) \
 		$(DESTDIR)$(LIB_DIR)/$(LTZ_SO).$(LTZ_SO_MAJOR_VER)
 	$(LN) -sf $(LTZ_SO).$(LTZ_SO_MAJOR_VER).$(LTZ_SO_MINOR_VER) \
