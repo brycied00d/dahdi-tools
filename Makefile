@@ -230,12 +230,14 @@ ifneq (,$(BINS))
 	install -m 644 $(MAN_PAGES) $(DESTDIR)$(MAN_DIR)/
 endif
 ifeq (,$(wildcard $(DESTDIR)$(CONFIG_FILE)))
-	$(INSTALL) -D -m 644 system.conf.sample $(DESTDIR)$(CONFIG_FILE)
+	$(INSTALL) -d $(DESTDIR)$(CONFIG_DIR)
+	$(INSTALL) -m 644 system.conf.sample $(DESTDIR)$(CONFIG_FILE)
 endif
 
 install-libs: libs
-	$(INSTALL) -D -m 755 $(LTZ_A) $(DESTDIR)$(LIB_DIR)/$(LTZ_A)
-	$(INSTALL) -D -m 755 $(LTZ_SO) $(DESTDIR)$(LIB_DIR)/$(LTZ_SO).$(LTZ_SO_MAJOR_VER).$(LTZ_SO_MINOR_VER)
+	$(INSTALL) -d -m 755 $(DESTDIR)/$(LIB_DIR)
+	$(INSTALL) -m 755 $(LTZ_A) $(DESTDIR)$(LIB_DIR)/
+	$(INSTALL) -m 755 $(LTZ_SO) $(DESTDIR)$(LIB_DIR)/$(LTZ_SO).$(LTZ_SO_MAJOR_VER).$(LTZ_SO_MINOR_VER)
 ifeq (,$(DESTDIR))
 	if [ `id -u` = 0 ]; then \
 		/sbin/ldconfig || : ;\
@@ -260,7 +262,8 @@ ifneq (no,$(USE_SELINUX))
 	/sbin/restorecon -v $(DESTDIR)$(LIB_DIR)/$(LTZ_SO)
   endif
 endif
-	$(INSTALL) -D -m 644 tonezone.h $(DESTDIR)$(INC_DIR)/tonezone.h
+	$(INSTALL) -d -m 755 $(DESTDIR)/$(INC_DIR)
+	$(INSTALL) -m 644 tonezone.h $(DESTDIR)$(INC_DIR)/
 
 install-utils-subdirs:
 	@for dir in $(SUBDIRS_UTILS); do \

@@ -52,6 +52,10 @@
 # define PRINT_DEBUG(x, ...)
 #endif
 
+#ifndef ENODATA
+#define ENODATA EINVAL
+#endif
+
 struct tone_zone *tone_zone_find(char *country)
 {
 	struct tone_zone *z;
@@ -431,7 +435,11 @@ int tone_zone_register_zone(int fd, struct tone_zone *z)
 	dump_tone_zone(h, MAX_SIZE - space);
 #endif
 
+#if defined(__FreeBSD__)
+	if ((res = ioctl(fd, DAHDI_LOADZONE, &h))) {
+#else
 	if ((res = ioctl(fd, DAHDI_LOADZONE, h))) {
+#endif
 		fprintf(stderr, "ioctl(DAHDI_LOADZONE) failed: %s\n", strerror(errno));
 		return res;
 	}

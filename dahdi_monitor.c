@@ -42,7 +42,11 @@
 #include "dahdi_tools_version.h"
 #include "wavformat.h"
 
+#if defined(__FreeBSD__)
+#include <sys/soundcard.h>
+#else
 #include <linux/soundcard.h>
+#endif
 
 /*
 * defines for file handle numbers
