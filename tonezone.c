@@ -78,7 +78,7 @@ struct tone_zone *tone_zone_find_by_num(int id)
 
 #define LEVEL -10
 
-static int build_tone(void *data, int size, struct tone_zone_sound *t, int *count)
+static int build_tone(void *data, size_t size, struct tone_zone_sound *t, int *count)
 {
 	char *dup, *s;
 	struct dahdi_tone_def *td=NULL;
@@ -310,7 +310,7 @@ static struct mf_tone mfr2_rev_tones[] = {
 	{ 0, 0, 0 }
 };
 
-static int build_mf_tones(void *data, int size, int *count, struct mf_tone *tone, int low_tone_level, int high_tone_level)
+static int build_mf_tones(void *data, size_t size, int *count, struct mf_tone *tone, int low_tone_level, int high_tone_level)
 {
 	struct dahdi_tone_def *td;
 	float gain;
@@ -351,7 +351,7 @@ int tone_zone_register_zone(int fd, struct tone_zone *z)
 	int res;
 	int count = 0;
 	int x;
-	int space = MAX_SIZE;
+	size_t space = MAX_SIZE;
 	void *ptr = buf;
 	int iopenedit = 1;
 	struct dahdi_tone_def_header *h;
