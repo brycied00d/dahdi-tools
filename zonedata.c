@@ -961,18 +961,18 @@ struct tone_zone builtin_zones[] =
 		.ringcadence = { 2000, 4000 },
 		.tones = {
 			/* Reference: http://www.itu.int/ITU-T/inr/forms/files/tones-0203.pdf */
-			{ ZT_TONE_DIALTONE, "425" },
-			{ ZT_TONE_BUSY, "425/320,0/320" },
-			{ ZT_TONE_RINGTONE, "425/1200,0/4650" },
-			{ ZT_TONE_CONGESTION, "425/320,0/320" },
-			{ ZT_TONE_CALLWAIT, "425/180,0/180,425/180" },
+			{ DAHDI_TONE_DIALTONE, "425" },
+			{ DAHDI_TONE_BUSY, "425/320,0/320" },
+			{ DAHDI_TONE_RINGTONE, "425/1200,0/4650" },
+			{ DAHDI_TONE_CONGESTION, "425/320,0/320" },
+			{ DAHDI_TONE_CALLWAIT, "425/180,0/180,425/180" },
 			/* RECALL DIAL TONE - not specified */
-			{ ZT_TONE_DIALRECALL, "!425/100,!0/100,!425/100,!0/100,!425/100,!0/100,425" },
+			{ DAHDI_TONE_DIALRECALL, "!425/100,!0/100,!425/100,!0/100,!425/100,!0/100,425" },
 			/* RECORD TONE - not specified */
-			{ ZT_TONE_RECORDTONE, "1400/500,0/15000" },
-			{ ZT_TONE_INFO, "!950/330,!1400/330,!1800/330,0" },
+			{ DAHDI_TONE_RECORDTONE, "1400/500,0/15000" },
+			{ DAHDI_TONE_INFO, "!950/330,!1400/330,!1800/330,0" },
 			/* STUTTER TONE - not specified */
-			{ ZT_TONE_STUTTER, "!425/100,!0/100,!425/100,!0/100,!425/100,!0/100,!425/100,!0/100,!425/100,!0/100,!425/100,!0/100,425" },
+			{ DAHDI_TONE_STUTTER, "!425/100,!0/100,!425/100,!0/100,!425/100,!0/100,!425/100,!0/100,!425/100,!0/100,!425/100,!0/100,425" },
 		},
 		.dtmf_high_level = -9,
 		.dtmf_low_level = -11,
