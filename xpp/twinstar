@@ -128,7 +128,10 @@ sub tws_jump(@) {
 			printf STDERR "%s: no MPP information\n", $dev->hardware_name;
 			next;
 		}
-		$mppinfo->mpp_jump;
+		eval {
+			$mppinfo->mpp_jump;
+		};
+		warn $@ if $@;
 	}
 }
 
