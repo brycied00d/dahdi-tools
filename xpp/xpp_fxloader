@@ -84,6 +84,11 @@ else
 	LOGGER="logger -i -t '$me'"
 fi
 
+debug() {
+	[ "$DEBUG" != "" ] && $LOGGER "$@"
+	return 0
+}
+
 USBFS_PREFIX=/proc/bus/usb
 DEVUSB_PREFIX=/dev/bus/usb
 USB_PREFIX=
@@ -135,7 +140,7 @@ run_fxload() {
 }
 
 run_astribank_hexload() {
-	$LOGGER "Running: $ASTRIBANK_HEXLOAD $*"
+	debug "Running: $ASTRIBANK_HEXLOAD $*"
 	$ASTRIBANK_HEXLOAD "$@" | $LOGGER
 	status=$PIPESTATUS
 	if [ $status != 0 ]; then
@@ -145,7 +150,7 @@ run_astribank_hexload() {
 }
 
 run_astribank_tool() {
-	$LOGGER "Running: $ASTRIBANK_TOOL $*"
+	debug "Running: $ASTRIBANK_TOOL $*"
 	$ASTRIBANK_TOOL "$@" | $LOGGER
 	status=$PIPESTATUS
 	if [ $status != 0 ]; then
@@ -163,7 +168,7 @@ load_usb_fw() {
   for dev in $devices
   do
     ver=$(awk '/\$Id:/ { print $4 }' $FIRMWARE_DIR/$fw)
-    $LOGGER "USB Firmware $FIRMWARE_DIR/$fw (Version=$ver) into $dev"
+    debug "USB Firmware $FIRMWARE_DIR/$fw (Version=$ver) into $dev"
     run_fxload -D $dev -I $FIRMWARE_DIR/$fw || exit 1
   done
 }
@@ -171,13 +176,13 @@ load_usb_fw() {
 load_fw_device() {
 	dev=$1
 	fw=$2
-	$LOGGER "FPGA loading $fw into $dev"
+	debug "FPGA loading $fw into $dev"
 	run_astribank_hexload -D "$dev" -F "$FIRMWARE_DIR/$fw"
 	pic_files=`echo "$FIRMWARE_DIR"/PIC_TYPE_[1-4].hex`
-	$LOGGER "PIC burning into $dev: $pic_files"
+	debug "PIC burning into $dev: $pic_files"
 	run_astribank_hexload -D "$dev" -p $pic_files
 	run_astribank_tool -D "$dev" -n		# Do renumeration!
-	$LOGGER "PIC burning finished $pic_files"
+	debug "PIC burning finished $pic_files"
 }
 
 #
@@ -239,10 +244,10 @@ wait_renumeration() {
 reset_fpga() {
   totaldevs=`numdevs e4e4 '11[3456][012]'`
   devices=`find_dev e4e4 '11[3456][12]'`
-  $LOGGER "Reseting devices [$totaldevs devices]"
+  debug "Reseting devices [$totaldevs devices]"
   for dev in $devices
   do
-	$LOGGER "Resetting FPGA Firmware on $dev"
+	debug "Resetting FPGA Firmware on $dev"
 	sleep_if_race
 	run_astribank_tool -D "$dev" -r full 2>&1 >/dev/null
   done

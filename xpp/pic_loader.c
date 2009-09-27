@@ -187,7 +187,7 @@ static int pic_burn(struct astribank_device *astribank, const struct hexdata *he
 		ERR("Skip PIC burning (not USB2)\n");
 		return 0;
 	}
-	INFO("Load PIC: %s\n", hexdata->fname);
+	INFO("Load PIC: %s (version %s)\n", hexdata->fname, hexdata->version_info);
 	basename = pic_basename(hexdata->fname, &card_type);
 	if(!basename) {
 		ERR("Bad PIC filename '%s'. Abort.\n", hexdata->fname);
@@ -251,7 +251,7 @@ int load_pic(struct astribank_device *astribank, int numfiles, char *filelist[])
 {
 	int	i;
 
-	INFO("Loading %d PIC files...\n", numfiles);
+	DBG("Loading %d PIC files...\n", numfiles);
 	for(i = 0; i < numfiles; i++) {
 		struct hexdata	*picdata;
 		const char	*curr = filelist[i];

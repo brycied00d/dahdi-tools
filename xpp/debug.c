@@ -26,7 +26,7 @@
 #include <syslog.h>
 #include "debug.h"
 
-int	verbose = LOG_DEBUG;
+int	verbose = LOG_INFO;
 int	debug_mask = 0;
 
 void log_function(int level, int mask, const char *msg, ...)

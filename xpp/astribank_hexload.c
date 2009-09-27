@@ -82,7 +82,7 @@ static int load_fpga(struct astribank_device *astribank, const char *hexfile)
 		perror(hexfile);
 		return -errno;
 	}
-	INFO("Loading FPGA firmware version %s\n", hexdata->version_info);
+	INFO("Loading FPGA: %s (version %s)\n", hexdata->fname, hexdata->version_info);
 #if 0
 	FILE		*fp;
 	if((fp = fopen("fpga_dump_new.txt", "w")) == NULL) {
@@ -121,7 +121,7 @@ static int load_fpga(struct astribank_device *astribank, const char *hexfile)
 	fclose(fp);
 #endif
 	free_hexdata(hexdata);
-	INFO("FPGA firmware loaded successfully\n");
+	DBG("FPGA firmware loaded successfully\n");
 	return 0;
 }
 

@@ -239,7 +239,7 @@ int send_command(struct astribank_device *astribank, struct mpp_command *cmd, in
 #endif
 	ret = send_usb(astribank, (char *)cmd, len, timeout);
 	if(ret < 0) {
-		ERR("send_usb failed ret=%d\n", ret);
+		DBG("send_usb failed ret=%d\n", ret);
 	}
 	astribank->tx_sequenceno++;
 	return ret;
@@ -277,6 +277,7 @@ err:
 }
 
 
+__attribute__((warn_unused_result))
 int process_command(struct astribank_device *astribank, struct mpp_command *cmd, struct mpp_command **reply_ref)
 {
 	struct mpp_command		*reply = NULL;
@@ -291,12 +292,12 @@ int process_command(struct astribank_device *astribank, struct mpp_command *cmd,
 	expected = get_command_desc(reply_op);
 	//printf("%s: len=%d\n", __FUNCTION__, cmd->header.len);
 	ret = send_command(astribank, cmd, TIMEOUT);
-	if(ret < 0) {
-		ERR("send_command failed: %d\n", ret);
-		goto out;
-	}
 	if(!reply_ref) {
 		DBG("No reply requested\n");
+		goto out;
+	}
+	if(ret < 0) {
+		ERR("send_command failed: %d\n", ret);
 		goto out;
 	}
 	reply = recv_command(astribank, TIMEOUT);
@@ -400,7 +401,8 @@ int mpp_proto_query(struct astribank_device *astribank)
 		ret = -EPROTO;
 		goto out;
 	}
-	INFO("Protocol version: %02x\n", astribank->mpp_proto_version);
+	DBG("Protocol version: %02x\n", astribank->mpp_proto_version);
+	ret = astribank->mpp_proto_version;
 	free_command(reply);
 out:
 	return ret;

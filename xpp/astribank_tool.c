@@ -83,6 +83,8 @@ static int show_hardware(struct astribank_device *astribank)
 	struct extrainfo	extrainfo;
 
 	show_astribank_info(astribank);
+	if(verbose <= LOG_INFO)
+		return 0;
 	ret = mpp_caps_get(astribank, &eeprom_table, &capabilities, NULL);
 	if(ret < 0)
 		return ret;
@@ -221,11 +223,13 @@ int main(int argc, char *argv[])
 			ERR("Bad reset kind '%s'\n", opt_reset);
 			return 1;
 		}
+		INFO("Reseting (%s)\n", opt_reset);
 		if((ret = mpp_reset(astribank, full_reset)) < 0) {
 			ERR("%s Reseting astribank failed: %d\n",
 				(full_reset) ? "Full" : "Half", ret);
 		}
 	} else if(opt_renumerate) {
+		INFO("Renumerate\n");
 		if((ret = mpp_renumerate(astribank)) < 0) {
 			ERR("Renumerating astribank failed: %d\n", ret);
 		}

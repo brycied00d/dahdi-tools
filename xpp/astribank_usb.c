@@ -262,7 +262,7 @@ static int astribank_init(struct astribank_device *astribank)
 		return 0;
 	if(get_usb_string(astribank, iface_desc->iInterface, astribank->iInterface, BUFSIZ) < 0)
 		return 0;
-	INFO("ID=%04X:%04X Manufacturer=[%s] Product=[%s] SerialNumber=[%s] Interface=[%s]\n",
+	DBG("ID=%04X:%04X Manufacturer=[%s] Product=[%s] SerialNumber=[%s] Interface=[%s]\n",
 		dev_desc->idVendor,
 		dev_desc->idProduct,
 		astribank->iManufacturer,
@@ -332,11 +332,28 @@ found:
  */
 void show_astribank_info(const struct astribank_device *astribank)
 {
+	struct usb_device_descriptor	*dev_desc;
+	struct usb_device		*dev;
+
 	assert(astribank != NULL);
-	printf("USB    Firmware Type: [%s]\n", astribank->fwtype->name);
-	printf("USB    iManufacturer: [%s]\n", astribank->iManufacturer);
-	printf("USB    iProduct:      [%s]\n", astribank->iProduct);
-	printf("USB    iSerialNumber: [%s]\n", astribank->iSerialNumber);
+	dev = astribank->dev;
+	dev_desc = &dev->descriptor;
+	if(verbose <= LOG_INFO) {
+		INFO("usb:%s/%s: ID=%04X:%04X [%s / %s / %s]\n",
+			dev->bus->dirname,
+			dev->filename,
+			dev_desc->idVendor,
+			dev_desc->idProduct,
+			astribank->iManufacturer,
+			astribank->iProduct,
+			astribank->iSerialNumber);
+	} else {
+		printf("USB    Bus/Device:    [%s/%s]\n", dev->bus->dirname, dev->filename);
+		printf("USB    Firmware Type: [%s]\n", astribank->fwtype->name);
+		printf("USB    iManufacturer: [%s]\n", astribank->iManufacturer);
+		printf("USB    iProduct:      [%s]\n", astribank->iProduct);
+		printf("USB    iSerialNumber: [%s]\n", astribank->iSerialNumber);
+	}
 }
 
 void astribank_close(struct astribank_device *astribank, int disconnected)
