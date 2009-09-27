@@ -101,6 +101,7 @@ sub item($$@) {
 			fxs_immediate		=> 'no',
 			fxs_default_start	=> 'ks',
 			fxo_default_start	=> 'ks',
+			em_signalling		=> 'none',
 			lc_country		=> 'us',
 			context_lines		=> 'from-pstn',
 			context_phones		=> 'from-internal',
@@ -114,6 +115,7 @@ sub item($$@) {
 			bri_hardhdlc		=> 'auto',
 			pri_connection_type	=> 'PRI',
 			r2_idle_bits		=> '1101',
+			tdm_framing		=> 'esf',
 			'pri_termtype'		=> [ 'SPAN/* TE' ],
 		);
 	return $self->{$key} if exists($self->{$key}) or $options{NODEFAULTS};

@@ -107,8 +107,23 @@
 # chan_dahdi.conf . The meaning of this may be extended somehow to support
 # R2 through openr2/chan_dahdi later on.
 #pri_connection_type	R2
+#pri_connection_type	CAS
+#
+# Explicitly set the idle bits for E1 CAS (Sample value is the default):
 #r2_idle_bits		1101
-
+#
+#
+# Use E&M on CAS (default is FXS/FXO). If set, E1 spans will be used as
+# E&M-E1 and T1 will use the requested type:
+#em_signalling em
+#em_signalling em_w
+#em_signalling featd
+#em_signalling featdtmf
+#em_signalling featdtmf_ta
+#em_signalling featb
+#em_signalling fgccama
+#em_signalling fgccamamf
+#
 # pri_termtype contains a list of settings:
 # Currently the only setting is for TE or NT (the default is TE). This
 # sets two different but normally related configuration items:

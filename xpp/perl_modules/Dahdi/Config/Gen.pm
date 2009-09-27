@@ -205,10 +205,12 @@ sub new($) {
 		bri_hardhdlc
 		bri_sig_style
 		r2_idle_bits
+		tdm_framing
 		echo_can
 		brint_overlap
 		pri_termtype
 		pri_connection_type
+		em_signalling
 		);
 	foreach my $k (@trivial) {
 		$gconfig->{$k} = $p->item($k);

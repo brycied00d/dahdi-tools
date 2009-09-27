@@ -58,19 +58,25 @@ sub gen_cas($$) {
 	my $dchan_type;
 	my $chan_range;
 	if($span->is_pri()) {
-		if ($gconfig->{'pri_connection_type'} eq 'PRI') {
+		if ($pri_connection_type eq 'PRI') {
 			$chan_range = Dahdi::Config::Gen::bchan_range($span);
 			printf "bchan=%s\n", $chan_range;
 			my $dchan = $span->dchan();
 			printf "dchan=%d\n", $dchan->num();
-		} elsif ($gconfig->{'pri_connection_type'} eq 'R2' ) {
+		} elsif ($pri_connection_type eq 'R2' ) {
 			my $idle_bits = $gconfig->{'r2_idle_bits'};
 			$chan_range = Dahdi::Config::Gen::bchan_range($span);
 			printf "cas=%s:$idle_bits\n", $chan_range;
 			printf "dchan=%d\n", $span->dchan()->num();
-		} elsif ($gconfig->{'pri_connection_type'} eq 'CAS' ) {
+		} elsif ($pri_connection_type eq 'CAS' ) {
 			my $type = ($termtype eq 'TE') ? 'FXO' : 'FXS';
 			my $sig = $gconfig->{'dahdi_signalling'}{$type};
+			my $em_signalling = $gconfig->{'em_signalling'};
+			if ($em_signalling ne 'none') {
+				$sig = 'e&m';
+				# FIXME: but we don't handle E1 yet
+				$sig = 'e&me1' if $proto eq 'E1';
+			}
 			die "unknown default dahdi signalling for chan $num type $type" unless defined $sig;
 			$chan_range = Dahdi::Config::Gen::chan_range($span->chans());
 			printf "%s=%s\n", $sig, $chan_range;
@@ -202,7 +208,7 @@ HEAD
 		if($span->is_digital) {
 			if($span->is_pri) {
 				if($gconfig->{'pri_connection_type'} eq 'CAS') {
-					$self->gen_cas($gconfig, $span);
+					$self->gen_t1_cas($gconfig, $span);
 				} else {
 					$self->gen_digital($gconfig, $span);
 				}

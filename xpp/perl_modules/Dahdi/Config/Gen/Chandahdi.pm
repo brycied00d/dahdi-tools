@@ -94,6 +94,12 @@ sub gen_cas($$$) {
 	# Fake type for signalling
 	my $faketype = ($termtype eq 'TE') ? 'FXO' : 'FXS';
 	my $sig = $gconfig->{'chan_dahdi_signalling'}{$faketype};
+	my $em_signalling = $gconfig->{'em_signalling'};
+	if ($em_signalling ne 'none') {
+		$sig = $em_signalling;
+		# FIXME: but we don't handle E1 yet
+		$sig = 'em_e1' if $span->proto eq 'E1';
+	}
 	my @to_reset = qw/context group/;
 	my $chans = Dahdi::Config::Gen::chan_range($span->chans());
 	$group .= "," . (10 + $num);	# Invent unique group per span
