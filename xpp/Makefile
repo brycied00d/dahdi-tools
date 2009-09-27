@@ -49,6 +49,7 @@ PERL_SCRIPTS	=	\
 		xpp_blink	\
 		dahdi_genconf	\
 		dahdi_hardware	\
+		twinstar	\
 		#
 
 PERL_MANS	= $(PERL_SCRIPTS:%=%.8)
