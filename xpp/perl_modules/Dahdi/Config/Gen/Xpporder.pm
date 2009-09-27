@@ -111,7 +111,7 @@ HEAD
 		my $label = $xbus->label;
 		my $connector = $xbus->connector;
 		my $name = $xbus->name;
-		printf "%s\t# %s (%s)\n", $label, $connector, $name;
+		printf "%s\t# %s #(%s)\n", $label, $connector, $name;
 	}
 	close F;
 	select $old;
