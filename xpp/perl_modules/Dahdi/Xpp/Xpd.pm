@@ -327,30 +327,41 @@ sub new($$$$$) {
 # static xpd related helper functions
 #------------------------------------
 
+sub format_rank($$) {
+	my ($rank, $prio) = @_;
+	my $width = 2;
+	# 0 is replaced with a character that is sorted *AFTER* numbers.
+	$prio = '_' x $width unless defined $prio && $prio;
+	return sprintf "%${width}s-%s", $prio, $rank;
+}
+
 sub sync_priority_rank($) {
 	my $xpd = shift || die;
+	my $prio = $xpd->timing_priority;
 	# The @rank array is ordered by priority of sync (good to bad)
+	# It is used when timing_priority is not defined (analog) or
+	# is 0 (NT).
 	my @rank = (
 		($xpd->is_pri and defined($xpd->termtype) and $xpd->termtype eq 'TE'),
 		($xpd->is_bri and defined($xpd->termtype) and $xpd->termtype eq 'TE'),
-		($xpd->is_pri),
 		($xpd->type eq 'FXO'),
+		($xpd->is_pri),
 		($xpd->is_bri),
 		($xpd->type eq 'FXS'),
 		);
-	for(my $i = 0; $i < @rank; $i++) {
-		return $i if $rank[$i];
+	my $i;
+	for($i = 0; $i < @rank; $i++) {
+		last if $rank[$i];
 	}
-	return @rank + 1;
+	return format_rank($i, $prio);
 }
 
 # An XPD sync priority comparator for sort()
 sub sync_priority_compare() {
 	my $rank_a = sync_priority_rank($a);
 	my $rank_b = sync_priority_rank($b);
-	#print STDERR "DEBUG: $rank_a (", $a->fqn, ") $rank_b (", $b->fqn, ")\n";
-	return $a->fqn cmp $b->fqn if $rank_a == $rank_b;
-	return $rank_a <=> $rank_b;
+	#print STDERR "DEBUG(rank): $rank_a (", $a->fqn, ") $rank_b (", $b->fqn, ")\n";
+	return $rank_a cmp $rank_b;	# The easy case
 }
 
 # For debugging: show a list of XPD's with relevant sync info.
@@ -358,11 +369,12 @@ sub show_xpd_rank(@) {
 	print STDERR "XPD's by rank\n";
 	foreach my $xpd (@_) {
 		my $type = $xpd->type;
+		my $extra = "";
 		my $rank = sync_priority_rank($xpd);
 		if($xpd->is_digital) {
-			$type .= " (TERMTYPE " . ($xpd->termtype || "UNKNOWN") . ")";
+			$extra .= " termtype " . ($xpd->termtype || "UNKNOWN");
 		}
-		printf STDERR "%3d %-15s %s\n", $rank, $xpd->fqn, $type;
+		printf STDERR "%3s %-15s %s\n", $rank, $xpd->fqn, $extra;
 	}
 }
 
