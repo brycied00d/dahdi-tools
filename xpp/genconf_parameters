@@ -112,6 +112,8 @@
 # Explicitly set the idle bits for E1 CAS (Sample value is the default):
 #r2_idle_bits		1101
 #
+# Set T1 framing type to d4 instead of esf:
+#tdm_framing		d4
 #
 # Use E&M on CAS (default is FXS/FXO). If set, E1 spans will be used as
 # E&M-E1 and T1 will use the requested type:

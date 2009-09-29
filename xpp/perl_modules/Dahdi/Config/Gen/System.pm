@@ -28,18 +28,28 @@ sub print_echo_can($$) {
 	print "echocanceller=$echo_can,$chans\n";
 }
 
-sub gen_cas($$) {
+sub gen_t1_cas($$) {
 	my $self = shift || die;
 	my $gconfig = shift || die;
+	my $parameters = $gconfig->{PARAMETERS} || die;
+	my $genconf_file = $parameters->{GENCONF_FILE} || die;
 	my $span = shift || die;
 	my $num = $span->num() || die;
+	my $proto = $span->proto || die;
+	die "Generate configuration for '$proto' is not possible. Maybe you meant R2?"
+		unless $proto eq 'T1';
 	my $pri_connection_type = $gconfig->{pri_connection_type} || die;
 	die "Span #$num is analog" unless $span->is_digital();
-	die "Span #$num is not CAS" unless $span->is_pri && $gconfig->{pri_connection_type} eq 'CAS';
+	die "Span #$num is not CAS" unless $span->is_pri && $pri_connection_type eq 'CAS';
 	my $termtype = $span->termtype() || die "$0: Span #$num -- unkown termtype [NT/TE]\n";
 	my $timing;
 	my $lbo = 0;
-	my $framing = $span->framing() || die "$0: No framing information for span #$num\n";
+	my $framing = $gconfig->{tdm_framing};
+	if(!defined $framing) {
+		$framing = 'esf';
+	} elsif($framing ne 'esf' && $framing ne 'd4') {
+		die "T1-CAS valid framing is only 'esf' or 'd4'. Not '$framing'. Check '$genconf_file'\n";
+	}
 	my $coding =  $span->coding() || die "$0: No coding information for span #$num\n";
 	my $span_crc4 = $span->crc4();
 	$span_crc4 = (defined $span_crc4) ? ",$span_crc4" : '';
