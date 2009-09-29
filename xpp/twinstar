@@ -195,7 +195,7 @@ happen if the machine is powered down or hangs or even if the xpp
 drivers are unloaded. Which is why the standard twinstar scripts put the
 Astribanks in twinstar mode on startup and remove it on normal shutdown.
 
-An Astribank will only just to the other host (either if asked
+An Astribank will only jump to the other host (either if asked
 explicitly or by the watchdog) only if there is a different Astribank
 connected to the other port and running. Which is why all of this has no
 effect on systems that don't need this functionality.
