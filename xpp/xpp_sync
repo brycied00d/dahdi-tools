@@ -9,6 +9,7 @@
 #
 use strict;
 use File::Basename;
+use Getopt::Std;
 BEGIN { my $dir = dirname($0); unshift(@INC, "$dir", "$dir/perl_modules"); }
 
 use Dahdi::Xpp;
@@ -21,16 +22,17 @@ sub usage() {
 	print 
 		"$0: show / set Astribank sync source\n".
 		"\n".
-		"Usage: $0                    Show sync source.\n".
-		"       $0 <auto|NN|dahdi>   Set sync source.\n".
+		"Usage: $0 [-v]                    Show sync source.\n".
+		"       $0 [-v] <auto|NN|dahdi>   Set sync source.\n".
 		"";
+	exit 1;
 }
 
+my %opts;
+getopts('hv', \%opts) || usage;
+
+$opts{h} && usage;
 if(@ARGV == 1) {
-	if ($ARGV[0] =~ /^(-h|--help|help)$/) {
-		usage;
-		exit(0);
-	}
 	$sync = shift;
 	$autoselect = 1 if $sync =~ /^auto$/i;
 }
@@ -52,7 +54,7 @@ sub get_sorted_xpds() {
 		}
 	}
 	my @xpd_prio = Dahdi::Xpp::Xpd::xpds_by_rank(@good_xpds);
-	#Dahdi::Xpp::Xpd::show_xpd_rank(@xpd_prio);
+	Dahdi::Xpp::Xpd::show_xpd_rank(@xpd_prio) if $opts{v};
 	return @xpd_prio;
 }
 
@@ -143,7 +145,9 @@ xpp_sync - Handle sync selection of Xorcom Astribanks.
 
 =head1 SYNOPSIS
 
-xpp_sync [auto|dahdi|nn]
+xpp_sync <auto|dahdi|nn>
+
+xpp_sync [-v]
 
 =head1 DESCRIPTION
 
@@ -172,6 +176,10 @@ Gets synchronization from the Dahdi sync master.
 =item nn
 
 Sets XBUS-I<nn> as sync source.
+
+=item -v
+
+Also print the numeric xpp sync rank.
 
 =back
 
@@ -211,8 +219,8 @@ xpp_sync is essentially a nicer interface to /proc/xpp/sync . That file
 shows the current xpp sync master (and in what format you need to write
 to it to set the master).
 
+=back
+
 =head1 SEE ALSO
 
 dahdi_registration(1), dahdi_cfg(1), README.Astribank
-
-=back
