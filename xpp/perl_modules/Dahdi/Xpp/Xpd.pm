@@ -300,14 +300,24 @@ sub new($$$$$) {
 	$self->{CHANNELS} = @offhook;
 	my $type = $self->xpd_getattr('type');
 	my $span = $self->xpd_getattr('span');
+	my $timing_priority = $self->xpd_getattr('timing_priority');
 	$self->{SPANNO} = $span;
 	$self->{TYPE} = $type;
+	$self->{TIMING_PRIORITY} = $timing_priority;
 	if($type =~ /BRI_(NT|TE)/) {
 		$self->{IS_BRI} = 1;
 		$self->{TERMTYPE} = $1;
 		$self->{DCHAN_HARDHDLC} = $self->xpd_driver_getattr('dchan_hardhdlc');
+	} elsif($type =~ /[ETJ]1/) {
+		$self->{IS_PRI} = 1;
+		# older drivers may not have 'timing_priority'
+		# attribute. Preserve original behaviour:
+		if(defined($timing_priority) && ($timing_priority == 0)) {
+			$self->{TERMTYPE} = 'NT';
+		} else {
+			$self->{TERMTYPE} = 'TE';
+		}
 	}
-	$self->{IS_PRI} = ($type =~ /[ETJ]1/);
 	$self->{IS_DIGITAL} = ( $self->{IS_BRI} || $self->{IS_PRI} );
 	Dahdi::Xpp::Line->create_all($self, $procdir);
 	return $self;
