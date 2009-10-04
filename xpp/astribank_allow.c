@@ -199,7 +199,7 @@ static int read_from_file(struct eeprom_table *eeprom_table, struct capabilities
 	 * 1: read Version, goto 2. if not version line then error.
 	 * 2: after BEGIN line. split line into key:value. if line is Data:, goto 3.
 	 * 3: read binary data. if line is END_LICENSE_BLOCK goto 4.
-	 * 4: END_LICENSE_BLOCK - if not EOF - error. otherwise exit loop and success.
+	 * 4: END_LICENSE_BLOCK - ignore lines.
 	 */
 	while (fgets(buf, 256, f) != NULL) {
 		lineno++;
@@ -210,7 +210,12 @@ static int read_from_file(struct eeprom_table *eeprom_table, struct capabilities
 		}
 		line = trim(buf);
 		if (line == NULL) {
-			ERR("Line %d: Empty line\n", lineno);
+ 			if (state > 0 && state < 4) {
+				ERR("Line %d: Empty line\n", lineno);
+				return -1;
+			}
+			else
+				continue;
 		}
 		switch (state) {
 			case 0:
@@ -259,8 +264,8 @@ static int read_from_file(struct eeprom_table *eeprom_table, struct capabilities
 				}
 				break;
 			case 4:
-				ERR("Extra data after license end block\n");
-				return -1;
+				break;
+
 		}
 	}
 	if (state != 4) {
