@@ -49,74 +49,25 @@ PATH="$dir:/usr/sbin:/sbin:/usr/bin:/bin"
 
 set -e
 
-# For lab testing
-liveconf="$dir/liveconf/dahdi"
-
-if [ -d "$liveconf" ]; then
-	dahdi_conf="$liveconf"
-else
-	dahdi_conf="/etc/dahdi"
-fi
-
-export XPPORDER_CONF="$dahdi_conf/xpp_order"
-if [ ! -r "$XPPORDER_CONF" ]; then
-	echo "Skip($ACTION): No '$XPPORDER_CONF'" | $LOGGER
-	exit 0
-fi
-SYSTEMCONF="$dahdi_conf/system.conf"
-
-TWS_DIR="/var/tmp"
-TWS_PREFIX="$TWS_DIR/twinstar-"
-LABELFILE="/sys/$DEVPATH/label"
 export XBUS_SORT='SORT_LABEL'
-
-echo "starting($ACTION): setup from $XPPORDER_CONF" | $LOGGER
-STAMP="${TWS_PREFIX}${XBUS_NAME}"
-TWS_TOTAL=`sed -e 's/#.*//' -e '/^[ 	]*$/d' -e 'y/\t/ /' "$XPPORDER_CONF" | wc -l`
 
 case "$ACTION" in
 online)
-	if [ ! -f "$LABELFILE" ]; then
-		echo "Missing labelfile '$LABELFILE'" | $LOGGER
-		exit 1
-	fi
-	LABEL=`cat $LABELFILE`
-	TWS_LINE=`awk "/^$LABEL/" $XPPORDER_CONF`
-	if [ "$TWS_LINE" = "" ]; then
-		echo "online($XBUS_NAME): '$LABEL' is not in '$XPPORDER_CONF'" | $LOGGER
-		exit 1
-	fi
-	echo "$LABEL" > "$STAMP"
-	HOW_MANY=`ls ${TWS_PREFIX}* | wc -l`
-	echo "online($XBUS_NAME): $LABEL (${HOW_MANY}/${TWS_TOTAL})" | $LOGGER
+	echo "$ACTION($XBUS_NAME): " | $LOGGER
 	twinstar enable-wd
-	if [ "$HOW_MANY" -eq "$TWS_TOTAL" ]; then
-		echo "online: GOT ALL $TWS_TOTAL" | $LOGGER
-		dahdi_registration on
-		dahdi_registration 2>&1 | tr '\t' ' ' | $LOGGER
-		echo "Using '$SYSTEMCONF'" 2>&1 | $LOGGER
-		dahdi_cfg -v -c "$SYSTEMCONF" 2>&1 | $LOGGER
-		sleep 1	# Just for visual effect
-		asterisk -rx 'module load chan_dahdi.so' 2>&1 | $LOGGER
-		xpp_blink bzzt xpd "$XBUS_NUM"
-		ports=`twinstar ports`
-		if [ "$ports" = 0 ]; then
-			play /usr/share/dahdi/primary-pbx-is-ready.wav || :
-		elif [ "$ports" = 1 ]; then
-			play /usr/share/dahdi/backup-pbx-is-ready.wav || :
-		fi
-		echo "online: READY" | $LOGGER
+	sleep 1	# Just for visual effect
+	asterisk -rx 'module load chan_dahdi.so' 2>&1 | $LOGGER
+	xpp_blink bzzt xpd "$XBUS_NUM"
+	ports=`twinstar ports`
+	if [ "$ports" = 0 ]; then
+		play /usr/share/dahdi/primary-pbx-is-ready.wav || :
+	elif [ "$ports" = 1 ]; then
+		play /usr/share/dahdi/backup-pbx-is-ready.wav || :
 	fi
+	echo "online: READY" | $LOGGER
 	;;
 offline)
-	LABEL=`cat $STAMP`
-	TWS_LINE=`awk "/^$LABEL/" $XPPORDER_CONF`
-	rm -f "$STAMP"
-	if [ "$TWS_LINE" = "" ]; then
-		echo "offline($XBUS_NAME): $LABEL is not in $XPPORDER_CONF" | $LOGGER
-		exit 1
-	fi
-	echo "offline($XBUS_NAME): $LABEL" | $LOGGER
+	echo "$ACTION($XBUS_NAME): " | $LOGGER
 	twinstar disable-wd
 	# If we want to disconnect everybody
 	twinstar jump

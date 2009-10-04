@@ -11,3 +11,4 @@
 # Override settings for xpp_fxloader
 #XPP_FIRMWARE_DIR=/usr/share/dahdi
 #XPP_HOTPLUG_DISABLED=yes
+#XPP_HOTPLUG_DAHDI=yes

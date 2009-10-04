@@ -86,10 +86,33 @@ unload_module() {
 	rmmod $module
 }
 
+# In (xpp) hotplug mode, if we're called from udev, skip loading
+# modules:
+hotplug_skip_modprobe() {
+	if [ "$XPP_HOTPLUG_DAHDI" = yes -a "$CALLED_FROM_ATRIBANK_HOOK" = '' ]
+	then
+		return 1
+	fi
+	return 0
+}
+
+# In (xpp) hotplug mode: quit after we loaded modules.
+# Make sure that this is only called if there is an Astribank on the
+# system, which will call the rest of the script from the
+# astribank_hook.
+hotplug_exit_after_load() {
+	if [ "$XPP_HOTPLUG_DAHDI" = yes -a "$CALLED_FROM_ATRIBANK_HOOK" != '' ]
+	then
+		exit 0
+	fi
+}
+
 # Initialize the Xorcom Astribank (xpp/) using perl utiliites:
 xpp_startup() {
 	# do nothing if there are no astribank devices:
 	if ! /usr/share/dahdi/waitfor_xpds; then return 0; fi
+
+	hotplug_exit_after_load
 
 	# overriding locales for the above two, as perl can be noisy
 	# when locales are missing.
@@ -184,7 +207,9 @@ RETVAL=0
 # See how we were called.
 case "$1" in
   start)
-  	load_modules
+  	if ! hotplug_skip_modprobe; then
+		load_modules
+	fi
 
 	TMOUT=$DAHDI_DEV_TIMEOUT # max secs to wait
 
