@@ -144,21 +144,7 @@ shutdown_dynamic() {
 	$DAHDI_CFG_CMD -s
 }
 
-if [ ! -x "$DAHDI_CFG" ]; then
-       echo "dahdi_cfg not executable"
-       exit 0
-fi
-
-if [ ! -f /etc/dahdi/system.conf ]; then
-	echo "/etc/dahdi/system.conf not found. Nothing to do."
-       exit 0
-fi
-
-RETVAL=0
-
-# See how we were called.
-case "$1" in
-  start)
+load_modules() {
   	# Some systems, e.g. Debian Lenny, add here -b, which will break
 	# loading of modules blacklisted in modprobe.d/*
 	unset MODPROBE_OPTIONS
@@ -181,6 +167,24 @@ case "$1" in
 		fi
 	done
 	echo ""
+}
+
+if [ ! -x "$DAHDI_CFG" ]; then
+       echo "dahdi_cfg not executable"
+       exit 0
+fi
+
+if [ ! -f /etc/dahdi/system.conf ]; then
+	echo "/etc/dahdi/system.conf not found. Nothing to do."
+       exit 0
+fi
+
+RETVAL=0
+
+# See how we were called.
+case "$1" in
+  start)
+  	load_modules
 
 	TMOUT=$DAHDI_DEV_TIMEOUT # max secs to wait
 
