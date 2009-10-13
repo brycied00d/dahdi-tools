@@ -94,7 +94,8 @@ sub set_transport($$) {
 			warn "Bad USB transportdir='$transportdir' usbdev='$usbdev'\n";
 		}
 	} elsif(-d "$transportdir/usb_endpoint") {
-		$busnum = readval("$transportdir/busnum");
+		$transportdir =~ m|/(\d+)-\d+$|;
+		$busnum = $1;
 		$devnum = readval("$transportdir/devnum");
 	}
 	my $usbname = sprintf("%03d/%03d", $busnum, $devnum);
@@ -109,10 +110,51 @@ sub set_transport($$) {
 	return $hwdev;
 }
 
+sub _get_attr($) {
+	my $attr_file = shift;
+
+	open(ATTR, $attr_file) or die "Failed to read SysFS attribute $attr_file\n";
+	my $value = <ATTR>;
+	chomp $value;
+	return $value;
+}
+
+sub scan_devices_sysfs($) {
+	my $pack = shift || die;
+	my @devices = ();
+
+	while (</sys/bus/usb/devices/*-*>) {
+		next unless -r "$_/idVendor"; # endpoints
+
+		# Older kernels, e.g. 2.6.9, don't have the attribute
+		# busnum:
+		m|/(\d+)-\d+$|;
+		my $busnum = $1 || next;
+		my $devnum = _get_attr("$_/devnum");
+		my $vendor = _get_attr("$_/idVendor");
+		my $product = _get_attr("$_/idProduct");
+		my $serial = _get_attr("$_/serial");
+		my $devname = sprintf("%03d/%03d", $busnum, $devnum);
+		my $model = $usb_ids{"$vendor:$product"};
+		next unless defined $model;
+		my $d = Dahdi::Hardware::USB->new(
+			IS_ASTRIBANK		=> ($model->{DRIVER} eq 'xpp_usb')?1:0,
+			PRIV_DEVICE_NAME	=> $devname,
+			VENDOR			=> $vendor,
+			PRODUCT			=> $product,
+			SERIAL			=> $serial,
+			DESCRIPTION		=> $model->{DESCRIPTION},
+			DRIVER			=> $model->{DRIVER},
+			);
+		push(@devices, $d);
+	}
+	return @devices;
+}
+
 sub scan_devices($) {
 	my $pack = shift || die;
 	my $usb_device_list = "/proc/bus/usb/devices";
-	return unless (-r $usb_device_list);
+	return $pack->scan_devices_sysfs() unless (-r $usb_device_list);
 
 	my @devices;
 	open(F, $usb_device_list) || die "Failed to open $usb_device_list: $!";
