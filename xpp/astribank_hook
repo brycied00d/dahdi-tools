@@ -29,7 +29,11 @@ fi
 
 export XPPORDER_CONF="$dahdi_conf/xpp_order"
 if [ ! -r "$XPPORDER_CONF" ]; then
-	echo "Skip($ACTION): No '$XPPORDER_CONF'" | $LOGGER
+	(
+		echo "Skip($ACTION): No '$XPPORDER_CONF'"
+		echo "Removing uneeded startup semaphore"
+		astribank_is_starting -v -r 2>&1
+	) 2>&1 | $LOGGER
 	exit 0
 fi
 export DAHDI_CFG_CMD="dahdi_cfg -c $dahdi_conf/system.conf"
@@ -73,6 +77,9 @@ start_dahdi() {
 	if [ -x "$dir/twinstar_hook" ]; then
 		"$dir/twinstar_hook"
 	fi
+	# Finished astribanks
+	echo "Removing semaphore"
+	astribank_is_starting -v -r
 }
 
 case "$ACTION" in

@@ -3,9 +3,9 @@
 .SH NAME
 astribank_is_starting \- Mark / check is a Xorcom Astribank (xpp) is starting
 .SH SYNOPSIS
-.B astribank_is_starting [-d] <-a|-r>
+.B astribank_is_starting [-d] [-v] [-t \fItimeout\fB] <-a|-r|-w>
 
-.B astribank_is_starting [-d]
+.B astribank_is_starting [-d] [-v]
 
 .B astribank_is_starting -h
 
@@ -29,10 +29,27 @@ Set the mark. Should return 0 unless there's an error.
 Reset the mark. Should return 0 unless there's an error.
 .RE
 
+.BI -t timeout
+.RS
+.B Timeout.
+Set the timeout value for the \fB-w\fR option. Default is 60 seconds.
+.RE
+
+.B -w
+.RS
+.B Wait.
+Wait for mark to be reset. Should return 0 unless there's an error.
+.RE
+
 Without -a or -r: return 0 if the mark has been set, or a non-zero value
 otherwise.
 
 .B -d
+.RS
+Print debug information to stderr.
+.RE
+
+.B -v
 .RS
 Verbose execution.
 .RE
@@ -64,6 +81,11 @@ loading.
 Q: Why do you use a semaphore?
 
 A: because, unlike the filesystem, it is writable at any given time.
+
+.SH BUGS
+Option ordering matter. The \fB-v\fR and \fB-d\fR options should preceed
+the actions (\fB-a\fR, \fB-r\fR and \fB-w\fR).
+The \fB-t\fItimeout\fR option should preceed the \fB-w\fR option.
 
 .SH SEE ALSO
 semctl(3)

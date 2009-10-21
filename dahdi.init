@@ -86,10 +86,13 @@ unload_module() {
 	rmmod $module
 }
 
-# In (xpp) hotplug mode, if we're called from udev, skip loading
-# modules:
-hotplug_skip_modprobe() {
-	if [ "$XPP_HOTPLUG_DAHDI" = yes -a "$CALLED_FROM_ATRIBANK_HOOK" = '' ]
+# In (xpp) hotplug mode, the init script is also executed from the
+# hotplug hook. In that case it should not attempt to loade modules.
+#
+# This function only retunrs false (1) if we're in hotplug mode and
+# coming from the hotplug hook script.
+hotplug_should_load_modules() {
+	if [ "$XPP_HOTPLUG_DAHDI" = yes -a "$CALLED_FROM_ATRIBANK_HOOK" != '' ]
 	then
 		return 1
 	fi
@@ -97,11 +100,14 @@ hotplug_skip_modprobe() {
 }
 
 # In (xpp) hotplug mode: quit after we loaded modules.
-# Make sure that this is only called if there is an Astribank on the
-# system, which will call the rest of the script from the
-# astribank_hook.
+#
+# In hotplug mode, the main run should end here, whereas the rest of the
+# script should be finished by the instance running from the hook.
+# Note that we only get here if there are actually Astribanks on the
+# system (otherwise noone will trigger the run of the hotplug hook
+# script).
 hotplug_exit_after_load() {
-	if [ "$XPP_HOTPLUG_DAHDI" = yes -a "$CALLED_FROM_ATRIBANK_HOOK" != '' ]
+	if [ "$XPP_HOTPLUG_DAHDI" = yes -a "$CALLED_FROM_ATRIBANK_HOOK" = '' ]
 	then
 		exit 0
 	fi
@@ -207,7 +213,7 @@ RETVAL=0
 # See how we were called.
 case "$1" in
   start)
-  	if ! hotplug_skip_modprobe; then
+  	if hotplug_should_load_modules; then
 		load_modules
 	fi
 

@@ -10,10 +10,13 @@
 static char		*progname;
 static const key_t	key_astribanks = 0xAB11A0;
 static int		debug;
+static int		verbose;
+static int		timeout_seconds = 60;
+
 
 static void usage(void)
 {
-	fprintf(stderr, "Usage: %s [-d] [-a] [-r]\n", progname);
+	fprintf(stderr, "Usage: %s [-d] [-t <seconds>] [-a|-r|-w]\n", progname);
 	exit(1);
 }
 
@@ -41,6 +44,8 @@ static int absem_touch(void)
 	}
 	if(debug)
 		fprintf(stderr, "%s: touched absem\n", progname);
+	if(verbose)
+		printf("Astribanks initialization is starting\n");
 	return 0;
 }
 
@@ -63,6 +68,47 @@ static int absem_remove(void)
 	}
 	if(debug)
 		fprintf(stderr, "%s: removed absem\n", progname);
+	if(verbose)
+		printf("Astribanks initialization is done\n");
+	return 0;
+}
+
+static int absem_wait(void)
+{
+	int		absem;
+	struct sembuf	sops;
+	long		now;
+	long		start_wait;
+	struct timespec	timeout;
+
+	if((absem = absem_get(0)) < 0) {
+		perror(__FUNCTION__);
+		return absem;
+	}
+	sops.sem_num = 0;
+	sops.sem_op = -1;
+	sops.sem_flg = 0;
+	start_wait = time(NULL);
+	timeout.tv_sec = timeout_seconds;
+	timeout.tv_nsec = 0;
+	if(semtimedop(absem, &sops, 1, &timeout) < 0) {
+		switch(errno) {
+		case EIDRM:	/* Removed -- OK */
+			break;
+		case EAGAIN:	/* Timeout -- Report */
+			fprintf(stderr, "Astribanks waiting timed out\n");
+			return -errno;
+		default:	/* Unexpected errors */
+			perror("semop");
+			return -errno;
+		}
+		/* fall-thgough */
+	}
+	now = time(NULL);
+	if(debug)
+		fprintf(stderr, "%s: waited on absem %d seconds\n", progname, now - start_wait);
+	if(verbose)
+		printf("Finished after %d seconds\n", now - start_wait);
 	return 0;
 }
 
@@ -77,17 +123,20 @@ static int absem_detected(void)
 	}
 	if(debug)
 		fprintf(stderr, "%s: absem exists\n", progname);
+	if(verbose)
+		printf("Astribanks are initializing...\n");
 	return 0;
 }
 
 int main(int argc, char *argv[])
 {
-	const char	options[] = "darh";
+	const char	options[] = "dvarwt:h";
 	int		val;
 
 	progname = argv[0];
 	while (1) {
 		int	c;
+		int	t;
 
 		c = getopt (argc, argv, options);
 		if (c == -1)
@@ -96,6 +145,19 @@ int main(int argc, char *argv[])
 		switch (c) {
 			case 'd':
 				debug++;
+				break;
+			case 'v':
+				verbose++;
+				break;
+			case 't':
+				t = atoi(optarg);
+				if(t <= 0) {
+					fprintf(stderr,
+						"%s: -t expect a positive number of seconds: '%s'\n",
+						progname, optarg);
+					usage();
+				}
+				timeout_seconds = t;
 				break;
 			case 'a':
 				if((val = absem_touch()) < 0) {
@@ -106,6 +168,12 @@ int main(int argc, char *argv[])
 			case 'r':
 				if((val = absem_remove()) < 0) {
 					fprintf(stderr, "%s: Remove failed: %d\n", progname, val);
+					return 1;
+				}
+				return 0;
+			case 'w':
+				if((val = absem_wait()) < 0) {
+					fprintf(stderr, "%s: Wait failed: %d\n", progname, val);
 					return 1;
 				}
 				return 0;
