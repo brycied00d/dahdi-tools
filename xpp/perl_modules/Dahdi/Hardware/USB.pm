@@ -77,7 +77,6 @@ sub set_transport($$) {
 	my $xbus = shift || die;
 	my $xbus_dir = shift;
 	my $transportdir = "$xbus_dir/transport";
-	my $hwdev;
 	if(! -e "$transportdir/ep_00") {
 		warn "A trasnport in '$transportdir' is not USB";
 		return undef;
@@ -101,12 +100,14 @@ sub set_transport($$) {
 	my $usbname = sprintf("%03d/%03d", $busnum, $devnum);
 	#printf STDERR "DEBUG: %03d/%03d\n", $busnum, $devnum;
 	$xbus->{USB_DEVNAME} = $usbname;
-	$hwdev = Dahdi::Hardware->device_by_hwname("usb:$usbname");
-	#print "set_transport: ", $hwdev, "\n";
-	$xbus->{TRANSPORT} = $hwdev;
-	$hwdev->{XBUS} = $xbus;
-	$hwdev->{LOADED} = 'xpp_usb';
-	$xbus->{IS_TWINSTAR} = $hwdev->is_twinstar;
+	my $hwdev = Dahdi::Hardware->device_by_hwname("usb:$usbname");
+	if(defined $hwdev) {
+		#print "set_transport: ", $hwdev, "\n";
+		$xbus->{TRANSPORT} = $hwdev;
+		$hwdev->{XBUS} = $xbus;
+		$hwdev->{LOADED} = 'xpp_usb';
+		$xbus->{IS_TWINSTAR} = $hwdev->is_twinstar;
+	}
 	return $hwdev;
 }
 
