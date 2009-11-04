@@ -24,7 +24,7 @@ initdir=/etc/init.d
 # Don't edit the following values. Edit /etc/dahdi/init.conf instead.
 
 DAHDI_CFG=/usr/sbin/dahdi_cfg
-DAHDI_CFG_CMD="$DAHDI_CFG" # e.g: for a custom system.conf location
+DAHDI_CFG_CMD=${DAHDI_CFG_CMD:-"$DAHDI_CFG"} # e.g: for a custom system.conf location
 
 FXOTUNE=/usr/sbin/fxotune
 
