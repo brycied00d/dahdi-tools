@@ -1,5 +1,8 @@
 #! /bin/sh
 #
+# twinstar_hook: Example twinstar-specific hook script
+# $Id$
+#
 # Written by Oron Peled <oron@actcom.co.il>
 # Copyright (C) 2009, Xorcom
 #

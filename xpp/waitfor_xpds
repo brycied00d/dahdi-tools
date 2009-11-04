@@ -1,9 +1,10 @@
 #! /bin/sh
 
 # waitfor_xpds: wait until all Astribanks were initialized
+# $Id$
 
 # Written by Oron Peled <oron@actcom.co.il>
-# Copyright (C) 2008, Xorcom
+# Copyright (C) 2008-2009, Xorcom
 #
 # All rights reserved.
 #
