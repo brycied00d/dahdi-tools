@@ -1,3 +1,4 @@
+#include "../autoconfig.h"
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/sem.h>
@@ -6,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 static char		*progname;
 static const key_t	key_astribanks = 0xAB11A0;
@@ -106,9 +108,9 @@ static int absem_wait(void)
 	}
 	now = time(NULL);
 	if(debug)
-		fprintf(stderr, "%s: waited on absem %d seconds\n", progname, now - start_wait);
+		fprintf(stderr, "%s: waited on absem %ld seconds\n", progname, now - start_wait);
 	if(verbose)
-		printf("Finished after %d seconds\n", now - start_wait);
+		printf("Finished after %ld seconds\n", now - start_wait);
 	return 0;
 }
 
