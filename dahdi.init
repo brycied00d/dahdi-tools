@@ -78,16 +78,17 @@ unload_module() {
 	# xpp_usb keeps the xpds below busy if an xpp hardware is
 	# connected. Hence must be removed before them:
 	case "$module" in xpd_*) mods="xpp_usb $mods";; esac
+
 	for mod in $mods; do
-		(echo $mod | grep dahdi_echocan) > /dev/null 2>&1
-		if [ $? != 0 ]; then
+		case "$mod" in
+		dahdi_echocan_*)
+			ec_modules="$mod $ec_modules"
+			;;
+		*)
 			# run in a subshell, so it won't step over our vars:
 			(unload_module $mod)
-		else
-			ec_modules="$mod $ec_modules"
-		fi
-                # TODO: the following is probably the error handling we want:
-                # if [ $? != 0 ]; then return 1; fi
+			;;
+		esac
 	done
 	# Now that all the other dependencies are unloaded, we can unload the
 	# dahdi_echocan modules.  The drivers that register spans may keep
