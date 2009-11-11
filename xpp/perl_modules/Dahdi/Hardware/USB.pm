@@ -131,13 +131,13 @@ sub scan_devices_sysfs($) {
 		# busnum:
 		m|/(\d+)-\d+$|;
 		my $busnum = $1 || next;
-		my $devnum = _get_attr("$_/devnum");
 		my $vendor = _get_attr("$_/idVendor");
 		my $product = _get_attr("$_/idProduct");
-		my $serial = _get_attr("$_/serial") or return undef;
-		my $devname = sprintf("%03d/%03d", $busnum, $devnum);
 		my $model = $usb_ids{"$vendor:$product"};
 		next unless defined $model;
+		my $devnum = _get_attr("$_/devnum");
+		my $serial = _get_attr("$_/serial");
+		my $devname = sprintf("%03d/%03d", $busnum, $devnum);
 		my $d = Dahdi::Hardware::USB->new(
 			IS_ASTRIBANK		=> ($model->{DRIVER} eq 'xpp_usb')?1:0,
 			PRIV_DEVICE_NAME	=> $devname,
