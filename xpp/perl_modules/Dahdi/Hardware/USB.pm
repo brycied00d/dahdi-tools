@@ -114,7 +114,7 @@ sub set_transport($$) {
 sub _get_attr($) {
 	my $attr_file = shift;
 
-	open(ATTR, $attr_file) or return undef;
+	open(ATTR, $attr_file) or die "Failed to read SysFS attribute $attr_file\n";
 	my $value = <ATTR>;
 	chomp $value;
 	return $value;
