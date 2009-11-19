@@ -34,7 +34,8 @@
 
 #define	MK_PROTO_VERSION(major, minor)	(((major) << 4) | (0x0F & (minor)))
 
-#define	MPP_PROTOCOL_VERSION	MK_PROTO_VERSION(1,3)
+#define	MPP_PROTOCOL_VERSION	MK_PROTO_VERSION(1,4)
+#define	MPP_SUPPORTED_VERSION(x)	((x) == MK_PROTO_VERSION(1,3) || (x) == MK_PROTO_VERSION(1,4))
 
 /*
  * The eeprom_table is common to all eeprom types.
@@ -47,6 +48,13 @@ struct eeprom_table {
 	uint16_t	release;	/* BCD encoded release */
 	uint8_t		config_byte;	/* Must be 0 */
 	uint8_t		label[LABEL_SIZE];
+} PACKED;
+
+#define	VERSION_LEN	6
+struct firmware_versions {
+	char	usb[VERSION_LEN];
+	char	fpga[VERSION_LEN];
+	char	eeprom[VERSION_LEN];
 } PACKED;
 
 struct capabilities {
@@ -94,6 +102,7 @@ enum mpp_command_ops {
 
 	MPP_STATUS_GET		= 0x11,	/* Get Astribank Status	*/
 	MPP_STATUS_GET_REPLY	= 0x91,
+	MPP_STATUS_GET_REPLY_V13	= 0x91,	/* backward compat */
 
 	MPP_EXTRAINFO_GET	= 0x13,	/* Get extra vendor information	*/
 	MPP_EXTRAINFO_GET_REPLY	= 0x93,
@@ -150,11 +159,20 @@ CMD_DEF(PROTO_REPLY,
 
 CMD_DEF(STATUS_GET);
 
+CMD_DEF(STATUS_GET_REPLY_V13,
+	uint8_t	i2cs_data;
+
+#define	STATUS_FPGA_LOADED(x)	((x) & 0x01)
+	uint8_t	status;		/* BIT(0) - FPGA is loaded */
+	);
+
+
 CMD_DEF(STATUS_GET_REPLY,
 	uint8_t	i2cs_data;
 
 #define	STATUS_FPGA_LOADED(x)	((x) & 0x01)
 	uint8_t	status;		/* BIT(0) - FPGA is loaded */
+	struct firmware_versions fw_versions;
 	);
 
 CMD_DEF(EEPROM_SET,
@@ -199,6 +217,7 @@ CMD_DEF(EEPROM_BLK_RD_REPLY,
 
 CMD_DEF(DEV_SEND_START,
 	uint8_t		dest;
+	char		ihex_version[VERSION_LEN];
 	);
 
 CMD_DEF(DEV_SEND_END);
@@ -253,6 +272,7 @@ struct mpp_command {
 		MEMBER(PROTO_QUERY);
 		MEMBER(PROTO_REPLY);
 		MEMBER(STATUS_GET);
+		MEMBER(STATUS_GET_REPLY_V13);
 		MEMBER(STATUS_GET_REPLY);
 		MEMBER(EEPROM_SET);
 		MEMBER(CAPS_GET);

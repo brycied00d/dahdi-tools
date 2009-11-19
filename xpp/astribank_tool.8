@@ -3,13 +3,15 @@
 .SH NAME
 astribank_tool \- Xorcom Astribank (xpp) control tool
 .SH SYNOPSIS
-.B astribank_tool -D \fIdevice-path\fR [ options ]
+.B astribank_tool [ options ] [ operation... ] -D \fIdevice-path\fR
 
 .B astribank_tool [-h]
 
 .SH DESCRIPTION
 .B astribank_tool
 is a tool to control the USB-level functionality of an Astribank.
+The tool operates on a single Astribank at a time (given as parameter
+to the -D command line option).
 
 .SH OPTIONS
 .B -D 
@@ -44,6 +46,11 @@ Tyep can be: \fBhalf\fR or \fBfull\fR.
 Enable (1) or disable (0) the TwinStar watchdog. When enabled, the
 Astribank will jump to the second port if this system is "not working"
 and the system on the second port is available.
+.RE
+
+.B -Q
+.RS
+Query astribank properties via MPP protocol.
 .RE
 
 .B -n

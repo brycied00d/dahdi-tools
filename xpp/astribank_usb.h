@@ -78,6 +78,7 @@ struct astribank_device {
 	uint8_t			status;
 	uint8_t			mpp_proto_version;
 	struct eeprom_table	*eeprom;
+	struct firmware_versions	fw_versions;
 	const struct interface_type	*fwtype;
 	uint16_t		tx_sequenceno;
 };

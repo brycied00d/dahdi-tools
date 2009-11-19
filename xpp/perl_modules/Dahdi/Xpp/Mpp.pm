@@ -102,8 +102,9 @@ sub showinfo($$) {
 	}
 }
 
-sub astribank_tool_cmd($) {
+sub astribank_tool_cmd($@) {
 	my $dev = shift || die;
+	my @args = @_;
 	my $usb_top;
 
 	# Find USB bus toplevel
@@ -113,7 +114,7 @@ sub astribank_tool_cmd($) {
 	my $name = $dev->priv_device_name();
 	die "$0: Unkown private device name" unless defined $name;
 	my $path = "$usb_top/$name";
-	return ($astribank_tool, '-D', "$path");
+	return ($astribank_tool, '-D', "$path", @args);
 }
 
 sub new($$$) {
@@ -136,7 +137,7 @@ sub new($$$) {
 	}
 	return $mppinfo unless $product =~ /116[12]/;
 	$mppinfo->{'MPP_TALK'} = 1;
-	my @cmd = astribank_tool_cmd($dev);
+	my @cmd = astribank_tool_cmd($dev, '-Q');
 	my $name = $dev->priv_device_name();
 	my $dbg_file = "$name";
 	$dbg_file =~ s/\W/_/g;
@@ -191,9 +192,9 @@ sub mpp_setwatchdog($$) {
 	my $dev = $mppinfo->dev || die;
 	return undef unless defined $mppinfo->mpp_talk;
 	my $old = $mppinfo->tws_watchdog;
-	my @cmd = astribank_tool_cmd($dev);
+	my @cmd = astribank_tool_cmd($dev, '-w', $on);
 	print STDERR "DEBUG($on): '@cmd'\n";
-	system(@cmd, '-w', $on);
+	system(@cmd);
 	die "Running $astribank_tool failed: $?" if $?;
 }
 
@@ -204,8 +205,8 @@ sub mpp_jump($) {
 	my $port = $mppinfo->twinstar_port;
 	$port = ($port == 1) ? 0 : 1;
 	die "Unknown TwinStar port" unless defined $port;
-	my @cmd = astribank_tool_cmd($dev);
-	system(@cmd, '-p', $port);
+	my @cmd = astribank_tool_cmd($dev, '-p', $port);
+	system(@cmd);
 	die "Running $astribank_tool failed: $?" if $?;
 }
 

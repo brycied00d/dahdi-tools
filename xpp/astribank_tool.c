@@ -41,14 +41,16 @@ static char	*progname;
 
 static void usage()
 {
-	fprintf(stderr, "Usage: %s [options...] -D {/proc/bus/usb|/dev/bus/usb}/<bus>/<dev>\n", progname);
-	fprintf(stderr, "\tOptions: {-n|-r kind}\n");
+	fprintf(stderr, "Usage: %s [options] -D {/proc/bus/usb|/dev/bus/usb}/<bus>/<dev> [operation...]\n", progname);
+	fprintf(stderr, "\tOptions:\n");
+	fprintf(stderr, "\t\t[-v]               # Increase verbosity\n");
+	fprintf(stderr, "\t\t[-d mask]          # Debug mask (0xFF for everything)\n");
+	fprintf(stderr, "\tOperations:\n");
 	fprintf(stderr, "\t\t[-n]               # Renumerate device\n");
 	fprintf(stderr, "\t\t[-r kind]          # Reset: kind = {half|full}\n");
 	fprintf(stderr, "\t\t[-p port]          # TwinStar: USB port number [0, 1]\n");
 	fprintf(stderr, "\t\t[-w (0|1)]         # TwinStar: Watchdog off or on guard\n");
-	fprintf(stderr, "\t\t[-v]               # Increase verbosity\n");
-	fprintf(stderr, "\t\t[-d mask]          # Debug mask (0xFF for everything)\n");
+	fprintf(stderr, "\t\t[-Q]               # Query device properties\n");
 	exit(1);
 }
 
@@ -82,9 +84,6 @@ static int show_hardware(struct astribank_device *astribank)
 	struct capabilities	capabilities;
 	struct extrainfo	extrainfo;
 
-	show_astribank_info(astribank);
-	if(verbose <= LOG_INFO)
-		return 0;
 	ret = mpp_caps_get(astribank, &eeprom_table, &capabilities, NULL);
 	if(ret < 0)
 		return ret;
@@ -147,11 +146,12 @@ int main(int argc, char *argv[])
 {
 	char			*devpath = NULL;
 	struct astribank_device *astribank;
-	const char		options[] = "vd:D:nr:p:w:";
+	const char		options[] = "vd:D:nr:p:w:Q";
 	int			opt_renumerate = 0;
 	char			*opt_port = NULL;
 	char			*opt_watchdog = NULL;
 	char			*opt_reset = NULL;
+	int			opt_query = 0;
 	int			ret;
 
 	progname = argv[0];
@@ -184,6 +184,9 @@ int main(int argc, char *argv[])
 				if(reset_kind(opt_reset) < 0)
 					usage();
 				break;
+			case 'Q':
+				opt_query = 1;
+				break;
 			case 'v':
 				verbose++;
 				break;
@@ -215,7 +218,11 @@ int main(int argc, char *argv[])
 
 		return 1;
 	}
-	show_hardware(astribank);
+	/*
+	 * First process reset options. We want to be able
+	 * to reset minimal USB firmwares even if they don't
+	 * implement the full MPP protocol (e.g: EEPROM_BURN)
+	 */
 	if(opt_reset) {
 		int	full_reset;
 
@@ -228,6 +235,11 @@ int main(int argc, char *argv[])
 			ERR("%s Reseting astribank failed: %d\n",
 				(full_reset) ? "Full" : "Half", ret);
 		}
+		goto out;
+	}
+	show_astribank_info(astribank);
+	if(opt_query) {
+		show_hardware(astribank);
 	} else if(opt_renumerate) {
 		DBG("Renumerate\n");
 		if((ret = mpp_renumerate(astribank)) < 0) {
@@ -255,6 +267,7 @@ int main(int argc, char *argv[])
 			return 1;
 		}
 	}
+out:
 	mpp_exit(astribank);
 	return 0;
 }

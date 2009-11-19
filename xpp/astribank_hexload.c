@@ -41,6 +41,7 @@ static void usage()
 {
 	fprintf(stderr, "Usage: %s [options...] -D {/proc/bus/usb|/dev/bus/usb}/<bus>/<dev> hexfile...\n", progname);
 	fprintf(stderr, "\tOptions: {-F|-p}\n");
+	fprintf(stderr, "\t\t[-E]               # Burn to EEPROM\n");
 	fprintf(stderr, "\t\t[-F]               # Load FPGA firmware\n");
 	fprintf(stderr, "\t\t[-p]               # Load PIC firmware\n");
 	fprintf(stderr, "\t\t[-v]               # Increase verbosity\n");
@@ -65,24 +66,27 @@ int handle_hexline(struct astribank_device *astribank, struct hexline *hexline)
 	offset_dummy = hexline->d.content.header.offset;
 	data = hexline->d.content.tt_data.data;
 	if((ret = mpp_send_seg(astribank, data, offset_dummy, len)) < 0) {
-		ERR("Failed FPGA send line: %d\n", ret);
+		ERR("Failed hexfile send line: %d\n", ret);
 		return -EINVAL;
 	}
 	return 0;
 }
 
-static int load_fpga(struct astribank_device *astribank, const char *hexfile)
+static int load_hexfile(struct astribank_device *astribank, const char *hexfile, enum dev_dest dest)
 {
 	struct hexdata		*hexdata = NULL;
 	int			finished = 0;
 	int			ret;
 	int			i;
+	char			star[] = "+\\+|+/+-";
 
 	if((hexdata  = parse_hexfile(hexfile, MAX_HEX_LINES)) == NULL) {
 		perror(hexfile);
 		return -errno;
 	}
-	INFO("Loading FPGA: %s (version %s)\n", hexdata->fname, hexdata->version_info);
+	INFO("Loading hexfile to %s: %s (version %s)\n",
+		dev_dest2str(dest),
+		hexdata->fname, hexdata->version_info);
 #if 0
 	FILE		*fp;
 	if((fp = fopen("fpga_dump_new.txt", "w")) == NULL) {
@@ -90,8 +94,8 @@ static int load_fpga(struct astribank_device *astribank, const char *hexfile)
 		exit(1);
 	}
 #endif
-	if((ret = mpp_send_start(astribank, DEST_FPGA)) < 0) {
-		ERR("Failed FPGA send start: %d\n", ret);
+	if((ret = mpp_send_start(astribank, dest, hexdata->version_info)) < 0) {
+		ERR("Failed hexfile send start: %d\n", ret);
 		return ret;
 	}
 	for(i = 0; i < hexdata->maxlines; i++) {
@@ -99,6 +103,10 @@ static int load_fpga(struct astribank_device *astribank, const char *hexfile)
 
 		if(!hexline)
 			break;
+		if(verbose > LOG_INFO) {
+			printf("Sending: %4d%%    %c\r", (100 * i) / hexdata->last_line, star[i % sizeof(star)]);
+			fflush(stdout);
+		}
 		if(finished) {
 			ERR("Extra data after End Of Data Record (line %d)\n", i);
 			return 0;
@@ -109,19 +117,23 @@ static int load_fpga(struct astribank_device *astribank, const char *hexfile)
 			continue;
 		}
 		if((ret = handle_hexline(astribank, hexline)) < 0) {
-			ERR("Failed FPGA sending in lineno %d (ret=%d)\n", i, ret);;
+			ERR("Failed hexfile sending in lineno %d (ret=%d)\n", i, ret);;
 			return ret;
 		}
 	}
+	if(verbose > LOG_INFO) {
+		putchar('\n');
+		fflush(stdout);
+	}
 	if((ret = mpp_send_end(astribank)) < 0) {
-		ERR("Failed FPGA send end: %d\n", ret);
+		ERR("Failed hexfile send end: %d\n", ret);
 		return ret;
 	}
 #if 0
 	fclose(fp);
 #endif
 	free_hexdata(hexdata);
-	DBG("FPGA firmware loaded successfully\n");
+	DBG("hexfile loaded successfully\n");
 	return 0;
 }
 
@@ -129,9 +141,10 @@ int main(int argc, char *argv[])
 {
 	char			*devpath = NULL;
 	struct astribank_device *astribank;
-	int			opt_fpga = 0;
 	int			opt_pic = 0;
-	const char		options[] = "vd:D:Fp";
+	int			opt_dest = 0;
+	enum dev_dest		dest = DEST_NONE;
+	const char		options[] = "vd:D:EFp";
 	int			iface_num;
 	int			ret;
 
@@ -147,8 +160,21 @@ int main(int argc, char *argv[])
 			case 'D':
 				devpath = optarg;
 				break;
+			case 'E':
+				if(dest != DEST_NONE) {
+					ERR("The -F and -E options are mutually exclusive.\n");
+					usage();
+				}
+				opt_dest = 1;
+				dest = DEST_EEPROM;
+				break;
 			case 'F':
-				opt_fpga = 1;
+				if(dest != DEST_NONE) {
+					ERR("The -F and -E options are mutually exclusive.\n");
+					usage();
+				}
+				opt_dest = 1;
+				dest = DEST_FPGA;
 				break;
 			case 'p':
 				opt_pic = 1;
@@ -162,17 +188,18 @@ int main(int argc, char *argv[])
 			case 'h':
 			default:
 				ERR("Unknown option '%c'\n", c);
-				return 1;
+				usage();
 		}
 	}
-	if((opt_fpga ^ opt_pic) == 0) {
-		ERR("The -F and -p options are mutually exclusive.\n");
+	if((opt_dest ^ opt_pic) == 0) {
+		ERR("The -F, -E and -p options are mutually exclusive.\n");
 		usage();
 	}
-	iface_num = (opt_fpga) ? 1 : 0;
-	if(opt_fpga) {
+	iface_num = (opt_dest) ? 1 : 0;
+	if(!opt_pic) {
 		if(optind != argc - 1) {
-			ERR("The -F option requires exacly one hexfile argument\n");
+			ERR("Got %d hexfile names (Need exactly one hexfile)\n",
+				argc - 1 - optind);
 			usage();
 		}
 	}
@@ -185,9 +212,9 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	show_astribank_info(astribank);
-	if(opt_fpga) {
-		if(load_fpga(astribank, argv[optind]) < 0) {
-			ERR("Loading FPGA firmware failed\n");
+	if(opt_dest) {
+		if(load_hexfile(astribank, argv[optind], dest) < 0) {
+			ERR("Loading firmware to %s failed\n", dev_dest2str(dest));
 			return 1;
 		}
 	} else if(opt_pic) {

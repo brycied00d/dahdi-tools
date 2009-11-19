@@ -76,6 +76,18 @@ const char *eeprom_type2str(enum eeprom_type et)
 	return msgs[et];
 };
 
+const char *dev_dest2str(enum dev_dest dest)
+{
+	const static char	*msgs[] = {
+		[DEST_NONE]	= "NONE",
+		[DEST_FPGA]	= "FPGA",
+		[DEST_EEPROM]	= "EEPROM",
+	};
+	if(dest > sizeof(msgs)/sizeof(msgs[0]))
+		return NULL;
+	return msgs[dest];
+};
+
 struct command_desc {
 	uint8_t		op;
 	const char	*name;
@@ -98,13 +110,13 @@ static const struct command_desc	command_table[] = {
 	CMD_RECV(ACK),
 	CMD_SEND(PROTO_QUERY),
 	CMD_SEND(STATUS_GET),
-	CMD_SEND(STATUS_GET_REPLY),
+	CMD_RECV(STATUS_GET_REPLY),
 	CMD_SEND(EEPROM_SET),
 	CMD_SEND(CAPS_GET),
 	CMD_RECV(CAPS_GET_REPLY),
 	CMD_SEND(CAPS_SET),
 	CMD_SEND(EXTRAINFO_GET),
-	CMD_SEND(EXTRAINFO_GET_REPLY),
+	CMD_RECV(EXTRAINFO_GET_REPLY),
 	CMD_SEND(EXTRAINFO_SET),
 	CMD_RECV(PROTO_REPLY),
 	CMD_SEND(RENUM),
@@ -127,6 +139,41 @@ static const struct command_desc	command_table[] = {
 	CMD_SEND(TWS_PWR_GET),
 	CMD_RECV(TWS_PWR_GET_REPLY),
 };
+
+static const struct command_desc	command_table_V13[] = {
+	CMD_RECV(ACK),
+	CMD_SEND(PROTO_QUERY),
+	CMD_SEND(STATUS_GET),
+	CMD_RECV(STATUS_GET_REPLY_V13),
+	CMD_SEND(EEPROM_SET),
+	CMD_SEND(CAPS_GET),
+	CMD_RECV(CAPS_GET_REPLY),
+	CMD_SEND(CAPS_SET),
+	CMD_SEND(EXTRAINFO_GET),
+	CMD_RECV(EXTRAINFO_GET_REPLY),
+	CMD_SEND(EXTRAINFO_SET),
+	CMD_RECV(PROTO_REPLY),
+	CMD_SEND(RENUM),
+	CMD_SEND(EEPROM_BLK_RD),
+	CMD_RECV(EEPROM_BLK_RD_REPLY),
+	CMD_SEND(DEV_SEND_SEG),
+	CMD_SEND(DEV_SEND_START),
+	CMD_SEND(DEV_SEND_END),
+	CMD_SEND(RESET),
+	CMD_SEND(HALF_RESET),
+	CMD_SEND(SER_SEND),
+	CMD_SEND(SER_RECV),
+	/* Twinstar */
+	CMD_SEND(TWS_WD_MODE_SET),
+	CMD_SEND(TWS_WD_MODE_GET),
+	CMD_RECV(TWS_WD_MODE_GET_REPLY),
+	CMD_SEND(TWS_PORT_SET),
+	CMD_SEND(TWS_PORT_GET),
+	CMD_RECV(TWS_PORT_GET_REPLY),
+	CMD_SEND(TWS_PWR_GET),
+	CMD_RECV(TWS_PWR_GET_REPLY),
+};
+
 #undef	CMD_SEND
 #undef	CMD_RECV
 
@@ -148,22 +195,45 @@ void free_command(struct mpp_command *cmd)
 	free(cmd);
 }
 
-struct mpp_command *new_command(uint8_t op, uint16_t extra_data)
+const struct command_desc *get_command_desc(uint8_t protocol_version, uint8_t op)
+{
+	const struct command_desc	*desc;
+
+	switch(protocol_version) {
+		case MK_PROTO_VERSION(1,3):
+			if(op > sizeof(command_table_V13)/sizeof(command_table_V13[0])) {
+				//ERR("Invalid op=0x%X. Bigger than max valid op\n", op);
+				return NULL;
+			}
+			desc = &command_table_V13[op];
+			if(!desc->name)
+				return NULL;
+			break;
+		default:
+			if(op > sizeof(command_table)/sizeof(command_table[0])) {
+				//ERR("Invalid op=0x%X. Bigger than max valid op\n", op);
+				return NULL;
+			}
+			desc = &command_table[op];
+			if(!desc->name)
+				return NULL;
+			break;
+	}
+	return desc;
+}
+
+struct mpp_command *new_command(uint8_t protocol_version, uint8_t op, uint16_t extra_data)
 {
 	struct mpp_command		*cmd;
 	const struct command_desc	*desc;
 	uint16_t			len;
 
-	DBG("OP=0x%X (extra_data %d)\n", op, extra_data);
-	if(op > sizeof(command_table)/sizeof(command_table[0])) {
-		ERR("Invalid op=0x%X. Bigger than max valid op\n", op);
-		return NULL;
-	}
-	desc = &command_table[op];
-	if(!desc->name) {
+	desc = get_command_desc(protocol_version, op);
+	if(!desc) {
 		ERR("Unknown op=0x%X.\n", op);
 		return NULL;
 	}
+	DBG("OP=0x%X [%s] (extra_data %d)\n", op, desc->name, extra_data);
 	len = desc->len + extra_data;
 	if((cmd = malloc(len)) == NULL) {
 		ERR("Out of memory\n");
@@ -173,29 +243,6 @@ struct mpp_command *new_command(uint8_t op, uint16_t extra_data)
 	cmd->header.len = len;
 	cmd->header.seq = 0;	/* Overwritten in send_usb() */
 	return cmd;
-}
-
-const struct command_desc *get_command_desc(uint8_t op)
-{
-	const struct command_desc	*desc;
-
-	if(op > sizeof(command_table)/sizeof(command_table[0])) {
-		//ERR("Invalid op=0x%X. Bigger than max valid op\n", op);
-		return NULL;
-	}
-	desc = &command_table[op];
-	if(!desc->name)
-		return NULL;
-	return desc;
-}
-
-const char *get_command_name(uint8_t op)
-{
-	const struct command_desc	*desc;
-
-	if((desc = get_command_desc(op)) == NULL)
-		return NULL;
-	return desc->name;
 }
 
 void dump_command(struct mpp_command *cmd)
@@ -259,6 +306,8 @@ struct mpp_command *recv_command(struct astribank_device *astribank, int timeout
 	if(ret < 0) {
 		ERR("Receive from usb failed.\n");
 		goto err;
+	} else if(ret == 0) {
+		goto err;	/* No reply */
 	}
 	if(ret != reply->header.len) {
 		ERR("Wrong length received: got %d bytes, but length field says %d bytes%s\n",
@@ -283,13 +332,17 @@ int process_command(struct astribank_device *astribank, struct mpp_command *cmd,
 	struct mpp_command		*reply = NULL;
 	const struct command_desc	*reply_desc;
 	const struct command_desc	*expected;
+	const struct command_desc	*cmd_desc;
 	uint8_t				reply_op;
 	int				ret;
 
 	if(reply_ref)
 		*reply_ref = NULL;	/* So the caller knows if a reply was received */
 	reply_op = cmd->header.op | 0x80;
-	expected = get_command_desc(reply_op);
+	if(cmd->header.op == MPP_PROTO_QUERY)
+		astribank->mpp_proto_version = MPP_PROTOCOL_VERSION;	/* bootstrap */
+	cmd_desc = get_command_desc(astribank->mpp_proto_version, cmd->header.op);
+	expected = get_command_desc(astribank->mpp_proto_version, reply_op);
 	//printf("%s: len=%d\n", __FUNCTION__, cmd->header.len);
 	ret = send_command(astribank, cmd, TIMEOUT);
 	if(!reply_ref) {
@@ -313,7 +366,7 @@ int process_command(struct astribank_device *astribank, struct mpp_command *cmd,
 		goto out;
 	}
 	DBG("REPLY OP: 0x%X\n", reply->header.op);
-	reply_desc = get_command_desc(reply->header.op);
+	reply_desc = get_command_desc(astribank->mpp_proto_version, reply->header.op);
 	if(!reply_desc) {
 		ERR("Unknown reply op=0x%02X\n", reply->header.op);
 		ret = -EPROTO;
@@ -330,8 +383,9 @@ int process_command(struct astribank_device *astribank, struct mpp_command *cmd,
 			goto out;
 		} else if(status != STAT_OK) {
 
-			ERR("Got ACK (for OP=0x%X): %d - %s\n",
+			ERR("Got ACK (for OP=0x%X [%s]): %d - %s\n",
 				cmd->header.op,
+				cmd_desc->name,
 				status,
 				ack_status_msg(status));
 #if 0
@@ -371,6 +425,12 @@ out:
 	return ret;
 }
 
+static int set_ihex_version(char *dst, const char *src)
+{
+	memcpy(dst, src, VERSION_LEN);
+	return 0;
+}
+
 /*
  * Protocol Commands
  */
@@ -383,7 +443,7 @@ int mpp_proto_query(struct astribank_device *astribank)
 
 	DBG("\n");
 	assert(astribank != NULL);
-	if((cmd = new_command(MPP_PROTO_QUERY, 0)) == NULL) {
+	if((cmd = new_command(astribank->mpp_proto_version, MPP_PROTO_QUERY, 0)) == NULL) {
 		ERR("new_command failed\n");
 		return -ENOMEM;
 	}
@@ -394,12 +454,16 @@ int mpp_proto_query(struct astribank_device *astribank)
 		return ret;
 	}
 	astribank->mpp_proto_version = CMD_FIELD(reply, PROTO_REPLY, proto_version);
-	if(astribank->mpp_proto_version != MPP_PROTOCOL_VERSION) {
+	if(! MPP_SUPPORTED_VERSION(astribank->mpp_proto_version)) {
 		ERR("Got mpp protocol version: %02x (expected %02x)\n",
 			astribank->mpp_proto_version,
 			MPP_PROTOCOL_VERSION);
 		ret = -EPROTO;
 		goto out;
+	}
+	if(astribank->mpp_proto_version != MPP_PROTOCOL_VERSION) {
+		ERR("Deprecated (but working) MPP protocol version [%X]. Please upgrade to [%X] ASAP\n",
+			astribank->mpp_proto_version, MPP_PROTOCOL_VERSION);
 	}
 	DBG("Protocol version: %02x\n", astribank->mpp_proto_version);
 	ret = astribank->mpp_proto_version;
@@ -416,7 +480,7 @@ int mpp_status_query(struct astribank_device *astribank)
 
 	DBG("\n");
 	assert(astribank != NULL);
-	if((cmd = new_command(MPP_STATUS_GET, 0)) == NULL) {
+	if((cmd = new_command(astribank->mpp_proto_version, MPP_STATUS_GET, 0)) == NULL) {
 		ERR("new_command failed\n");
 		return -ENOMEM;
 	}
@@ -427,8 +491,13 @@ int mpp_status_query(struct astribank_device *astribank)
 	}
 	astribank->eeprom_type = 0x3 & (CMD_FIELD(reply, STATUS_GET_REPLY, i2cs_data) >> 3);
 	astribank->status = CMD_FIELD(reply, STATUS_GET_REPLY, status);
+	astribank->fw_versions = CMD_FIELD(reply, STATUS_GET_REPLY, fw_versions);
 	DBG("EEPROM TYPE: %02x\n", astribank->eeprom_type);
 	DBG("FPGA Firmware: %s\n", (astribank->status & 0x1) ? "Loaded" : "Empty");
+	DBG("Firmware Versions: USB='%s' FPGA='%s' EEPROM='%s'\n",
+		astribank->fw_versions.usb,
+		astribank->fw_versions.fpga,
+		astribank->fw_versions.eeprom);
 	free_command(reply);
 	return ret;
 }
@@ -441,7 +510,7 @@ int mpp_eeprom_set(struct astribank_device *astribank, const struct eeprom_table
 
 	DBG("\n");
 	assert(astribank != NULL);
-	if((cmd = new_command(MPP_EEPROM_SET, 0)) == NULL) {
+	if((cmd = new_command(astribank->mpp_proto_version, MPP_EEPROM_SET, 0)) == NULL) {
 		ERR("new_command failed\n");
 		return -ENOMEM;
 	}
@@ -462,7 +531,7 @@ int mpp_renumerate(struct astribank_device *astribank)
 
 	DBG("\n");
 	assert(astribank != NULL);
-	if((cmd = new_command(MPP_RENUM, 0)) == NULL) {
+	if((cmd = new_command(astribank->mpp_proto_version, MPP_RENUM, 0)) == NULL) {
 		ERR("new_command failed\n");
 		return -ENOMEM;
 	}
@@ -485,7 +554,7 @@ int mpp_caps_get(struct astribank_device *astribank,
 
 	DBG("\n");
 	assert(astribank != NULL);
-	if((cmd = new_command(MPP_CAPS_GET, 0)) == NULL) {
+	if((cmd = new_command(astribank->mpp_proto_version, MPP_CAPS_GET, 0)) == NULL) {
 		ERR("new_command failed\n");
 		return -ENOMEM;
 	}
@@ -523,7 +592,7 @@ int mpp_caps_set(struct astribank_device *astribank,
 
 	DBG("\n");
 	assert(astribank != NULL);
-	if((cmd = new_command(MPP_CAPS_SET, 0)) == NULL) {
+	if((cmd = new_command(astribank->mpp_proto_version, MPP_CAPS_SET, 0)) == NULL) {
 		ERR("new_command failed\n");
 		return -ENOMEM;
 	}
@@ -547,7 +616,7 @@ int mpp_extrainfo_get(struct astribank_device *astribank, struct extrainfo *info
 
 	DBG("\n");
 	assert(astribank != NULL);
-	if((cmd = new_command(MPP_EXTRAINFO_GET, 0)) == NULL) {
+	if((cmd = new_command(astribank->mpp_proto_version, MPP_EXTRAINFO_GET, 0)) == NULL) {
 		ERR("new_command failed\n");
 		return -ENOMEM;
 	}
@@ -572,7 +641,7 @@ int mpp_extrainfo_set(struct astribank_device *astribank, const struct extrainfo
 
 	DBG("\n");
 	assert(astribank != NULL);
-	if((cmd = new_command(MPP_EXTRAINFO_SET, 0)) == NULL) {
+	if((cmd = new_command(astribank->mpp_proto_version, MPP_EXTRAINFO_SET, 0)) == NULL) {
 		ERR("new_command failed\n");
 		return -ENOMEM;
 	}
@@ -595,7 +664,7 @@ int mpp_eeprom_blk_rd(struct astribank_device *astribank, uint8_t *buf, uint16_t
 
 	DBG("len = %d, offset = %d\n", len, offset);
 	assert(astribank != NULL);
-	if((cmd = new_command(MPP_EEPROM_BLK_RD, 0)) == NULL) {
+	if((cmd = new_command(astribank->mpp_proto_version, MPP_EEPROM_BLK_RD, 0)) == NULL) {
 		ERR("new_command failed\n");
 		return -ENOMEM;
 	}
@@ -620,20 +689,21 @@ out:
 	return size;
 }
 
-int mpp_send_start(struct astribank_device *astribank, enum dev_dest dest)
+int mpp_send_start(struct astribank_device *astribank, enum dev_dest dest, const char *ihex_version)
 {
 	struct mpp_command	*cmd;
 	struct mpp_command	*reply = NULL;
 	int			ret = 0;
 
-	DBG("dest = %d\n", dest);
+	DBG("dest = %s ihex_version = '%s'\n", dev_dest2str(dest), ihex_version);
 	assert(astribank != NULL);
-	if((cmd = new_command(MPP_DEV_SEND_START, 0)) == NULL) {
+	if((cmd = new_command(astribank->mpp_proto_version, MPP_DEV_SEND_START, 0)) == NULL) {
 		ERR("new_command failed\n");
 		ret = -ENOMEM;
 		goto out;
 	}
 	CMD_FIELD(cmd, DEV_SEND_START, dest) = dest;
+	set_ihex_version(CMD_FIELD(cmd, DEV_SEND_START, ihex_version), ihex_version);
 	ret = process_command(astribank, cmd, &reply);
 	if(ret < 0) {
 		ERR("process_command failed: %d\n", ret);
@@ -656,7 +726,7 @@ int mpp_send_end(struct astribank_device *astribank)
 
 	DBG("\n");
 	assert(astribank != NULL);
-	if((cmd = new_command(MPP_DEV_SEND_END, 0)) == NULL) {
+	if((cmd = new_command(astribank->mpp_proto_version, MPP_DEV_SEND_END, 0)) == NULL) {
 		ERR("new_command failed\n");
 		ret = -ENOMEM;
 		goto out;
@@ -688,7 +758,7 @@ int mpp_send_seg(struct astribank_device *astribank, const uint8_t *data, uint16
 	}
 	DBG("len = %d, offset = %d (0x%02X, 0x%02X)\n", len, offset, *data, *(data + 1));
 	assert(astribank != NULL);
-	if((cmd = new_command(MPP_DEV_SEND_SEG, len)) == NULL) {
+	if((cmd = new_command(astribank->mpp_proto_version, MPP_DEV_SEND_SEG, len)) == NULL) {
 		ERR("new_command failed\n");
 		return -ENOMEM;
 	}
@@ -725,7 +795,7 @@ int mpp_reset(struct astribank_device *astribank, int full_reset)
 
 	DBG("full = %s\n", (full_reset) ? "YES" : "NO");
 	assert(astribank != NULL);
-	if((cmd = new_command(op, 0)) == NULL) {
+	if((cmd = new_command(astribank->mpp_proto_version, op, 0)) == NULL) {
 		ERR("new_command failed\n");
 		return -ENOMEM;
 	}
@@ -746,7 +816,7 @@ int mpp_serial_cmd(struct astribank_device *astribank, const uint8_t *in, uint8_
 
 	DBG("len=%d\n", len);
 	assert(astribank != NULL);
-	if((cmd = new_command(MPP_SER_SEND, len)) == NULL) {
+	if((cmd = new_command(astribank->mpp_proto_version, MPP_SER_SEND, len)) == NULL) {
 		ERR("new_command failed\n");
 		return -ENOMEM;
 	}
@@ -804,7 +874,7 @@ int mpp_tws_watchdog(struct astribank_device *astribank)
 
 	DBG("\n");
 	assert(astribank != NULL);
-	if((cmd = new_command(MPP_TWS_WD_MODE_GET, 0)) == NULL) {
+	if((cmd = new_command(astribank->mpp_proto_version, MPP_TWS_WD_MODE_GET, 0)) == NULL) {
 		ERR("new_command failed\n");
 		return -ENOMEM;
 	}
@@ -827,7 +897,7 @@ int mpp_tws_setwatchdog(struct astribank_device *astribank, int yes)
 
 	DBG("%s\n", (yes) ? "YES" : "NO");
 	assert(astribank != NULL);
-	if((cmd = new_command(MPP_TWS_WD_MODE_SET, 0)) == NULL) {
+	if((cmd = new_command(astribank->mpp_proto_version, MPP_TWS_WD_MODE_SET, 0)) == NULL) {
 		ERR("new_command failed\n");
 		return -ENOMEM;
 	}
@@ -849,7 +919,7 @@ int mpp_tws_powerstate(struct astribank_device *astribank)
 
 	DBG("\n");
 	assert(astribank != NULL);
-	if((cmd = new_command(MPP_TWS_PWR_GET, 0)) == NULL) {
+	if((cmd = new_command(astribank->mpp_proto_version, MPP_TWS_PWR_GET, 0)) == NULL) {
 		ERR("new_command failed\n");
 		return -ENOMEM;
 	}
@@ -872,7 +942,7 @@ int mpp_tws_portnum(struct astribank_device *astribank)
 
 	DBG("\n");
 	assert(astribank != NULL);
-	if((cmd = new_command(MPP_TWS_PORT_GET, 0)) == NULL) {
+	if((cmd = new_command(astribank->mpp_proto_version, MPP_TWS_PORT_GET, 0)) == NULL) {
 		ERR("new_command failed\n");
 		return -ENOMEM;
 	}
@@ -891,7 +961,6 @@ int mpp_tws_setportnum(struct astribank_device *astribank, uint8_t portnum)
 {
 	struct mpp_command	*cmd;
 	int			ret;
-	struct mpp_command	*reply;
 
 	DBG("\n");
 	assert(astribank != NULL);
@@ -899,17 +968,16 @@ int mpp_tws_setportnum(struct astribank_device *astribank, uint8_t portnum)
 		ERR("Invalid portnum (%d)\n", portnum);
 		return -EINVAL;
 	}
-	if((cmd = new_command(MPP_TWS_PORT_SET, 0)) == NULL) {
+	if((cmd = new_command(astribank->mpp_proto_version, MPP_TWS_PORT_SET, 0)) == NULL) {
 		ERR("new_command failed\n");
 		return -ENOMEM;
 	}
 	CMD_FIELD(cmd, TWS_PORT_SET, portnum) = portnum;
-	ret = process_command(astribank, cmd, &reply);
+	ret = process_command(astribank, cmd, NULL);
 	if(ret < 0) {
 		ERR("process_command failed: %d\n", ret);
 		return ret;
 	}
-	free_command(reply);
 	return 0;
 }
 
@@ -983,9 +1051,19 @@ void show_capabilities(const struct capabilities *capabilities, FILE *fp)
 
 void show_astribank_status(struct astribank_device *astribank, FILE *fp)
 {
-	fprintf(fp, "Astribank: EEPROM      : %s\n", eeprom_type2str(astribank->eeprom_type));
+	char	version_buf[BUFSIZ];
+	int	is_loaded = STATUS_FPGA_LOADED(astribank->status);
+
+	fprintf(fp, "Astribank: EEPROM      : %s\n",
+		eeprom_type2str(astribank->eeprom_type));
 	fprintf(fp, "Astribank: FPGA status : %s\n",
-		STATUS_FPGA_LOADED(astribank->status) ? "Loaded" : "Empty");
+		is_loaded ? "Loaded" : "Empty");
+	if(is_loaded) {
+		memset(version_buf, 0, sizeof(version_buf));
+		memcpy(version_buf, astribank->fw_versions.fpga, VERSION_LEN);
+		fprintf(fp, "Astribank: FPGA version: %s\n",
+			version_buf);
+	}
 }
 
 void show_extrainfo(const struct extrainfo *extrainfo, FILE *fp)
