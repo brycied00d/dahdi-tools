@@ -265,6 +265,7 @@ xppdetect|load|usb)
 	load_usb_fw e4e4 1140 $USB_FW
 	load_usb_fw e4e4 1150 $USB_FW
 	load_usb_fw e4e4 1160 $USB_FW
+	load_usb_fw e4e4 1163 $USB_FW
 	wait_renumeration $numdevs e4e4 '11[3456]1'
 	if [ "$1" != 'usb' ]
 	then
@@ -309,7 +310,7 @@ then
 	$LOGGER "Trying to find what to do for product $PRODUCT, device $DEVICE"
 	prod_id=`echo "$PRODUCT" | cut -d/ -f2`
 	case "$PRODUCT" in
-	e4e4/11[3456]0/*)
+	e4e4/11[3456]0/*|e4e4/1163/*)
 		FIRM_USB="$FIRMWARE_DIR/$USB_FW"
 		$LOGGER "Loading firmware '$FIRM_USB' into '$DEVICE'"
 		run_fxload -D "$DEVICE" -I "$FIRM_USB"

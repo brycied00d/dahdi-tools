@@ -204,9 +204,9 @@ int main(int argc, char *argv[])
 	if((astribank = mpp_init(devpath)) == NULL) {
 		ERR("Failed initializing MPP\n");
 #ifdef SUPPORT_OLD_RESET
-		INFO("opt_reset = %s\n", opt_reset);
+		DBG("opt_reset = %s\n", opt_reset);
 		if (opt_reset) {
-			INFO("Trying old reset method\n");
+			DBG("Trying old reset method\n");
 			if ((ret = old_reset(devpath)) != 0) {
 				ERR("Old reset method failed as well: %d\n", ret);
 			}
@@ -223,20 +223,20 @@ int main(int argc, char *argv[])
 			ERR("Bad reset kind '%s'\n", opt_reset);
 			return 1;
 		}
-		INFO("Reseting (%s)\n", opt_reset);
+		DBG("Reseting (%s)\n", opt_reset);
 		if((ret = mpp_reset(astribank, full_reset)) < 0) {
 			ERR("%s Reseting astribank failed: %d\n",
 				(full_reset) ? "Full" : "Half", ret);
 		}
 	} else if(opt_renumerate) {
-		INFO("Renumerate\n");
+		DBG("Renumerate\n");
 		if((ret = mpp_renumerate(astribank)) < 0) {
 			ERR("Renumerating astribank failed: %d\n", ret);
 		}
 	} else if(opt_watchdog) {
 		int	watchdogstate = strtoul(opt_watchdog, NULL, 0);
 
-		INFO("TWINSTAR: Setting watchdog %s-guard\n",
+		DBG("TWINSTAR: Setting watchdog %s-guard\n",
 			(watchdogstate) ? "on" : "off");
 		if((ret = mpp_tws_setwatchdog(astribank, watchdogstate)) < 0) {
 			ERR("Failed to set watchdog to %d\n", watchdogstate);
@@ -249,7 +249,7 @@ int main(int argc, char *argv[])
 					? " Same same, never mind..."
 					: "";
 
-		INFO("TWINSTAR: Setting portnum to %d.%s\n", new_portnum, msg);
+		DBG("TWINSTAR: Setting portnum to %d.%s\n", new_portnum, msg);
 		if((ret = mpp_tws_setportnum(astribank, new_portnum)) < 0) {
 			ERR("Failed to set USB portnum to %d\n", new_portnum);
 			return 1;
