@@ -42,6 +42,19 @@
 
 /* #define BLOCK_SIZE 2048 */
 #define BLOCK_SIZE 2041
+#define DEVICE	  "/dev/dahdi/channel"
+
+static const char	rcsid[] = "$Id$";
+char			*prog_name;
+
+static void usage(void)
+{
+	fprintf(stderr, "Usage: %s <dahdi_chan>\n", prog_name);
+	fprintf(stderr, "   e.g.: %s /dev/dahdi/55\n", prog_name);
+	fprintf(stderr, "         %s 455\n", prog_name);
+	fprintf(stderr, "%s version %s\n", prog_name, rcsid);
+	exit(1);
+}
 
 void print_packet(unsigned char *buf, int len)
 {
@@ -52,31 +65,60 @@ void print_packet(unsigned char *buf, int len)
 	printf("}\n");
 }
 
+int channel_open(char *name, int *bs)
+{
+	int 			channo;
+	int			fd;
+	struct 			dahdi_params tp;
+	char 			*dev;
+
+	channo = atoi(name);
+	/* channo==0: The user passed a file name to be opened. */
+	dev = channo ? DEVICE : name;
+
+	fd = open(dev, O_RDWR, 0600);
+
+	if (fd < 0) {
+		perror(DEVICE);
+		return -1;
+	}
+
+	/* If we got a channel number, get it from /dev/dahdi/channel: */
+	if(channo && ioctl(fd, DAHDI_SPECIFY, &channo) < 0) {
+		perror("SPECIFY");
+		return -1;
+	}
+	if(ioctl(fd, DAHDI_SET_BLOCKSIZE, bs) < 0) {
+		perror("SET_BLOCKSIZE");
+		return -1;
+	}
+
+	if (ioctl(fd, DAHDI_GET_PARAMS, &tp)) {
+		fprintf(stderr, "Unable to get channel parameters\n");
+		return -1;
+	}
+
+	return fd;
+}
+
 int main(int argc, char *argv[])
 {
 	int fd;
 	int res, res1, x;
-	struct dahdi_params tp;
 	int bs = BLOCK_SIZE;
 	unsigned char c=0;
 	unsigned char outbuf[BLOCK_SIZE];
+
+	prog_name = argv[0];
+
 	if (argc < 2) {
-		fprintf(stderr, "Usage: %s <DAHDI device>\n", argv[0]);
-		exit(1);
+		usage();
 	}
-	fd = open(argv[1], O_RDWR, 0600);
-	if (fd < 0) {
-		fprintf(stderr, "Unable to open %s: %s\n", argv[1], strerror(errno));
+
+	fd = channel_open(argv[1], &bs);
+	if (fd < 0)
 		exit(1);
-	}
-	if (ioctl(fd, DAHDI_SET_BLOCKSIZE, &bs)) {
-		fprintf(stderr, "Unable to set block size to %d: %s\n", bs, strerror(errno));
-		exit(1);
-	}
-	if (ioctl(fd, DAHDI_GET_PARAMS, &tp)) {
-		fprintf(stderr, "Unable to get channel parameters\n");
-		exit(1);
-	}
+
 	ioctl(fd, DAHDI_GETEVENT);
 #if 0
 	print_packet(outbuf, res);
