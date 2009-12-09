@@ -100,7 +100,7 @@ my %pci_ids = (
 	# (Still a partial list)
 	'1397:08b4/1397:b556'	=> { DRIVER => 'wcb4xxp', DESCRIPTION => 'Junghanns DuoBRI ISDN card' },
 	'1397:08b4/1397:b520'	=> { DRIVER => 'wcb4xxp', DESCRIPTION => 'Junghanns QuadBRI ISDN card' },
-	'1397:16b8/1397:e552'	=> { DRIVER => 'wcb4xxp', DESCRIPTION => 'Junghanns OctoBRI ISDN card' },
+	'1397:16b8/1397:b552'	=> { DRIVER => 'wcb4xxp', DESCRIPTION => 'Junghanns OctoBRI ISDN card' },
 	'1397:08b4/1397:e884'	=> { DRIVER => 'wcb4xxp', DESCRIPTION => 'OpenVox B200P' },
 	'1397:08b4/1397:e888'	=> { DRIVER => 'wcb4xxp', DESCRIPTION => 'OpenVox B400P' },
 	'1397:16b8/1397:e998'	=> { DRIVER => 'wcb4xxp', DESCRIPTION => 'OpenVox B800P' },
