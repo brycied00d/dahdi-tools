@@ -95,6 +95,7 @@ my %pci_ids = (
 
 	# # from wctc4xxp
 	'd161:3400'		=> { DRIVER => 'wctc4xxp', DESCRIPTION => 'Wildcard TC400P' },
+	'd161:8004'		=> { DRIVER => 'wctc4xxp', DESCRIPTION => 'Wildcard TCE400P' },
 
 	# Cologne Chips:
 	# (Still a partial list)
