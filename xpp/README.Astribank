@@ -91,6 +91,7 @@ dahdi_hardware -v # now that you see that all's well:
 dahdi_genconf
 # Apply it:
 dahdi_cfg
+
 # edit /etc/asterisk/chan_dahdi.conf to #include dahdi-channels.conf or
 # copy its content to the end of chan_dahdi.conf
 #
@@ -473,7 +474,7 @@ exten => _8X.,1,Dial(DAHDI/g1${EXTEN:1:1}/${EXTEN:2})
 [from-internal] 
 ; The context of FXS ports: analog phones.
 ; They are allowed to dial to all other phones 
-include => phones-zap 
+include => phones-dahdi 
 ; They are also allowed to call through the trunk: 
 include => trunk
 ; some simple tests:
@@ -498,7 +499,7 @@ exten => 200,n,Echo()
 exten => 200,n,Hangup
 
 ; 203: say extension number. Will only work if caller ID 
-; is properly set in zapata.conf / zapata-channels.conf
+; is properly set in chan_dahdi.conf / dahdi-channels.conf
 exten => 203,1,Answer
 exten => 203,n,Wait(1)
 exten => 203,n,SayNumber(${CALLERID(num)})
@@ -518,7 +519,7 @@ exten => s,n,NoOp(Got signal from DAHDI Channel ${DAHDI_CHAN})
 ; No. We did not forget the context astbank-outputs. Output 
 ; ports only get calls from the PBX. Thus they don't need a context 
 ; of their own. Sending them to a context of their on makes 
-; 'zap show channels' in the CLI provide useful display, though.
+; 'dahdi show channels' in the CLI provide useful display, though.
 -----------------------------------------------------------
 
 
@@ -611,7 +612,7 @@ Asterisk Level Information
   has failed to start due to misconfigured chan_dahdi.conf or whatever reason.
   Check /var/log/asterisk/messages or /var/log/asterisk/full .
 - If you get the error that "there is no such command" then it means that
-  chan_zap.so is not loaded. There are two reasons for such problem:
+  chan_dahdi.so is not loaded. There are two reasons for such problem:
   * chan_dahdi.so is not even built. Check if the file exists:
 
        ls -l /usr/lib/asterisk/modules/chan_dahdi.so
@@ -621,10 +622,10 @@ Asterisk Level Information
        asterisk -rx 'load module chan_dahdi.so'
 
 - You see "pseudo" channel only. It means that you have not configured any
-  channels. If you have configured channels in zapata.conf, you may
-  need either to restart the Asterisk or unload/load chan_zap.so manually.
-  You can use the following Asterisk CLI commands for it: `unload chan_zap.so` 
-  and `load chan_zap.so`
+  channels. If you have configured channels in chan_dahdi.conf, you may
+  need either to restart the Asterisk or unload/load chan_dahdi.so manually.
+  You can use the following Asterisk CLI commands for it: `unload chan_dahdi.so` 
+  and `load chan_dahdi.so`
 
 
 Known Issues
@@ -820,6 +821,8 @@ layer-1 connection is up). If it is blinking a double blink, layer 1
 is up. A slower single blinking indicates that layer 2 is up as well
 (which means that Asterisk is driving the port).
 
+As for the leds of the PRI ports, see the next section.
+
 
 PRI Ports Configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -838,9 +841,9 @@ above).
 In addition to that, a port defaults to consider itself a CPE, or
 rather, to accept timing from the remote party. To override that you
 need to set the timing value to 0 (second parameter in the 'span=' line
-in zaptel.conf).
+in system.conf).
 
-Thus the following in zaptel.conf will also set an ornage LED:
+Thus the following in system.conf will also set an ornage LED:
 
   span=2,0,3,ccs,hdb3,crc4
 
@@ -893,7 +896,8 @@ during the DAHDI installation.
 
 The Astribank needs a firmware loaded into it. Without the firmware, 
 the device will appear in lsusb with Vendor ID e4e4 and Product ID 11x0
-(1130, 1140, 1150 or 1160). The firmware loading process consists of two
+(1130, 1140, 1150, 1160 or 1163. 1163 behaves almost exactly as 1160).
+The firmware loading process consists of two
 stages. In the first stage the "USB" firmware is loaded by using program
 fxload. When the first stage is completed the Vendor ID is e4e4 and the
 Product ID is 11x1. (e.g. 1151 if it were 1150 previously).
@@ -1053,7 +1057,7 @@ xpp_usb::
 
 All modules depend on xpp, and modprobing them will install xpp as well.
 However the xpd_* modules are installed on-demand: no need to load 
-xpd_fxo if you have only Astribank FXS.
+xpd_fxs if you have only Astribank FXS.
 
 Once an Astribank device connected and the firmware is loaded, the
 Vendor-ID/Product-ID of the device will be  e4e4/11x2 . The handler for that
@@ -1201,10 +1205,10 @@ You may choose to register the XPDs with DAHDI automatically. This may
 make the startup sequence a bit simpler, but is generally not
 recommended on a system with more than one Astribank or an Astribank and
 a different DAHDI device. This behavior may be defined by setting
-parameter <<_zap_autoreg>> in the modprobe configuration file (A file under
+parameter <<_dahdi_autoreg>> in the modprobe configuration file (A file under
 /etc/modprobe.d or /etc/modprobe.conf):
 
-  options xpp zap_autoreg=1
+  options xpp dahdi_autoreg=1
 
 
 Astribanks Synchronization Source
@@ -1264,28 +1268,8 @@ the device has been disconnected, but Asterisk still holds channels from it
 open.
 
 
-/proc/xpp/sync
-^^^^^^^^^^^^^^
-A read/write file. It contains information about current synchronization 
-source. You can change the synchronization source by writing special 
-command to the file. For example, command
-   echo SYNC=01 > /proc/xpp/sync
-
-Possible values are:
-
-<number>::
-  Make the Astribank XBUS-<number> the sync source for other Astribanks.
-
-DAHDI::
-  Make the Astribanks synchronize with the DAHDI timing master span.
-  You probably need this to get faxes from a non-Astribank adapter to an
-  Astribank.
-
-Though you'll normally use xpp_sync(8) for that.
-
 For each Astribank device there is folder /proc/xpp/XBUS-nn and for each device
 module (span in the terms of DAHDI) there is folder /proc/XBUS-nn/XPD-mm.
-
 
 /proc/xpp/XBUS-nn/XPD-mm/summary 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1403,6 +1387,16 @@ the synchronization master, or 'SYNC=DAHDI' if Astribanks are
 synchronized from a different DAHDI device. Normally you should just use
 xpp_sync, though.
 
+Current possible writable values:
+
+<number>::
+  Make the Astribank XBUS-<number> the sync source for other Astribanks.
+
+DAHDI::
+  Make the Astribanks synchronize with the DAHDI timing master span.
+  You probably need this to get faxes from a non-Astribank adapter to an
+  Astribank.
+
 
 XPDs in SysFS
 ^^^^^^^^^^^^^
@@ -1472,7 +1466,7 @@ A more convenient interface to this is the command dahdi_registration that
 registers or unregisters all the spans at once with a predefined order,
 and this is what you should normally use.
 
-Alternatively you can use the parameter zap_autoreg to register spans
+Alternatively you can use the parameter dahdi_autoreg to register spans
 automatically. But this is only recommended on a system with a single
 Astribank and no other DAHDI device.
 
@@ -1509,7 +1503,7 @@ Useful Module Parameters
 Compilation-time defaults for the all modules can be shown as part of the
 description line for the parameter in the "modinfo" command output.
 
-==== zap_autoreg
+==== dahdi_autoreg
 (xpp)
 
 Register spans automatically (1) or not (0). Default: 0. 
@@ -1538,7 +1532,7 @@ multiple Astribanks.
 It will make the driver to print tons of debugging messages. You can 
 set/unset the parameter at run-time. The parameter value is a bitmask 
 of several values. The different bits  meaning as it defined in 
-xpp/zap_debug.h: 
+xpp/dahdi_debug.h: 
 
 * 0  - Disable debug messages
 * 1  - GENERAL - General debug comments.
