@@ -246,9 +246,17 @@ astribank_is_starting -a
 # to run manually, pass the parameter 'xppdetect'
 case "$1" in
 udev) 
-	# the following emulate hotplug's environment from udev's environment:
-	DEVICE="$DEVNAME"
-	PRODUCT="$2"
+	# Various kernel versions use different sets of variables.
+	# Here we want to make sure we have 'DEVICE' and 'PRODUCT' set
+	# up. DEVICE is now deprecated in favour of DEVNAME. It will
+	# likely to contain an invalid name if /proc/bus/usb is not
+	# mounted. So it needs further cooking.
+	DEVICE="${DEVNAME:-$DEVICE}"
+	case "$DEVICE" in /proc/*) DEVICE="/dev${DEVICE#/proc}" ;; esac
+	# PRODUCT contains 'vendor_id'/'product_id'/'version' . We
+	# currently pass it as a parameter, but might as well get it
+	# from the envirnment.
+	PRODUCT="${PRODUCT:-$2}"
 	# skip on to the rest of the script. Don't exit.
 	;;
 reset-wait)
