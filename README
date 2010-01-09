@@ -73,8 +73,8 @@ onto a subtree rather than on th real system.
 This can be useful for any partial install target from the list above.
 
 
-./configure Options
-^^^^^^^^^^^^^^^^^^^
+Options For ./configure
+^^^^^^^^^^^^^^^^^^^^^^^
 The configure script various several tests and based on them generates
 some files ( build_tools/menuselect-deps and makeopts). You can pass it
 --with options and variable settings, for instance:
