@@ -603,7 +603,11 @@ static void print_topresults(char * header)
  * 		 use the optimization strategy from silabs.  For reference, here is an application note that describes
  * 		 the echo coefficients (and acim values):
  * 		 
- * 		 http://www.silabs.com/public/documents/tpub_doc/anote/Wireline/Silicon_DAA/en/an84.pdf
+ * 		 http://www.silabs.com/Support%20Documents/TechnicalDocs/an84.pdf
+ *
+ * 		 See Table 13 in this document for a breakdown of acim values by region.
+ *
+ * 		 http://www.silabs.com/Support%20Documents/TechnicalDocs/si3050-18-19.pdf
  * 		 
  */
 static int acim_tune2(int whichdahdi, int freq, char *dialstr, int delayuntilsilence, int silencegoodfor, struct wctdm_echo_coefs *coefs_out)
