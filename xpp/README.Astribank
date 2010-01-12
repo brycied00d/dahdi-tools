@@ -1593,7 +1593,7 @@ Enable (1) or disable (0) support of hardware DTMF detection by the
 Astribank.
 
 ==== caller_id_style
-(fxo)
+(xpd_fxo)
 
 Various types of caller ID signalling styles require knowing the PCM
 even when the line is on-hook (which is usually a waste of CPU and
@@ -1605,6 +1605,20 @@ bandwidth). This parameter allows fine-tuning the behaviour here:
 * 2 Always: Always pass PCM.
 
 This parameter is read-only. It cannot be changed at run-time.
+
+==== battery_threshold
+(xpd_fxo)
+
+Minimum voltage that shows there is battery. Defaults to 3. Normally you
+should not need to change this, unless dealing with a funky PSTN
+provider.
+
+==== battery_debounce
+(xpd_fxo)
+
+Minimum interval (msec) for detection of battery off (as opposed to e.g.
+a temporary power denial to signal a hangup). Defaults to 1000. As with
+battery_threshold above, there's normally no need to tweak it.
 
 
 NOTE: XPP here does not stand for X Printing Panel, XML Pull Parser, 
