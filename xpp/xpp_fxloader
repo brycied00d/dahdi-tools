@@ -266,7 +266,7 @@ reset)
 	reset_fpga
 	;;
 xppdetect|load|usb)
-	numdevs=`numdevs e4e4 '11[3456][01]'`
+	numdevs=`numdevs e4e4 '11[3456][013]'`
 	$LOGGER -- "--------- FIRMWARE LOADING: ($1) [$numdevs devices]"
 
 	load_usb_fw e4e4 1130 $USB_FW
