@@ -40,7 +40,7 @@ export DAHDI_CFG_CMD="dahdi_cfg -c $dahdi_conf/system.conf"
 export CALLED_FROM_ATRIBANK_HOOK=yes
 
 clean_lines() {
-	sed -e 's/#.*//' -e 'y/\t/ /' -e 's/^ *//' -e 's/ *$//' "$XPPORDER_CONF"
+	sed -e 's/#.*//' -e 'y/\t/ /' -e 's/^ *//' -e 's/ *$//' -e '$s/$/\n/' "$XPPORDER_CONF"
 }
 
 matched_devices() {
