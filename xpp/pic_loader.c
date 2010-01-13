@@ -22,6 +22,7 @@
 
 #include <assert.h>
 #include <string.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <regex.h>
 #include "hexfile.h"

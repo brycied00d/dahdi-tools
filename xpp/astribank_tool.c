@@ -26,6 +26,7 @@
 #include <errno.h>
 #include <assert.h>
 #include <getopt.h>
+#include <sys/types.h>
 #include <arpa/inet.h>
 #include "mpp_funcs.h"
 #include "debug.h"

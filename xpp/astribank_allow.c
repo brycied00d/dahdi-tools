@@ -28,6 +28,7 @@
 #include <assert.h>
 #include <getopt.h>
 #include <time.h>
+#include <sys/types.h>
 #include <arpa/inet.h>
 #include <ctype.h>
 #include "mpp.h"
