@@ -93,8 +93,9 @@ sub set_transport($$) {
 		} else {
 			warn "Bad USB transportdir='$transportdir' usbdev='$usbdev'\n";
 		}
-	} elsif(-d "$transportdir/usb_endpoint") {
-		$transportdir =~ m|/(\d+)-\d+$|;
+	} elsif(-f "$transportdir/idVendor" ) {
+		my $transport_link = readlink($transportdir);
+		$transport_link =~ m|/(\d+)-\d+$|;
 		$busnum = $1;
 		$devnum = readval("$transportdir/devnum");
 	}
