@@ -121,6 +121,15 @@ sub _get_attr($) {
 	return $value;
 }
 
+sub _get_attr_optional($$) {
+	my ($attr_file, $def_val) = $@;
+
+	eval {return _get_attr($attr_file)};
+	
+	# If we got here, _get_attr exploded. Return the default value:
+	return $def_val;
+}
+
 sub scan_devices_sysfs($) {
 	my $pack = shift || die;
 	my @devices = ();
@@ -137,7 +146,7 @@ sub scan_devices_sysfs($) {
 		my $model = $usb_ids{"$vendor:$product"};
 		next unless defined $model;
 		my $devnum = _get_attr("$_/devnum");
-		my $serial = _get_attr("$_/serial");
+		my $serial = _get_attr_optional("$_/serial", '');
 		my $devname = sprintf("%03d/%03d", $busnum, $devnum);
 		my $d = Dahdi::Hardware::USB->new(
 			IS_ASTRIBANK		=> ($model->{DRIVER} eq 'xpp_usb')?1:0,
