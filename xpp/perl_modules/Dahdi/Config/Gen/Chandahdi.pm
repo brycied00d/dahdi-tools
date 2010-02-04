@@ -46,7 +46,7 @@ sub gen_openr2($$$) {
 	my $termtype = $span->termtype() || die "$0: Span #$num -- unkown termtype [NT/TE]\n";
 	my $type = $span->type;
 	# Fake type for signalling
-	my $faketype = ($termtype eq 'TE') ? 'FXO' : 'FXS';
+	my $faketype = ($termtype eq 'TE') ? 'E1_TE' : 'E1_TE';
 	my $group = $gconfig->{'group'}{"$type"};
 	die "$0: missing default group (termtype=$termtype)\n" unless defined($group);
 	my $context = $gconfig->{'context'}{"$faketype"};
