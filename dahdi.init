@@ -37,6 +37,10 @@ XPP_SYNC=auto
 # device nodes after the modules have loaded and before running dahdi_cfg.
 DAHDI_DEV_TIMEOUT=20
 
+# A list of modules to unload when stopping.
+# All of their dependencies will be unloaded as well.
+DAHDI_UNLOAD_MODULES="dahdi"
+
 #
 # Determine which kind of configuration we're using
 #
@@ -97,6 +101,12 @@ unload_module() {
 		(unload_module $mod)
 	done
 	rmmod $module
+}
+
+unload_modules() {
+	for module in $DAHDI_UNLOAD_MODULES; do
+		unload_module $module
+	done
 }
 
 # In (xpp) hotplug mode, the init script is also executed from the
@@ -275,7 +285,7 @@ case "$1" in
 	# Unload drivers
 	#shutdown_dynamic # FIXME: needs test from someone with dynamic spans
 	echo -n "Unloading DAHDI hardware modules: "
-	if unload_module dahdi; then
+	if unload_modules; then
 		echo "done"
 	else
 		echo "error"
@@ -285,7 +295,7 @@ case "$1" in
 	fi
 	;;
   unload)
-	unload_module dahdi
+	unload_modules
 	;;
   restart|force-reload)
 	$0 stop
