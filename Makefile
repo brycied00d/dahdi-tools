@@ -109,13 +109,13 @@ UTILS		= dahdi_tool dahdi_test dahdi_monitor dahdi_speed sethdlc dahdi_cfg \
 
 # some tests:
 UTILS		+= patgen pattest patlooptest hdlcstress hdlctest hdlcgen \
-		   hdlcverify timertest
+		   hdlcverify timertest dahdi_maint
 
 BINS:=fxotune fxstest sethdlc dahdi_cfg dahdi_diag dahdi_monitor dahdi_speed dahdi_test dahdi_scan dahdi_tool
 BINS:=$(filter-out $(MENUSELECT_UTILS),$(BINS))
 MAN_PAGES:=$(wildcard $(BINS:%=doc/%.8))
 
-TEST_BINS:=patgen pattest patlooptest hdlcstress hdlctest hdlcgen hdlcverify timertest
+TEST_BINS:=patgen pattest patlooptest hdlcstress hdlctest hdlcgen hdlcverify timertest dahdi_maint
 # All the man pages. Not just installed ones:
 GROFF_PAGES	:= $(wildcard doc/*.8 xpp/*.8)
 GROFF_HTML	:= $(GROFF_PAGES:%=%.html)
