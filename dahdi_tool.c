@@ -287,45 +287,11 @@ static void show_bits(int span, newtComponent bitbox, newtComponent inuse, newtC
 	
 }
 
-static void do_loop(int span, int looped)
-{
-	newtComponent form;
-	newtComponent label;
-	char s1[256];
-	struct dahdi_maintinfo m;
-	int res;
-	struct newtExitStruct es;
-
-	newtOpenWindow(20,12,40,4, s[span].desc);
-
-	form = newtForm(NULL, NULL, 0);
-	m.spanno = span;
-	if (looped) {
-		snprintf(s1, sizeof(s1), "Looping UP span %d...\n", span);
-		m.command = DAHDI_MAINT_LOOPUP;
-	} else {
-		snprintf(s1, sizeof(s1), "Looping DOWN span %d...\n", span);
-		m.command = DAHDI_MAINT_LOOPDOWN;
-	}
-
-	label = newtLabel(3,1,s1);
-	newtFormAddComponent(form, label);
-	newtPushHelpLine("Please wait...");
-
-	newtFormSetTimer(form, 200);
-	newtFormRun(form, &es);
-	res = ioctl(ctl, DAHDI_MAINT, &m);
-	newtFormDestroy(form);
-	newtPopWindow();
-	newtPopHelpLine();
-}
-
 static newtComponent spans;
 static void show_span(int span)
 {
 	newtComponent form;
 	newtComponent back;
-	newtComponent loop;
 	newtComponent label;
 	newtComponent bitbox;
 	newtComponent inuse;
@@ -338,7 +304,6 @@ static void show_span(int span)
 	char s1[] = "         1111111111222222222233";
 	char s2[] = "1234567890123456789012345678901";
 	int x;
-	int looped = 0;
 	struct newtExitStruct es;
 
 	void *ss;
@@ -357,10 +322,9 @@ static void show_span(int span)
 	newtPushHelpLine(info2);
 
 	back = newtButton(48,8,"Back");
-	loop = newtButton(48,14,"Loop");
 	form = newtForm(NULL, NULL, 0);
 
-	newtFormAddComponents(form, back, loop, NULL);
+	newtFormAddComponents(form, back, NULL);
 
 	span_max_chan_pos = s[span].totalchans;
 	for (x=0;x<DAHDI_MAX_CHANNELS;x++) {
@@ -461,11 +425,6 @@ static void show_span(int span)
 		} while(es.reason == NEWT_EXIT_TIMER);
 		switch(es.reason) {
 		case NEWT_EXIT_COMPONENT:
-			if (es.u.co == loop) {
-				looped = !looped;
-				do_loop(span, looped);
-				newtFormSetTimer(form, 200);
-			}
 			if (es.u.co == back) {
 				goto out;
 			}
