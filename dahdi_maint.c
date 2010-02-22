@@ -3,7 +3,7 @@
  *
  * Written by Russ Meyerriecks <rmeyerriecks@digium.com>
  *
- * Copyright (C) 2001-2010 Digium, Inc.
+ * Copyright (C) 2009-2010 Digium, Inc.
  *
  * All rights reserved.
  *

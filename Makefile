@@ -1,7 +1,7 @@
 #
 # Makefile for DAHDI tools
 #
-# Copyright (C) 2001-2008 Digium, Inc.
+# Copyright (C) 2001-2010 Digium, Inc.
 #
 #
 
