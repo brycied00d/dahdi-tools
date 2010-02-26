@@ -273,7 +273,7 @@ static void show_bits(int span, newtComponent bitbox, newtComponent inuse, newtC
 	strcat(tmp, dahdi_txlevelnames[s[span].rxlevel]);
 	sprintf(tmp, "%3d/%3d", s[span].txlevel, s[span].rxlevel);
 	newtTextboxSetText(levels, tmp);
-	sprintf(tmp, "%7d", s[span].count.bpv);
+	sprintf(tmp, "%7d", s[span].bpvcount);
 	newtTextboxSetText(bpvcount, tmp);
 	sprintf(tmp, "%7d", s[span].irqmisses);
 	newtTextboxSetText(irqmisses, tmp);

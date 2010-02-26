@@ -156,13 +156,13 @@ int main(int argc, char *argv[])
 		s.spanno = span;
 		res = ioctl(ctl, DAHDI_SPANSTAT, &s);
 		printf("Span %d:\n", span);
-		printf(">FEC : %d:\n", s.count.fe);
-		printf(">CEC : %d:\n", s.count.crc4);
-		printf(">CVC : %d:\n", s.count.cv);
-		printf(">EBC : %d:\n", s.count.ebit);
-		printf(">BEC : %d:\n", s.count.be);
-		printf(">PRBS: %d:\n", s.count.prbs);
-		printf(">GES : %d:\n", s.count.errsec);
+		printf(">FEC : %d:\n", s.fecount);
+		printf(">CEC : %d:\n", s.crc4count);
+		printf(">CVC : %d:\n", s.cvcount);
+		printf(">EBC : %d:\n", s.ebitcount);
+		printf(">BEC : %d:\n", s.becount);
+		printf(">PRBS: %d:\n", s.prbs);
+		printf(">GES : %d:\n", s.errsec);
 
 		return 0;
 	}
