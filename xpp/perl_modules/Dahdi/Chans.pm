@@ -151,7 +151,8 @@ sub new($$$$$$) {
 		# cwain: Junghanns E1 card.
 		# R[124]: Rhino r1t1/rxt1 cards
 		$type = "PRI";
-	} elsif ($fqn =~ m{\b(B4|ZTHFC\d*|ztqoz\d*)/.*}) {
+	} elsif ($fqn =~ m{\b(WCBRI|B4|ZTHFC\d*|ztqoz\d*)/.*}) {
+		# WCBRI: The Digium Hx8 series cards with BRI module.
 		# B4: The Digium wcb4xxp DAHDI driver
 		# ZTHFC: HFC-s single-port card (zaphfc/vzaphfc)
 		# ztqoz: qozap (Junghanns) multi-port HFC card

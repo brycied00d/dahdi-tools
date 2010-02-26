@@ -112,6 +112,10 @@ sub gen_digital($$$) {
 	$span_crc4 = (defined $span_crc4) ? ",$span_crc4" : '';
 	my $span_yellow = $span->yellow();
 	$span_yellow = (defined $span_yellow) ? ",$span_yellow" : '';
+	my $span_termination = $span->termination();
+	$span_termination = (defined $span_termination) ? ",$span_termination" : '';
+	my $span_softntte = $span->softntte();
+	$span_softntte = (defined $span_softntte) ? ",$span_softntte" : '';
 	# "MFC/R2 does not normally use CRC4"
 	# FIXME: a finer way to override:
 	if ($gconfig->{'pri_connection_type'} eq 'R2') { 
@@ -119,14 +123,16 @@ sub gen_digital($$$) {
 		$framing = 'cas';
 	}
 	$timing = ($termtype eq 'NT') ? 0 : $bri_te_last_timing++;
-	printf "span=%d,%d,%d,%s,%s%s%s\n",
+	printf "span=%d,%d,%d,%s,%s%s%s%s%s\n",
 			$num,
 			$timing,
 			$lbo,
 			$framing,
 			$coding,
 			$span_crc4,
-			$span_yellow;
+			$span_yellow,
+			$span_termination,
+			$span_softntte;
 	printf "# termtype: %s\n", lc($termtype);
 	my $dchan_type;
 	if ($span->is_bri()) {

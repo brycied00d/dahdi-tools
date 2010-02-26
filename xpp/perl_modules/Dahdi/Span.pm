@@ -135,6 +135,7 @@ my @bri_strings = (
 		'octoBRI \[(NT|TE)\] ',
 		'HFC-S PCI A ISDN.* \[(NT|TE)\] ',
 		'(B4XXP) \(PCI\) Card', # Does not expose NT/TE type
+		'(WCBRI)', # has selectable NT/TE modes via dahdi_cfg
 		);
 
 my @pri_strings = (
@@ -194,7 +195,7 @@ sub new($$) {
 	foreach my $cardtype (@bri_strings) {
 		if($head =~ m/$cardtype/) {
 			my $termtype = $1;
-			$termtype = 'TE' if ( $1 eq 'B4XXP' );
+			$termtype = 'TE' if ( $1 eq 'B4XXP' or $1 eq 'WCBRI' );
 			$self->{IS_DIGITAL} = 1;
 			$self->{IS_BRI} = 1;
 			$self->{TERMTYPE} = $termtype;
@@ -259,6 +260,8 @@ sub new($$) {
 	$self->{CHANS} = \@channels;
 	$self->{YELLOW} = undef;
 	$self->{CRC4} = undef;
+	$self->{SOFTNTTE} = undef;
+	$self->{TERMINATION} = undef;
 	if($self->is_bri()) {
 		$self->{CODING} = 'ami';
 		$self->{DCHAN} = ($self->chans())[$self->{DCHAN_IDX}];
@@ -266,7 +269,11 @@ sub new($$) {
 		# Infer some info from channel name:
 		my $first_chan = ($self->chans())[0] || die "$0: No channels in span #$num\n";
 		my $chan_fqn = $first_chan->fqn();
-		if($chan_fqn =~ m(ZTHFC.*/|ztqoz.*/|XPP_BRI_.*|B4/.*)) {		# BRI
+		if($chan_fqn =~ m(ZTHFC.*/|ztqoz.*/|XPP_BRI_.*|B4/.*|WCBRI/.*)) {		# BRI
+			if($chan_fqn =~ m(WCBRI/.*)) {		# make sure to set termination resistors on hybrid cards
+				$self->{TERMINATION} = 'term';
+				$self->{SOFTNTTE} = 'te';
+			}
 			$self->{FRAMING} = 'ccs';
 			$self->{SWITCHTYPE} = 'euroisdn';
 			$self->{SIGNALLING} = ($self->{TERMTYPE} eq 'NT') ? $DAHDI_BRI_NET : $DAHDI_BRI_CPE ;

@@ -310,8 +310,9 @@ int spanconfig(char *keyword, char *args)
 	int argc;
 	int span;
 	int timing;
-	argc = res = parseargs(args, realargs, 7, ',');
-	if ((res < 5) || (res > 7)) {
+	int i;
+	argc = res = parseargs(args, realargs, 9, ',');
+	if ((res < 5) || (res > 9)) {
 		error("Incorrect number of arguments to 'span' (should be <spanno>,<timing>,<lbo>,<framing>,<coding>[, crc4 | yellow [, yellow]])\n");
 		return -1;
 	}
@@ -366,23 +367,22 @@ int spanconfig(char *keyword, char *args)
 		error("Coding must be one of 'ami', 'b8zs' or 'hdb3', not '%s'\n", realargs[4]);
 		return -1;
 	}
-	if (argc > 5) {
-		if (!strcasecmp(realargs[5], "yellow"))
+	for (i = 5; i < argc; i++) {
+		if (!strcasecmp(realargs[i], "yellow"))
 			lc[spans].lineconfig |= DAHDI_CONFIG_NOTOPEN;
-		else if (!strcasecmp(realargs[5], "crc4")) {
+		else if (!strcasecmp(realargs[i], "crc4"))
 			lc[spans].lineconfig |= DAHDI_CONFIG_CRC4;
-		} else {
-			error("Only valid fifth arguments are 'yellow' or 'crc4', not '%s'\n", realargs[5]);
-			return -1;
-		}
-	}
-	if (argc > 6) {
-		if (!strcasecmp(realargs[6], "yellow"))
-			lc[spans].lineconfig |= DAHDI_CONFIG_NOTOPEN;
+		else if (!strcasecmp(realargs[i], "nt"))
+			lc[spans].lineconfig |= DAHDI_CONFIG_NTTE;
+		else if (!strcasecmp(realargs[i], "te"))
+			lc[spans].lineconfig &= ~DAHDI_CONFIG_NTTE;
+		else if (!strcasecmp(realargs[i], "term"))
+			lc[spans].lineconfig |= DAHDI_CONFIG_TERM;
 		else {
-			error("Only valid sixth argument is 'yellow', not '%s'\n", realargs[6]);
+			error("Remaining arguments may be any of: 'yellow', 'crc4', 'nt', 'te', 'term', not '%s'\n", realargs[i]);
 			return -1;
 		}
+
 	}
 	lc[spans].span = span;
 	lc[spans].sync = timing;
