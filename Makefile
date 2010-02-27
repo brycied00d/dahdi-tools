@@ -70,8 +70,8 @@ endif
 RCCONF_FILE	= /etc/dahdi/init.conf
 MODULES_FILE	= /etc/dahdi/modules
 GENCONF_FILE	= /etc/dahdi/genconf_parameters
-MODPROBE_FILE	= /etc/modprobe.d/dahdi
-BLACKLIST_FILE	= /etc/modprobe.d/dahdi.blacklist
+MODPROBE_FILE	= /etc/modprobe.d/dahdi.conf
+BLACKLIST_FILE	= /etc/modprobe.d/dahdi.blacklist.conf
 
 NETSCR_DIR	:= $(firstword $(wildcard $(DESTDIR)/etc/sysconfig/network-scripts ))
 ifneq (,$(NETSCR_DIR))
