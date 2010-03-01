@@ -53,6 +53,11 @@ if [ -f /etc/gentoo-release ]; then
     system=debian
 fi
 
+if [ -f /etc/SuSE-release -o -f /etc/novell-release ]
+then
+    system=debian
+fi
+
 # Source function library.
 if [ $system = redhat ]; then
     . $initdir/functions || exit 0
