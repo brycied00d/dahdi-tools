@@ -23,6 +23,20 @@ sub AUTOLOAD {
 	}
 }
 
+# Initialize ProcFS and SysFS pathes, in case the user set
+# DAHDI_VIRT_TOP
+BEGIN {
+	if (exists $ENV{DAHDI_VIRT_TOP}) {
+		$Dahdi::virt_base = $ENV{DAHDI_VIRT_TOP};
+	} else {
+		$Dahdi::virt_base = '';
+	}
+	$Dahdi::proc_dahdi_base = "$Dahdi::virt_base/proc/dahdi";
+	$Dahdi::proc_xpp_base = "$Dahdi::virt_base/proc/xpp";
+	$Dahdi::proc_usb_base = "$Dahdi::virt_base/proc/bus/usb";
+	$Dahdi::sys_base = "$Dahdi::virt_base/sys";
+}
+
 sub xpp_dump($) {
 	my $self = shift || die;
 	printf STDERR "Dump a %s\n", ref($self);

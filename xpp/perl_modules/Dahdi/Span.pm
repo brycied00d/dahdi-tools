@@ -10,7 +10,6 @@ package Dahdi::Span;
 use strict;
 use Dahdi::Utils;
 use Dahdi::Chans;
-use Dahdi::Xpp::Xpd;
 
 =head1 NAME
 
@@ -113,8 +112,6 @@ actually set in the module as capital-letter propeties. To look at e.g.
 
 =cut
 
-my $proc_base = "/proc/dahdi";
-
 sub chans($) {
 	my $span = shift;
 	return @{$span->{CHANS}};
@@ -176,17 +173,13 @@ sub init_proto($$) {
 
 sub new($$) {
 	my $pack = shift or die "Wasn't called as a class method\n";
-	my $num = shift or die "Missing a span number parameter\n";
+	my $proc_file = shift or die "Missing a proc file parameter\n";
+	$proc_file =~ m{[^/]*/(\d+)$};
+	my $num = $1 or die " Invalid span file name: $proc_file\n";
 	my $self = { NUM => $num };
 	bless $self, $pack;
 	$self->{TYPE} = "UNKNOWN";
-	my @xpds = Dahdi::Xpp::Xpd::xpds_by_spanno;
-	my $xpd = $xpds[$num];
-	if(defined $xpd) {
-		die "Spanno mismatch: $xpd->spanno, $num" unless $xpd->spanno == $num;
-		$self->{XPD} = $xpd;
-	}
-	open(F, "$proc_base/$num") or die "Failed to open '$proc_base/$num\n";
+	open(F, "$proc_file") or die "Failed to open '$proc_file\n";
 	my $head = <F>;
 	chomp $head;
 	$self->{IS_DIGITAL} = 0;

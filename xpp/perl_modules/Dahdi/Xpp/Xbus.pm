@@ -12,8 +12,6 @@ use Dahdi::Utils;
 use Dahdi::Hardware;
 use Dahdi::Xpp::Xpd;
 
-my $proc_base = "/proc/xpp";
-
 sub xpds($) {
 	my $xbus = shift;
 	return @{$xbus->{XPDS}};
@@ -54,7 +52,7 @@ sub xbus_attr_path($$) {
 	foreach my $attr (@attr) {
 		my $file = sprintf "$Dahdi::Xpp::sysfs_astribanks/xbus-%02d/$attr", $busnum;
 		unless(-f $file) {
-			my $procfile = sprintf "/proc/xpp/XBUS-%02d/$attr", $busnum;
+			my $procfile = sprintf "$Dahdi::proc_xpp_base/XBUS-%02d/$attr", $busnum;
 			warn "$0: warning - OLD DRIVER: missing '$file'. Fall back to '$procfile'\n"
 				unless $file_warned{$attr}++;
 			$file = $procfile;
@@ -113,7 +111,7 @@ sub transport_type($$) {
 
 sub read_xpdnames_old($) {
 	my $xbus_num = shift || die;
-	my $pat = sprintf "/proc/xpp/XBUS-%02d/XPD-[0-9][0-9]", $xbus_num;
+	my $pat = sprintf "$Dahdi::proc_xpp_base/XBUS-%02d/XPD-[0-9][0-9]", $xbus_num;
 	my @xpdnames;
 
 	#print STDERR "read_xpdnames_old($xbus_num): $pat\n";
@@ -175,7 +173,7 @@ sub new($$) {
 	}
 	foreach my $xpdstr (@xpdnames) {
 		my ($busnum, $unit, $subunit) = split(/:/, $xpdstr);
-		my $procdir = "/proc/xpp/XBUS-$busnum/XPD-$unit$subunit";
+		my $procdir = "$Dahdi::proc_xpp_base/XBUS-$busnum/XPD-$unit$subunit";
 		my $xpd = Dahdi::Xpp::Xpd->new($self, $unit, $subunit, $procdir, "$xbus_dir/$xpdstr");
 		push(@xpds, $xpd);
 	}

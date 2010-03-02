@@ -22,7 +22,7 @@ my @xpds = map { $_->xpds } @xbuses;
 
 foreach my $span (Dahdi::spans()) {
 	my $spanno = $span->num;
-	my $xpd = $span->xpd;
+	my $xpd = Dahdi::Xpp::xpd_of_span($span);
 	my @lines;
 	my $index = 0;
 

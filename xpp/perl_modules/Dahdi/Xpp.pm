@@ -34,10 +34,16 @@ Dahdi::Xpp - Perl interface to the Xorcom Astribank drivers.
 #
 my @xbuses;
 
-my $proc_base = "/proc/xpp";
-our $sysfs_astribanks = "/sys/bus/astribanks/devices";
-our $sysfs_xpds = "/sys/bus/xpds/devices";
-our $sysfs_ab_driver = "/sys/bus/astribanks/drivers/xppdrv";
+our $sysfs_astribanks;
+our $sysfs_xpds;
+our $sysfs_ab_driver;
+
+BEGIN {
+	my $virt_base = $Dahdi::virt_base;
+	$sysfs_astribanks = "$virt_base/sys/bus/astribanks/devices";
+	$sysfs_xpds = "$virt_base/sys/bus/xpds/devices";
+	$sysfs_ab_driver = "$virt_base/sys/bus/astribanks/drivers/xppdrv";
+}
 
 sub scan($) {
 	my $pack = shift || die;
@@ -253,6 +259,7 @@ sub sync_via_proc {
 	my $result;
 	my $newapi = 0;
 
+	my $proc_base = $Dahdi::proc_xpp_base;
 	my $file = "$proc_base/sync";
 	return '' unless -f $file;
 	# First query

@@ -170,7 +170,7 @@ sub readfile($) {
 sub scan_devices($) {
 	my @devices;
 
-	while(</sys/bus/pci/devices/*>) {
+	while(<$Dahdi::sys_base/bus/pci/devices/*>) {
 		m,([^/]+)$,,;
 		my $name = $1;
 		my $l = readlink $_ || die;

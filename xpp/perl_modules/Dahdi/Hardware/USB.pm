@@ -135,7 +135,7 @@ sub scan_devices_sysfs($) {
 	my $pack = shift || die;
 	my @devices = ();
 
-	while (</sys/bus/usb/devices/*-*>) {
+	while (<$Dahdi::sys_base/bus/usb/devices/*-*>) {
 		next unless -r "$_/idVendor"; # endpoints
 
 		# Older kernels, e.g. 2.6.9, don't have the attribute
@@ -165,7 +165,7 @@ sub scan_devices_sysfs($) {
 
 sub scan_devices($) {
 	my $pack = shift || die;
-	my $usb_device_list = "/proc/bus/usb/devices";
+	my $usb_device_list = "$Dahdi::proc_usb_base/devices";
 	return $pack->scan_devices_sysfs() unless (-r $usb_device_list);
 
 	my @devices;

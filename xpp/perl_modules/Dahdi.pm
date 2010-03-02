@@ -32,7 +32,11 @@ hardware and loaded Dahdi devices.
   }
 =cut
 
-my $proc_base = "/proc/dahdi";
+our $virt_base;
+our $proc_dahdi_base;
+our $proc_xpp_base;
+our $proc_usb_base;
+our $sys_base;
 
 =head1 spans()
 
@@ -43,16 +47,22 @@ Returns a list of span objects, ordered by span number.
 sub spans() {
 	my @spans;
 
-	-d $proc_base or return ();
-	foreach my $zfile (glob "$proc_base/*") {
-		$zfile =~ s:$proc_base/::;
-		next unless ($zfile =~ /^\d+$/);
+	-d $proc_dahdi_base or return ();
+	foreach my $zfile (glob "$proc_dahdi_base/*") {
+		next unless ($zfile =~ m{^$proc_dahdi_base/\d+$});
 		my $span = Dahdi::Span->new($zfile);
 		push(@spans, $span);
 	}
 	@spans = sort { $a->num <=> $b->num } @spans;
 	return @spans;
 }
+
+=head1 ENVIRONMENT
+
+If C<DAHDI_VIRT_TOP> is set in the environment, it will be considered
+as a path to a directory that holds a dump (copy) of all the required
+files from /proc and /sys . You can generate that directory using the
+script C<build_tools/dump_sys_state> .
 
 =head1 SEE ALSO
 
