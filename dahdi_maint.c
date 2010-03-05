@@ -53,21 +53,20 @@ void display_help(char *argv0, int exitcode)
 	fprintf(stderr, "Options:\n");
 	fprintf(stderr, "        -h, --help		display help\n");
 	fprintf(stderr, "        -s, --span <span num>	specify the span\n");
-	fprintf(stderr, "        -j, --host <on|off>	"\
-			"turn on/off local host looopback\n");
-	fprintf(stderr, "        -l, --line <on|off>	"\
-			"turn on/off network line looopback\n");
-	fprintf(stderr, "        -p, --payload <on|off>	"\
-			"turn on/off network payload looopback\n");
+	fprintf(stderr, "        -l, --loopback <localhost|networkline|"\
+						"networkpayload|off>\n"\
+			"\t\tlocalhost - loop back towards host\n"\
+			"\t\tnetworkline - network line loopback\n"\
+			"\t\tnetworkpayload - network payload loopback\n");
 	fprintf(stderr, "        -i, --insert <fas|multi|crc|cas|prbs|bipolar>"\
-			"  insert an error of a specific type\n");
+			"\n\t\tinsert an error of a specific type\n");
 	fprintf(stderr, "        -r, --reset		"\
 			"reset the error counters\n\n");
 	fprintf(stderr, "Examples: \n");
-	fprintf(stderr, "Enable local host loopback(virtual loopback plug)\n");
-	fprintf(stderr, "	dahdi_maint -s 1 --local on\n");
-	fprintf(stderr, "Disable local host loopback(virtual loopback plug)\n");
-	fprintf(stderr, "	dahdi_maint -s 1 --local off\n\n");
+	fprintf(stderr, "Enable network line loopback\n");
+	fprintf(stderr, "	dahdi_maint -s 1 --loopback networkline\n");
+	fprintf(stderr, "Disable network line loopback\n");
+	fprintf(stderr, "	dahdi_maint -s 1 --loopback off\n\n");
 
 	exit(exitcode);
 }
@@ -77,12 +76,8 @@ int main(int argc, char *argv[])
 	static int ctl = -1;
 	int res;
 
-	int localhostloopback = 0;
-	char *jarg = NULL;
-	int networklineloopback = 0;
+	int doloopback = 0;
 	char *larg = NULL;
-	int networkpayloadloopback = 0;
-	char *parg = NULL;
 	int sflag = 0;
 	int span = 1;
 	int iflag = 0;
@@ -96,9 +91,7 @@ int main(int argc, char *argv[])
 
 	static struct option long_options[] = {
 		{"help",	no_argument,	   0, 'h'},
-		{"host",	required_argument, 0, 'j'},
-		{"line",	required_argument, 0, 'l'},
-		{"payload", 	required_argument, 0, 'p'},
+		{"loopback",	required_argument, 0, 'l'},
 		{"span",	required_argument, 0, 's'},
 		{"insert",	required_argument, 0, 'i'},
 		{"reset",	no_argument, 	   0, 'r'},
@@ -116,17 +109,9 @@ int main(int argc, char *argv[])
 			case 'h': /* local host loopback */
 				display_help(argv[0], 0);
 				break;
-			case 'j': /* local host loopback */
-				jarg = optarg;
-				localhostloopback = 1;
-				break;
 			case 'l': /* network line loopback */
 				larg = optarg;
-				networklineloopback = 1;
-				break;
-			case 'p': /* network payload loopback */
-				parg = optarg;
-				networkpayloadloopback = 1;
+				doloopback = 1;
 				break;
 			case 's': /* specify a span */
 				span = atoi(optarg);
@@ -151,8 +136,7 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	if (!(localhostloopback || networklineloopback || networkpayloadloopback 
-				|| iflag || gflag || rflag)) {
+	if (!(doloopback || iflag || gflag || rflag)) {
 		s.spanno = span;
 		res = ioctl(ctl, DAHDI_SPANSTAT, &s);
 		printf("Span %d:\n", span);
@@ -169,43 +153,23 @@ int main(int argc, char *argv[])
 
 	m.spanno = span;
 
-	if (localhostloopback) {
-		if (!strcasecmp(jarg, "on")) {
+	if (doloopback) {
+		if (!strcasecmp(larg, "localhost")) {
 			printf("Span %d: local host loopback ON\n", span);
 			m.command = DAHDI_MAINT_LOCALLOOP;
-		} else if (!strcasecmp(jarg, "off")) {
-			printf("Span %d: local host loopback OFF\n", span);
-			m.command = DAHDI_MAINT_NONE;
-		} else {
-			display_help(argv[0], 1);
-		}
-
-		res = ioctl(ctl, DAHDI_MAINT, &m);
-	}
-
-	if (networklineloopback) {
-		if (!strcasecmp(larg, "on")) {
+		} else if (!strcasecmp(larg, "networkline")) {
 			printf("Span %d: network line loopback ON\n", span);
 			m.command = DAHDI_MAINT_NETWORKLINELOOP;
-		} else if (!strcasecmp(larg, "off")) {
-			printf("Span %d: network line loopback OFF\n", span);
-			m.command = DAHDI_MAINT_NONE;
-		} else {
-			display_help(argv[0], 1);
-		}
-		res = ioctl(ctl, DAHDI_MAINT, &m);
-	}
-
-	if (networkpayloadloopback) {
-		if (!strcasecmp(parg, "on")) {
+		} else if (!strcasecmp(larg, "networkpayload")) {
 			printf("Span %d: network payload loopback ON\n", span);
 			m.command = DAHDI_MAINT_NETWORKPAYLOADLOOP;
-		} else if (!strcasecmp(parg, "off")) {
-			printf("Span %d: network payload loopback OFF\n", span);
+		} else if (!strcasecmp(larg, "off")) {
+			printf("Span %d: loopback OFF\n", span);
 			m.command = DAHDI_MAINT_NONE;
 		} else {
 			display_help(argv[0], 1);
 		}
+
 		res = ioctl(ctl, DAHDI_MAINT, &m);
 	}
 
