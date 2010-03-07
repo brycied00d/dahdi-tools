@@ -104,25 +104,27 @@ ifneq	(,$(PERLLIBDIR))
 endif
 
 fpga_load: fpga_load.o hexfile.o
-	$(CC) -L. -o $@ $^ $(EXTRA_LIBS) $(USB_LIB)
+fpga_load: LIBS+=$(EXTRA_LIBS) $(USB_LIB)
 
 astribank_hexload: $(ABHEXLOAD_OBJS)
-	$(CC) -L. -o $@ $(ABHEXLOAD_OBJS) $(EXTRA_LIBS) $(USB_LIB)
+astribank_hexload: LIBS+=$(EXTRA_LIBS) $(USB_LIB)
 
 astribank_tool: $(ABTOOL_OBJS)
-	$(CC) -L. -o $@ $(ABTOOL_OBJS) $(EXTRA_LIBS) $(USB_LIB)
+astribank_tool: LIBS+=$(EXTRA_LIBS) $(USB_LIB)
 
 astribank_allow: $(ABALLOW_OBJS)
-	$(CC) -L. -o $@ $(ABALLOW_OBJS) $(EXTRA_LIBS) $(USB_LIB)
+astribank_allow: LIBS+=$(EXTRA_LIBS) $(USB_LIB)
 
 astribank_is_starting: astribank_is_starting.o
-	$(CC) -L. -o $@ $^ $(EXTRA_LIBS)
+astribank_is_starting: LIBS+=$(EXTRA_LIBS)
 
 fpga_load.o: CFLAGS+=-D_GNU_SOURCE	# We use memrchr()
 
 test_parse: test_parse.o hexfile.o
-	$(CC) -L. -o $@ $^ $(EXTRA_LIBS) $(USB_LIB)
+test_parse: LIBS+=$(EXTRA_LIBS) $(USB_LIB)
 
+%: %.o
+	$(CC) $(LDFLAGS) $^ $(LIBS) -o $@
 
 .perlcheck: $(PERL_SCRIPTS)
 	for i in $^; do perl -I./perl_modules -c $$i || exit 1; done

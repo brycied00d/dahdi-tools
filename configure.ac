@@ -34,6 +34,8 @@ AC_GNU_SOURCE
 
 AC_CHECK_HEADERS([sys/soundcard.h linux/soundcard.h])
 
+AC_CHECK_TOOL([LD], [ld])
+
 # Checks for programs.
 AC_PROG_CC
 AC_PROG_CPP
