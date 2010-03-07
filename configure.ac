@@ -94,6 +94,8 @@ AST_EXT_LIB_SETUP([NEWT], [newt], [newt])
 AST_EXT_LIB_SETUP([USB], [usb], [usb])
 
 AST_C_DEFINE_CHECK([DAHDI], [DAHDI_CODE], [dahdi/user.h])
+DAHDI23_DIR="${DAHDI_DIR}"
+AST_C_DEFINE_CHECK([DAHDI23], [DAHDI_CONFIG_NTTE], [dahdi/user.h])
 AST_EXT_LIB_CHECK([NEWT], [newt], [newtBell], [newt.h])
 AST_EXT_LIB_CHECK([USB], [usb], [usb_init], [usb.h])
 
@@ -193,6 +195,14 @@ if test "x${PBX_DAHDI}" != "x1"; then
    AC_MSG_NOTICE([***])
    AC_MSG_NOTICE([*** Building this package requires DAHDI support. *** ])
    AC_MSG_NOTICE([*** Please install the dahdi-linux package. ***])
+   AC_MSG_NOTICE([***])
+   exit 1
+fi
+
+if test "x${PBX_DAHDI23}" != "x1"; then
+   AC_MSG_NOTICE([***])
+   AC_MSG_NOTICE([*** Building this package requires DAHDI support (>= 2.3) *** ])
+   AC_MSG_NOTICE([*** Please install a recent dahdi-linux package. ***])
    AC_MSG_NOTICE([***])
    exit 1
 fi
