@@ -21,6 +21,9 @@ our @ISA = qw(Dahdi::Hardware);
 my %pci_ids = (
 	# from wct4xxp
 	'10ee:0314'		=> { DRIVER => 'wct4xxp', DESCRIPTION => 'Wildcard TE410P/TE405P (1st Gen)' },
+	'd161:1420'		=> { DRIVER => 'wct4xxp', DESCRIPTION => 'Wildcard TE420 (5th Gen)' },
+	'd161:1410'		=> { DRIVER => 'wct4xxp', DESCRIPTION => 'Wildcard TE410P (5th Gen)' },
+	'd161:1405'		=> { DRIVER => 'wct4xxp', DESCRIPTION => 'Wildcard TE405P (5th Gen)' },
 	'd161:0420/0004'	=> { DRIVER => 'wct4xxp', DESCRIPTION => 'Wildcard TE420 (4th Gen)' },
 	'd161:0410/0004'	=> { DRIVER => 'wct4xxp', DESCRIPTION => 'Wildcard TE410P (4th Gen)' },
 	'd161:0405/0004'	=> { DRIVER => 'wct4xxp', DESCRIPTION => 'Wildcard TE405P (4th Gen)' },
@@ -28,6 +31,9 @@ my %pci_ids = (
 	'd161:0405/0003'	=> { DRIVER => 'wct4xxp', DESCRIPTION => 'Wildcard TE405P (3rd Gen)' },
 	'd161:0410'		=> { DRIVER => 'wct4xxp', DESCRIPTION => 'Wildcard TE410P (2nd Gen)' },
 	'd161:0405'		=> { DRIVER => 'wct4xxp', DESCRIPTION => 'Wildcard TE405P (2nd Gen)' },
+	'd161:1220'		=> { DRIVER => 'wct4xxp', DESCRIPTION => 'Wildcard TE220 (5th Gen)' },
+	'd161:1205'		=> { DRIVER => 'wct4xxp', DESCRIPTION => 'Wildcard TE205P (5th Gen)' },
+	'd161:1210'		=> { DRIVER => 'wct4xxp', DESCRIPTION => 'Wildcard TE210P (5th Gen)' },
 	'd161:0220/0004'	=> { DRIVER => 'wct4xxp', DESCRIPTION => 'Wildcard TE220 (4th Gen)' },
 	'd161:0205/0004'	=> { DRIVER => 'wct4xxp', DESCRIPTION => 'Wildcard TE205P (4th Gen)' },
 	'd161:0210/0004'	=> { DRIVER => 'wct4xxp', DESCRIPTION => 'Wildcard TE210P (4th Gen)' },
@@ -43,6 +49,8 @@ my %pci_ids = (
 	'd161:8003'		=> { DRIVER => 'wctdm24xxp', DESCRIPTION => 'Wildcard AEX2400' },
 	'd161:8005'		=> { DRIVER => 'wctdm24xxp', DESCRIPTION => 'Wildcard TDM410P' },
 	'd161:8006'		=> { DRIVER => 'wctdm24xxp', DESCRIPTION => 'Wildcard AEX410P' },
+	'd161:8007'		=> { DRIVER => 'wctdm24xxp', DESCRIPTION => 'HA8-0000' },
+	'd161:8008'		=> { DRIVER => 'wctdm24xxp', DESCRIPTION => 'HB8-0000' },
 
 	# from pciradio
 	'e159:0001/e16b'	=> { DRIVER => 'pciradio', DESCRIPTION => 'PCIRADIO' },
