@@ -139,6 +139,8 @@ int main(int argc, char *argv[])
 	if (!(doloopback || iflag || gflag || rflag)) {
 		s.spanno = span;
 		res = ioctl(ctl, DAHDI_SPANSTAT, &s);
+		if (res)
+			printf("Error counters not supported on this card\n");
 		printf("Span %d:\n", span);
 		printf(">FEC : %d:\n", s.fecount);
 		printf(">CEC : %d:\n", s.crc4count);
@@ -171,6 +173,9 @@ int main(int argc, char *argv[])
 		}
 
 		res = ioctl(ctl, DAHDI_MAINT, &m);
+		if (res)
+			printf("This type of looping not"\
+					"supported on this card\n");
 	}
 
 	if (iflag) {
@@ -196,6 +201,8 @@ int main(int argc, char *argv[])
 			display_help(argv[0], 1);
 		}
 		res = ioctl(ctl, DAHDI_MAINT, &m);
+		if (res)
+			printf("Network line loop not supported on this card\n");
 	}
 
 	if (gflag) {
@@ -203,12 +210,20 @@ int main(int argc, char *argv[])
 			" and Monitor\n");
 		m.command = DAHDI_MAINT_PRBS;
 		res = ioctl(ctl, DAHDI_MAINT, &m);
+		if (res) {
+			printf("This type of error injection is not"\
+					" supported on this card\n");
+		}
 	}
 
 	if (rflag) {
 		printf("Resetting error counters for span %d\n", span);
 		m.command = DAHDI_RESET_COUNTERS;
 		res = ioctl(ctl, DAHDI_MAINT, &m);
+		if (res) {
+			printf("Resetting error counters"\
+					" is not supported on this card\n");
+		}
 	}
 
 	return 0;
