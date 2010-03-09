@@ -140,7 +140,8 @@ int main(int argc, char *argv[])
 		s.spanno = span;
 		res = ioctl(ctl, DAHDI_SPANSTAT, &s);
 		if (res)
-			printf("Error counters not supported on this card\n");
+			printf("Error counters not supported by the driver"\
+					" for this span\n");
 		printf("Span %d:\n", span);
 		printf(">FEC : %d:\n", s.fecount);
 		printf(">CEC : %d:\n", s.crc4count);
@@ -174,8 +175,8 @@ int main(int argc, char *argv[])
 
 		res = ioctl(ctl, DAHDI_MAINT, &m);
 		if (res)
-			printf("This type of looping not"\
-					"supported on this card\n");
+			printf("This type of looping not supported by the"\
+					"driver for this span\n");
 	}
 
 	if (iflag) {
@@ -202,7 +203,8 @@ int main(int argc, char *argv[])
 		}
 		res = ioctl(ctl, DAHDI_MAINT, &m);
 		if (res)
-			printf("Network line loop not supported on this card\n");
+			printf("This type of looping is not supported by the"\
+					" driver for this span\n");
 	}
 
 	if (gflag) {
@@ -211,8 +213,8 @@ int main(int argc, char *argv[])
 		m.command = DAHDI_MAINT_PRBS;
 		res = ioctl(ctl, DAHDI_MAINT, &m);
 		if (res) {
-			printf("This type of error injection is not"\
-					" supported on this card\n");
+			printf("This type of error injection is not supported"\
+					" by the driver for this span\n");
 		}
 	}
 
@@ -221,8 +223,8 @@ int main(int argc, char *argv[])
 		m.command = DAHDI_RESET_COUNTERS;
 		res = ioctl(ctl, DAHDI_MAINT, &m);
 		if (res) {
-			printf("Resetting error counters"\
-					" is not supported on this card\n");
+			printf("Resetting error counters is not supported by"\
+					" the driver for this span\n");
 		}
 	}
 
