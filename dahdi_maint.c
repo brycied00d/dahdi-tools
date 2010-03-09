@@ -203,8 +203,8 @@ int main(int argc, char *argv[])
 		}
 		res = ioctl(ctl, DAHDI_MAINT, &m);
 		if (res)
-			printf("This type of looping is not supported by the"\
-					" driver for this span\n");
+			printf("This type of error injection is not supported"\
+					" by the driver for this span\n");
 	}
 
 	if (gflag) {
