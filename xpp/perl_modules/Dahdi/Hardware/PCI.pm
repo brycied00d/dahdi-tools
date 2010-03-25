@@ -107,6 +107,7 @@ my %pci_ids = (
 
 	# Cologne Chips:
 	# (Still a partial list)
+	'1397:08b4/1397:b540'	=> { DRIVER => 'wcb4xxp', DESCRIPTION => 'Swyx 4xS0 SX2 QuadBri' },
 	'1397:08b4/1397:b556'	=> { DRIVER => 'wcb4xxp', DESCRIPTION => 'Junghanns DuoBRI ISDN card' },
 	'1397:08b4/1397:b520'	=> { DRIVER => 'wcb4xxp', DESCRIPTION => 'Junghanns QuadBRI ISDN card' },
 	'1397:08b4/1397:b550'	=> { DRIVER => 'wcb4xxp', DESCRIPTION => 'Junghanns QuadBRI ISDN card' },
