@@ -176,7 +176,7 @@ int main(int argc, char *argv[])
 		res = ioctl(ctl, DAHDI_MAINT, &m);
 		if (res)
 			printf("This type of looping not supported by the"\
-					"driver for this span\n");
+					" driver for this span\n");
 	}
 
 	if (iflag) {
@@ -213,8 +213,8 @@ int main(int argc, char *argv[])
 		m.command = DAHDI_MAINT_PRBS;
 		res = ioctl(ctl, DAHDI_MAINT, &m);
 		if (res) {
-			printf("This type of error injection is not supported"\
-					" by the driver for this span\n");
+			printf("Pseudo-random binary sequence generation is"\
+				" not supported by the driver for this span\n");
 		}
 	}
 
