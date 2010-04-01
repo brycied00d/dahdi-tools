@@ -111,7 +111,7 @@ UTILS		= dahdi_tool dahdi_test dahdi_monitor dahdi_speed sethdlc dahdi_cfg \
 UTILS		+= patgen pattest patlooptest hdlcstress hdlctest hdlcgen \
 		   hdlcverify timertest dahdi_maint
 
-BINS:=fxotune fxstest sethdlc dahdi_cfg dahdi_diag dahdi_monitor dahdi_speed dahdi_test dahdi_scan dahdi_tool
+BINS:=fxotune fxstest sethdlc dahdi_cfg dahdi_diag dahdi_monitor dahdi_speed dahdi_test dahdi_scan dahdi_tool dahdi_maint
 BINS:=$(filter-out $(MENUSELECT_UTILS),$(BINS))
 MAN_PAGES:=$(wildcard $(BINS:%=doc/%.8))
 
