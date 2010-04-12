@@ -95,7 +95,7 @@ sub set_transport($$) {
 		}
 	} elsif(-f "$transportdir/idVendor" ) {
 		my $transport_link = readlink($transportdir);
-		$transport_link =~ m|/(\d+)-\d+$|;
+		$transport_link =~ m|/(\d+)-[\d.]+$|;
 		$busnum = $1;
 		$devnum = readval("$transportdir/devnum");
 	}
@@ -140,7 +140,7 @@ sub scan_devices_sysfs($) {
 
 		# Older kernels, e.g. 2.6.9, don't have the attribute
 		# busnum:
-		m|/(\d+)-\d+$|;
+		m|/(\d+)-[\d.]+$|;
 		my $busnum = $1 || next;
 		my $vendor = _get_attr("$_/idVendor");
 		my $product = _get_attr("$_/idProduct");
