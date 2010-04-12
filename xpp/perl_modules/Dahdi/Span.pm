@@ -148,6 +148,7 @@ my @pri_strings = (
 		'R[24]T1 \(PCI\) Card',            # rxt1
 		'Rhino R1T1 (E1)/PRA Card',        # r1t1
 		'Rhino R1T1 (T1)/PRI Card',        # r1t1
+		'WP(E1|T1)/.* "wanpipe',           # Sangoma E1/T1
 		);
 
 our $DAHDI_BRI_NET = 'bri_net';
