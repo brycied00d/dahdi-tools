@@ -88,9 +88,11 @@
 # Valid devices are:
 #
 # e&m::
-#   Channel(s) are signalled using E&M signalling (specific
-#   implementation, such as Immediate, Wink, or Feature Group D
-#   are handled by the userspace library).
+#   Channel(s) are signalled using E&M signalling on a T1 line.
+#   Specific implementation, such as Immediate, Wink, or Feature
+#   Group D are handled by the userspace library.
+# e&me1::
+#   Channel(s) are signalled using E&M signalling on an E1 line.
 # fxsls:: 
 #   Channel(s) are signalled using FXS Loopstart protocol.
 # fxsgs:: 
