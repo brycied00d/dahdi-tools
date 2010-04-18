@@ -4,9 +4,9 @@
 dahdi_cfg \- configures DAHDI kernel modules from /etc/dahdi/system.conf
 .SH SYNOPSIS
 
-.B dahdi_cfg [-c \fICFG_FILE\fB] [-s] [-f] [-t] [-v [-v ... ] ]
+.B dahdi_cfg [\-c \fICFG_FILE\fB] [\-s] [\-f] [\-t] [\-v [\-v ... ] ]
 
-.B dahdi_cfg -h
+.B dahdi_cfg \-h
 
 .SH DESCRIPTION
 .B dahdi_cfg 
@@ -20,33 +20,33 @@ the DAHDI init script.
 
 .SH OPTIONS
 
-.B -c \fICFG_FILE
+.B \-c \fICFG_FILE
 .RS
 Use an alternative configuration file instead of
 .I /etc/dahdi/system.conf
 .RE
 
-.B -s
+.B \-s
 .RS
 Only shutdown spans.
 .RE
 
-.B -f
+.B \-f
 .RS
 Always configure every channel, even if it appears not to have changed.
 .RE
 
-.B -t
+.B \-t
 .RS
 Test mode. Don't do anything, just report what you wanted to do.
 .RE
 
-.B -v
+.B \-v
 .RS
 Be more verbose. Add extra v-s for extra verbosity.
 .RE
 
-.B -h
+.B \-h
 .RS
 Display a brief help message.
 .RE

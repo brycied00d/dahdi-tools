@@ -131,7 +131,7 @@ It uses two information sources:
 =item /etc/dahdi/genconf_parameters
 
 A configuration file that supplements the hardware information.
-Its location may be overriden via the C<GENCONF_PARAMETERS> environment
+Its location may be overridden via the C<GENCONF_PARAMETERS> environment
 variable.
 
 =back

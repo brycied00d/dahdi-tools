@@ -22,13 +22,13 @@ May be any DAHDI channel (even if it is open).
 .SH EXAMPLE
 
   # /tmp/dahdi_diag 5
-  # dmesg | tail -n 15
+  # dmesg | tail \-n 15
   Dump of DAHDI Channel 5 (XPP_BRI_TE/00/01/1,5,2):
 
   flags: 501 hex, writechunk: c5190948, readchunk: c5190954
   rxgain: ccad2e80, txgain: ccad2e80, gainalloc: 0
   span: c48a900c, sig: 80 hex, sigcap: 80 hex
-  inreadbuf: -1, outreadbuf: 0, inwritebuf: 0, outwritebuf: -1
+  inreadbuf: \-1, outreadbuf: 0, inwritebuf: 0, outwritebuf: \-1
   blocksize: 160, numbufs: 4, txbufpolicy: 0, txbufpolicy: 0
   txdisable: 0, rxdisable: 0, iomask: 0
   curzone: c78e7000, tonezone: 0, curtone: 00000000, tonep: 0
@@ -49,4 +49,4 @@ the terms of the GNU General Public License, Version 2 any
 later version published by the Free Software Foundation. 
  
 On Debian systems, the complete text of the GNU General Public 
-License can be found in /usr/share/common-licenses/GPL. 
+License can be found in /usr/share/common\-licenses/GPL. 
