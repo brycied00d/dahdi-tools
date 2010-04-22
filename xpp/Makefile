@@ -58,17 +58,16 @@ ABHEXLOAD_OBJS		= astribank_hexload.o hexfile.o pic_loader.o astribank_usb.o mpp
 ABTOOL_OBJS		= astribank_tool.o astribank_usb.o mpp_funcs.o debug.o
 ABALLOW_OBJS		= astribank_allow.o astribank_usb.o mpp_funcs.o debug.o
 
-TARGETS	= .perlcheck
-PROG_INSTALL	= 
+TARGETS	= .perlcheck astribank_is_starting
+PROG_INSTALL	= astribank_is_starting
 MAN_INSTALL	= $(PROG_INSTALL:%=%.8)
 ifeq	(1,$(PBX_USB))
 TARGETS	+= fpga_load		\
 	   astribank_tool	\
 	   astribank_hexload	\
 	   astribank_allow	\
-	   astribank_is_starting	\
 	   test_parse
-PROG_INSTALL	+= fpga_load astribank_tool astribank_hexload astribank_allow astribank_is_starting
+PROG_INSTALL	+= fpga_load astribank_tool astribank_hexload astribank_allow
 endif
 ifneq	(,$(PERLLIBDIR))
 PROG_INSTALL	+= $(PERL_SCRIPTS)
