@@ -67,6 +67,7 @@ USB_PREFIX=
 FIRMWARE_DIR="${FIRMWARE_DIR:-/usr/share/dahdi}"
 ASTRIBANK_HEXLOAD=${ASTRIBANK_HEXLOAD:-/usr/sbin/astribank_hexload}
 ASTRIBANK_TOOL=${ASTRIBANK_TOOL:-/usr/sbin/astribank_tool}
+XPP_UDEV_SLEEP_TIME="${XPP_UDEV_SLEEP_TIME:-1}"
 
 USB_FW="${USB_FW:-USB_FW.hex}"
 
@@ -313,8 +314,23 @@ if [ "$XPP_HOTPLUG_DISABLED" != '' ]; then
 	exit 0
 fi
 
-if [ "$ACTION" = "add" ] && [ -w "$DEVICE" ]
-then
+if [ "$ACTION" != add ]; then
+	exit 0;
+fi
+
+# This procedure is run in the background to do the actual work of loading the
+# firmware. Running it in the background allows udev to continue doing other tasks
+# and thus provide a faster startup.
+#
+# On some systems (e.g. CentOS 5) we get the relevant udev event before the device
+# file is ready. Which is why we want the background process to wait a bit first.
+udev_delayed_load() {
+	# Make sure the new device is writable:
+	sleep "$XPP_UDEV_SLEEP_TIME"
+	if [ ! -w "$DEVICE" ]; then
+		return;
+	fi
+
 	$LOGGER "Trying to find what to do for product $PRODUCT, device $DEVICE"
 	prod_id=`echo "$PRODUCT" | cut -d/ -f2`
 	case "$PRODUCT" in
@@ -333,4 +349,7 @@ then
 		load_fw_device "$DEVICE" "$FIRM_FPGA"
 		;;
 	esac	
-fi
+}
+
+udev_delayed_load &
+
