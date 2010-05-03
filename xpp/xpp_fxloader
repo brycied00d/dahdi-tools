@@ -214,7 +214,7 @@ wait_renumeration() {
 }
 
 reset_fpga() {
-  totaldevs=`numdevs e4e4 '11[3456][012]'`
+  totaldevs=`numdevs e4e4 '11[3456][0123]'`
   devices=`find_dev e4e4 '11[3456][12]'`
   debug "Reseting devices [$totaldevs devices]"
   for dev in $devices
@@ -224,7 +224,7 @@ reset_fpga() {
 	run_astribank_tool -D "$dev" -r full 2>&1 >/dev/null
   done
   if [ "$1" = 'wait' ]; then
-	  wait_renumeration $totaldevs e4e4 '11[3456]0'
+	  wait_renumeration $totaldevs e4e4 '11[3456][03]'
   fi
 }
 
