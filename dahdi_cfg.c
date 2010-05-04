@@ -1280,15 +1280,17 @@ static void printconfig(int fd)
 	       "Echo Canceller(s): %s\n"
 	       "Configuration\n"
 	       "======================\n\n", vi.version, vi.echo_canceller);
-	for (x=0;x<spans;x++) 
+	for (x = 0; x < spans; x++) {
 		printf("SPAN %d: %3s/%4s Build-out: %s\n",
-		       x+1, ( lc[x].lineconfig & DAHDI_CONFIG_D4 ? "D4" :
-			      lc[x].lineconfig & DAHDI_CONFIG_ESF ? "ESF" :
-			      lc[x].lineconfig & DAHDI_CONFIG_CCS ? "CCS" : "CAS" ),
-			( lc[x].lineconfig & DAHDI_CONFIG_AMI ? "AMI" :
-			  lc[x].lineconfig & DAHDI_CONFIG_B8ZS ? "B8ZS" :
-			  lc[x].lineconfig & DAHDI_CONFIG_HDB3 ? "HDB3" : "???" ),
-			lbostr[lc[x].lbo]);
+		       lc[x].span,
+		       (lc[x].lineconfig & DAHDI_CONFIG_D4 ? "D4" :
+			lc[x].lineconfig & DAHDI_CONFIG_ESF ? "ESF" :
+			lc[x].lineconfig & DAHDI_CONFIG_CCS ? "CCS" : "CAS"),
+		       (lc[x].lineconfig & DAHDI_CONFIG_AMI ? "AMI" :
+			lc[x].lineconfig & DAHDI_CONFIG_B8ZS ? "B8ZS" :
+			lc[x].lineconfig & DAHDI_CONFIG_HDB3 ? "HDB3" : "???"),
+		       lbostr[lc[x].lbo]);
+	}
 	for (x=0;x<numdynamic;x++) {
 		printf("Dynamic span %d: driver %s, addr %s, channels %d, timing %d\n",
 		       x +1, zds[x].driver, zds[x].addr, zds[x].numchans, zds[x].timing);
