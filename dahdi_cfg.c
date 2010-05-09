@@ -1085,66 +1085,6 @@ int cor_thresh(char *keyword, char *args)
 	return 0;
 }
 
-int rad_apply_channels(int chans[], char *argstr)
-{
-	char *args[DAHDI_MAX_CHANNELS+1];
-	char *range[3];
-	int res,x, res2,y;
-	int chan;
-	int start, finish;
-	char argcopy[256];
-	res = parseargs(argstr, args, DAHDI_MAX_CHANNELS, ',');
-	if (res < 0) {
-		error("Too many arguments...  Max is %d\n", DAHDI_MAX_CHANNELS);
-		return -1;
-	}
-	for (x=0;x<res;x++) {
-		if (strchr(args[x], '-')) {
-			/* It's a range */
-			dahdi_copy_string(argcopy, args[x], sizeof(argcopy));
-			res2 = parseargs(argcopy, range, 2, '-');
-			if (res2 != 2) {
-				error("Syntax error in range '%s'.  Should be <val1>-<val2>.\n", args[x]);
-				return -1;
-			}
-			res2 =sscanf(range[0], "%i", &start);
-			if (res2 != 1) {
-				error("Syntax error.  Start of range '%s' should be a number from 1 to %d\n", args[x], DAHDI_MAX_CHANNELS - 1);
-				return -1;
-			} else if ((start < 1) || (start >= DAHDI_MAX_CHANNELS)) {
-				error("Start of range '%s' must be between 1 and %d (not '%d')\n", args[x], DAHDI_MAX_CHANNELS - 1, start);
-				return -1;
-			}
-			res2 =sscanf(range[1], "%i", &finish);
-			if (res2 != 1) {
-				error("Syntax error.  End of range '%s' should be a number from 1 to %d\n", args[x], DAHDI_MAX_CHANNELS - 1);
-				return -1;
-			} else if ((finish < 1) || (finish >= DAHDI_MAX_CHANNELS)) {
-				error("end of range '%s' must be between 1 and %d (not '%d')\n", args[x], DAHDI_MAX_CHANNELS - 1, finish);
-				return -1;
-			}
-			if (start > finish) {
-				error("Range '%s' should start before it ends\n", args[x]);
-				return -1;
-			}
-			for (y=start;y<=finish;y++)
-				chans[y]=1;
-		} else {
-			/* It's a single channel */
-			res2 =sscanf(args[x], "%i", &chan);
-			if (res2 != 1) {
-				error("Syntax error.  Channel should be a number from 1 to %d, not '%s'\n", DAHDI_MAX_CHANNELS - 1, args[x]);
-				return -1;
-			} else if ((chan < 1) || (chan >= DAHDI_MAX_CHANNELS)) {
-				error("Channel must be between 1 and %d (not '%d')\n", DAHDI_MAX_CHANNELS - 1, chan);
-				return -1;
-			}
-			chans[chan]=1;
-		}		
-	}
-	return res;
-}
-
 static int rad_chanconfig(char *keyword, char *args)
 {
 	int chans[DAHDI_MAX_CHANNELS];
@@ -1154,7 +1094,7 @@ static int rad_chanconfig(char *keyword, char *args)
 
 	toneindex = 1;
 	bzero(chans, sizeof(chans));
-	res = rad_apply_channels(chans, args);
+	res = apply_channels(chans, args);
 	if (res <= 0)
 		return -1;
 	for (x=1;x<DAHDI_MAX_CHANNELS;x++) {
