@@ -65,7 +65,7 @@ do
 	fi
 	echo -n 1>&2 "."
 	sleep 1
-	: $((tries--))
+	: $((tries-=1))
 done
 echo ""
 

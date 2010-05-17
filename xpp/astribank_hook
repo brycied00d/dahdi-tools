@@ -53,7 +53,7 @@ matched_devices() {
 		lineno=`clean_lines | egrep -n "^${label}$|^@${connector}$" | cut -d: -f1`
 		if [ "$lineno" != "" ]; then
 			#echo "$xbus: $XPPORDER_CONF:$lineno -- Match ${label} @${connector}" | $LOGGER
-			echo -e "${xbus}\t${label}"
+			printf "${xbus}\t${label}\n"
 		else
 			echo "${xbus}: ${label} @${connector} not found in $XPPORDER_CONF: Ignore($ACTION)" | $LOGGER
 		fi
