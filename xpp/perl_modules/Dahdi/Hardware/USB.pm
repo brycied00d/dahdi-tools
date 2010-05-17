@@ -123,7 +123,7 @@ sub _get_attr($) {
 }
 
 sub _get_attr_optional($$) {
-	my ($attr_file, $def_val) = $@;
+	my ($attr_file, $def_val) = @_;
 
 	eval {return _get_attr($attr_file)};
 	
