@@ -149,6 +149,8 @@ my %pci_ids = (
 
 	# Yeastar (from output of modinfo):
 	'e159:0001/2151' => { DRIVER => 'ystdm8xx', DESCRIPTION => 'Yeastar YSTDM8xx'},
+
+	'e159:0001/9500:0003' => { DRIVER => 'opvxa1200', DESCRIPTION => 'OpenVox A800P' },
 	);
 
 $ENV{PATH} .= ":/usr/sbin:/sbin:/usr/bin:/bin";
