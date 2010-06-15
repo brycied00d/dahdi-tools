@@ -316,18 +316,18 @@ int spanconfig(char *keyword, char *args)
 		error("Incorrect number of arguments to 'span' (should be <spanno>,<timing>,<lbo>,<framing>,<coding>[, crc4 | yellow [, yellow]])\n");
 		return -1;
 	}
-	res = sscanf(realargs[0], "%i", &span);
+	res = sscanf(realargs[0], "%d", &span);
 	if (res != 1) {
 		error("Span number should be a valid span number, not '%s'\n", realargs[0]);
 		return -1;
 	}
-	res = sscanf(realargs[1], "%i", &timing);
+	res = sscanf(realargs[1], "%d", &timing);
 	if ((res != 1) || (timing < 0) || (timing > MAX_TIMING)) {
 		error("Timing should be a number from 0 to %d, not '%s'\n", 
 				MAX_TIMING,  realargs[1]);
 		return -1;
 	}
-	res = sscanf(realargs[2], "%i", &lc[spans].lbo);
+	res = sscanf(realargs[2], "%d", &lc[spans].lbo);
 	if (res != 1) {
 		error("Line build-out (LBO) should be a number from 0 to 7 (usually 0) not '%s'\n", realargs[2]);
 		return -1;
@@ -413,7 +413,7 @@ int apply_channels(int chans[], char *argstr)
 				error("Syntax error in range '%s'.  Should be <val1>-<val2>.\n", args[x]);
 				return -1;
 			}
-			res2 =sscanf(range[0], "%i", &start);
+			res2 =sscanf(range[0], "%d", &start);
 			if (res2 != 1) {
 				error("Syntax error.  Start of range '%s' should be a number from 1 to %d\n", args[x], DAHDI_MAX_CHANNELS - 1);
 				return -1;
@@ -421,7 +421,7 @@ int apply_channels(int chans[], char *argstr)
 				error("Start of range '%s' must be between 1 and %d (not '%d')\n", args[x], DAHDI_MAX_CHANNELS - 1, start);
 				return -1;
 			}
-			res2 =sscanf(range[1], "%i", &finish);
+			res2 =sscanf(range[1], "%d", &finish);
 			if (res2 != 1) {
 				error("Syntax error.  End of range '%s' should be a number from 1 to %d\n", args[x], DAHDI_MAX_CHANNELS - 1);
 				return -1;
@@ -437,7 +437,7 @@ int apply_channels(int chans[], char *argstr)
 				chans[y]=1;
 		} else {
 			/* It's a single channel */
-			res2 =sscanf(args[x], "%i", &chan);
+			res2 =sscanf(args[x], "%d", &chan);
 			if (res2 != 1) {
 				error("Syntax error.  Channel should be a number from 1 to %d, not '%s'\n", DAHDI_MAX_CHANNELS - 1, args[x]);
 				return -1;
@@ -476,7 +476,7 @@ int parse_idle(int *i, char *s)
 
 static int parse_channel(char *channel, int *startchan)
 {
-	if (!channel || (sscanf(channel, "%i", startchan) != 1) || 
+	if (!channel || (sscanf(channel, "%d", startchan) != 1) || 
 		(*startchan < 1)) {
 		error("DACS requires a starting channel in the form ':x' where x is the channel\n");
 		return -1;
@@ -783,7 +783,7 @@ int ctcss(char *keyword, char *args)
 		error("Invalid rxtone '%s', should be a number > 0.\n", realargs[0]);
 		return -1;
 	}
-	res = sscanf(realargs[1], "%i", &rxtag);
+	res = sscanf(realargs[1], "%d", &rxtag);
 	if ((res == 1) && (rxtag < 0))
 		res = -1;
 	if (res != 1) {
