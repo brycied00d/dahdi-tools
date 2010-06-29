@@ -318,7 +318,7 @@ static void show_span(int span)
 	}
 
 	snprintf(info2, sizeof(info2), "%-59s            F10=Back", s[span].desc);
-	newtOpenWindow(10,2,60,20, s[span].desc);
+	newtCenteredWindow(60,20, s[span].desc);
 	newtPushHelpLine(info2);
 
 	back = newtButton(48,8,"Back");
