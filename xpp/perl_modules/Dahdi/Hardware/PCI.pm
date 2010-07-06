@@ -111,6 +111,7 @@ my %pci_ids = (
 	'1397:08b4/1397:b556'	=> { DRIVER => 'wcb4xxp', DESCRIPTION => 'Junghanns DuoBRI ISDN card' },
 	'1397:08b4/1397:b520'	=> { DRIVER => 'wcb4xxp', DESCRIPTION => 'Junghanns QuadBRI ISDN card' },
 	'1397:08b4/1397:b550'	=> { DRIVER => 'wcb4xxp', DESCRIPTION => 'Junghanns QuadBRI ISDN card' },
+	'1397:08b4/1397:b752'	=> { DRIVER => 'wcb4xxp', DESCRIPTION => 'Junghanns QuadBRI ISDN PCI-E card' },
 	'1397:16b8/1397:b552'	=> { DRIVER => 'wcb4xxp', DESCRIPTION => 'Junghanns OctoBRI ISDN card' },
 	'1397:16b8/1397:b55b'	=> { DRIVER => 'wcb4xxp', DESCRIPTION => 'Junghanns OctoBRI ISDN card' },
 	'1397:08b4/1397:e884'	=> { DRIVER => 'wcb4xxp', DESCRIPTION => 'OpenVox B200P' },
