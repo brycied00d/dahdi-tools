@@ -231,7 +231,7 @@ sub run_generator($$@) {
 	#print STDERR "DEBUG: $module\n";
 	eval "use $module";
 	if($@) {
-		die "Failed to load configuration generator for '$name'\n";
+		die "Failed to load configuration generator for '$name': $@\n";
 	}
 	my $cfg = $module->new($gconfig, $genopts);
 	$cfg->generate(@spans);
