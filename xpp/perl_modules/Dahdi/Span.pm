@@ -323,10 +323,17 @@ sub pri_set_fromconfig($$) {
 	}
 	push(@pri_specs , 'SPAN/* TE');		# Default
 	my @patlist = ( "SPAN/" . $span->num );
-	my ($xbus_name, $xpd_name) = ($name =~ m|(XBUS-\d+)/(XPD-\d+)|);
-	if(defined $xbus_name) {
+	my $xpd = $span->{XPD};
+	if(defined $xpd) {
+		my $xbus = $xpd->xbus;
+		my $xbus_name = $xbus->name;
+		my $xpd_name = "XPD-" . $xpd->id;
+		my $label = $xbus->label;
+		my $connector = $xbus->connector;
+		#print "DEBUG: '$xbus_name/$xpd_name' LABEL='$label' CONNECTOR='$connector'\n";
 		push(@patlist, "NUM/$xbus_name/$xpd_name");
-#		push(@patlist, "CONNECTOR/$ENV{XBUS_CONNECTOR}/$xpd_name");
+		push(@patlist, "LABEL/$label/$xpd_name");
+		push(@patlist, "CONNECTOR/$connector/$xpd_name");
 	}
 	#print STDERR "PATLIST=@patlist\n";
 	my $match_termtype;
@@ -343,7 +350,7 @@ SPEC:
 		foreach my $pattern (@patlist) {
 			#print STDERR "testmatch: $pattern =~ $match\n";
 			if($pattern =~ $match) {
-				#print STDERR "$xpd_name: MATCH '$pattern' ~ '$match' termtype=$termtype\n";
+				#print STDERR "MATCH '$pattern' ~ '$match' termtype=$termtype\n";
 				$match_termtype = $termtype;
 				last SPEC;
 			}

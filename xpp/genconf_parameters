@@ -147,3 +147,23 @@
 #pri_termtype
 #	SPAN/*		NT
 #
+# Astribanks can be matched by span and also by their:
+#    LABEL + XPD number:
+#      this is burned into the Astribank and won't change
+#      if it's connected via different USB port/hub
+#    CONNECTOR + XPD number:
+#      The USB path to which the Astribank is connected.
+#      Replacing an Astribank and connecting to the same USB port/hub
+#      would not change this property. However, any change in USB
+#      wiring (e.g: adding another hub) may alter this.
+#    NUM (XBUS number) + XPD number:
+#      The XBUS number. This is not stable and may even change
+#      between boots.
+#
+#pri_termtype
+#	LABEL/usb:INT01216/XPD-0[123]            NT
+#	LABEL/usb:INT00375/XPD-0[123]            NT
+#	CONNECTOR/@usb-0000:00:1d.7-1/XPD-0[123]            NT
+#	CONNECTOR/@usb-0000:00:1d.7-2/XPD-0[123]            NT
+#	NUM/XBUS-01/XPD-0[123]            NT
+#	NUM/XBUS-03/XPD-0[123]            NT
