@@ -843,12 +843,32 @@ rather, to accept timing from the remote party. To override that you
 need to set the timing value to 0 (second parameter in the 'span=' line
 in system.conf).
 
-Thus the following in system.conf will also set an ornage LED:
+Thus the following in system.conf will also set an orange LED:
 
   span=2,0,3,ccs,hdb3,crc4
 
-Note that as this is only applied when ztcfg is run, the port will have
+Note that as this is only applied when dahdi_cfg is run, the port will have
 the default green LED lit at the bottom until it is configured.
+
+
+Voicemail Indication
+~~~~~~~~~~~~~~~~~~~~
+Asterisk supports several forms of voicemail message waiting indication
+(VMWI) on a phone connected to a FXS port. One of them is a stutter tone
+sent when the phone is picked up. Another one is an FSK tone that
+encodes the number of messages waiting (or 0, for none). Alternatively it
+may send an ioctl call on the channel (DAHDI_VMWI) to indicate the VMWI
+status on the channel.
+
+The DAHDI FXS device may implement any of extra three VMWI notification
+methods. The Astribank currently only supports one of them (AC neon LED).
+With Asterisk, as of 1.6.2 you can enable that using the following line
+in the channel's config in chan_dahdi.conf:
+
+ mwisendtype = neon 
+
+Versions of Asterisk before 1.6.0 did not support this ioctl. You will
+need to reset the module parameter <<_vmwi_ioctl,vmwi_ioctl>>.
 
 
 Device Startup
@@ -1554,14 +1574,22 @@ For example,
 forces module xpp to print general debugging messages (1) and procfs
 debugging messages (32).
 
-==== vmwineon
+==== vmwi_ioctl
 (xpd_fxs)
 
-Enable (1) or disable (0) sending the voicemail message waiting indication
-signal to phones equipped with the Message Waiting neon lamp. It is 
-disabled by default because the feature requires extra work of the driver
-even when such a phone is not used and also may cause some unusual
-side effects with some phone models.
+Does userspace support VMWI notification via ioctl? Default: 1 (yes).
+
+Disable this (0) to have the driver attempt to detect the voicemail
+message waiting indication status for this port from FSK messages
+userspace (Asterisk) sends. Set the ports to use AC neon-lamp style
+message waiting indication. The detection from the FSK messages takes
+extra CPU cycles but is required with e.g. Asterisk 1.4.x .
+
+Also note that in order for this parameter to take effect, it must be
+set before the span is registered. This practically means that it
+should be set through modprobe.d files.
+
+See also <<_voicemail_indication,Voicemail Indication>>.
 
 ==== usb1
 (xpp_usb)
