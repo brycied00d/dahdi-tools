@@ -67,7 +67,7 @@ USB_PREFIX=
 FIRMWARE_DIR="${FIRMWARE_DIR:-/usr/share/dahdi}"
 ASTRIBANK_HEXLOAD=${ASTRIBANK_HEXLOAD:-/usr/sbin/astribank_hexload}
 ASTRIBANK_TOOL=${ASTRIBANK_TOOL:-/usr/sbin/astribank_tool}
-XPP_UDEV_SLEEP_TIME="${XPP_UDEV_SLEEP_TIME:-1}"
+XPP_UDEV_SLEEP_TIME="${XPP_UDEV_SLEEP_TIME:-5}"
 
 USB_FW="${USB_FW:-USB_FW.hex}"
 
@@ -325,9 +325,18 @@ fi
 # On some systems (e.g. CentOS 5) we get the relevant udev event before the device
 # file is ready. Which is why we want the background process to wait a bit first.
 udev_delayed_load() {
+	sleep 0.2
 	# Make sure the new device is writable:
-	sleep "$XPP_UDEV_SLEEP_TIME"
-	if [ ! -w "$DEVICE" ]; then
+	usb_dev_writable=0
+	for i in `seq $XPP_UDEV_SLEEP_TIME`; do
+		if [ -w "$DEVICE" ]; then
+			usb_dev_writable=1;
+			break;
+		fi
+		sleep 1
+	done
+	if [ $usb_dev_writable != 1 ]; then
+		$LOGGER "Device $DEVICE not writable. Can't load firmware."
 		return;
 	fi
 
