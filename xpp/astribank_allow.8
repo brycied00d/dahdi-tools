@@ -3,9 +3,9 @@
 .SH NAME
 astribank_allow \- License Xorcom Astribank (xpp) capabilities.
 .SH SYNOPSIS
-.B astribank_allow -D \fIdevice-path\fR [ options ]
+.B astribank_allow \-D \fIdevice-path\fR [ options ]
 
-.B astribank_allow [-h]
+.B astribank_allow [\-h]
 
 .SH DESCRIPTION
 Modern Astribanks (with USB product id's 116x) contain capabilities
@@ -27,7 +27,7 @@ device capabilities for the end user and a hash of the licensing
 information used by Xorcom to generate/modify licensed capabilities.
 
 .SH OPTIONS
-.B -D
+.B \-D
 .I device-path
 .RS
 Required. The device to read from/write to. On modern UDEV-based system
@@ -38,27 +38,27 @@ On older systems that use usbfs, it is usually
 /proc/bus/usb/\fIbus_num\fR/\fIdevice_num\fR.
 .RE
 
-.B -w
+.B \-w
 .RS
 Write capabilities to EEPROM, otherwise read capabilities
 .RE
 
-.B -f \fIfilename\fR
+.B \-f \fIfilename\fR
 .RS
 License filename (stdin/stdout if not specified)
 .RE
 
-.B -v
+.B \-v
 .RS
 Increase verbosity. May be used multiple times.
 .RE
 
-.B -d \fImask\fR
+.B \-d \fImask\fR
 .RS
 Set debug mask to \fImask\fR. Default is 0, 0xFF is "everything".
 .RE
 
-.B -h
+.B \-h
 .RS
 Displays usage message.
 .RE
