@@ -94,8 +94,6 @@ int main(int argc, char *argv[])
 					strcat(alarms, "LFA/");
 				if (s.alarms & DAHDI_ALARM_LMFA)
 					strcat(alarms, "LMFA/");
-				if (s.alarms & DAHDI_ALARM_SYNC)
-					strcat(alarms, "SYNC/");
 			}
 			if (s.alarms & DAHDI_ALARM_LOOPBACK)
 				strcat(alarms,"LB/");
