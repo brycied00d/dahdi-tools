@@ -88,8 +88,15 @@ int main(int argc, char *argv[])
 				strcat(alarms,"BLU/");
 			if (s.alarms & DAHDI_ALARM_YELLOW)
 				strcat(alarms, "YEL/");
-			if (s.alarms & DAHDI_ALARM_RED)
+			if (s.alarms & DAHDI_ALARM_RED) {
 				strcat(alarms, "RED/");
+				if (s.alarms & DAHDI_ALARM_LFA)
+					strcat(alarms, "LFA/");
+				if (s.alarms & DAHDI_ALARM_LMFA)
+					strcat(alarms, "LMFA/");
+				if (s.alarms & DAHDI_ALARM_SYNC)
+					strcat(alarms, "SYNC/");
+			}
 			if (s.alarms & DAHDI_ALARM_LOOPBACK)
 				strcat(alarms,"LB/");
 			if (s.alarms & DAHDI_ALARM_RECOVER)
