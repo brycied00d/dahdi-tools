@@ -48,8 +48,7 @@ void display_help(char *argv0, int exitcode)
 	else
 		c++;
 	fprintf(stderr, "%s\n\n", dahdi_tools_version);
-	fprintf(stderr, "Usage: %s -s <span num> [-h|--help] <-j|--local "\
-							"[on|off]>\n", c);
+	fprintf(stderr, "Usage: %s -s <span num> <options>\n", c);
 	fprintf(stderr, "Options:\n");
 	fprintf(stderr, "        -h, --help		display help\n");
 	fprintf(stderr, "        -s, --span <span num>	specify the span\n");
