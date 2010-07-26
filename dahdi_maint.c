@@ -197,6 +197,9 @@ int main(int argc, char *argv[])
 		} else if (!strcasecmp(iarg, "bipolar")) {
 			m.command = DAHDI_MAINT_BIPOLAR_DEFECT;
 			printf("Inserting a single bipolar defect\n");
+		} else if (!strcasecmp(iarg, "sim")) {
+			m.command = DAHDI_MAINT_ALARM_SIM;
+			printf("Incrementing alarm simulator\n");
 		} else {
 			display_help(argv[0], 1);
 		}
