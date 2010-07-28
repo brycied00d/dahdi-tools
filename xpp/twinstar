@@ -166,6 +166,8 @@ if($ARGV[0] eq 'status') {
 	tws_watchdog(1, @usb_devices);
 } elsif($ARGV[0] eq 'ports') {
 	tws_showports(@usb_devices);
+} else {
+	usage;
 }
 
 __END__
