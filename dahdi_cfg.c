@@ -1552,8 +1552,61 @@ finish:
 		if (needupdate && ioctl(fd, DAHDI_CHANCONFIG, &cc[x])) {
 			fprintf(stderr, "DAHDI_CHANCONFIG failed on channel %d: %s (%d)\n", x, strerror(errno), errno);
 			if (errno == EINVAL) {
-				fprintf(stderr, "Did you forget that FXS interfaces are configured with FXO signalling\n"
-					"and that FXO interfaces use FXS signalling?\n");
+				/* give helpful suggestions on signaling errors */
+				fprintf(stderr, "Selected signaling not "
+						"supported\n");
+				fprintf(stderr, "Possible causes:\n");
+				switch(cc[x].sigtype) {
+				case DAHDI_SIG_FXOKS:
+				case DAHDI_SIG_FXOLS:
+				case DAHDI_SIG_FXOGS:
+					fprintf(stderr, "\tFXO signaling is "
+						"being used on a FXO interface"
+						" (use a FXS signaling variant"
+						")\n");
+					fprintf(stderr, "\tRBS signaling is "
+						"being used on a E1 CCS span"
+						"\n");
+					break;
+				case DAHDI_SIG_FXSKS:
+				case DAHDI_SIG_FXSLS:
+				case DAHDI_SIG_FXSGS:
+					fprintf(stderr, "\tFXS signaling is "
+						"being used on a FXS interface"
+						" (use a FXO signaling variant"
+						")\n");
+					fprintf(stderr, "\tRBS signaling is "
+						"being used on a E1 CCS span"
+						"\n");
+					break;
+				case DAHDI_SIG_EM:
+					fprintf(stderr, "\te&m signaling is "
+						"being used on a E1 line (use"
+						" e&me1)\n");
+					break;
+				case DAHDI_SIG_EM_E1:
+					fprintf(stderr, "\te&me1 signaling is "
+						"being used on a T1 line (use "
+						"e&m)\n");
+					fprintf(stderr, "\tRBS signaling is "
+						"being used on a E1 CCS span"
+						"\n");
+					break;
+				case DAHDI_SIG_HARDHDLC:
+					fprintf(stderr, "\thardhdlc is being "
+						"used on a TE12x (use dchan)\n"
+						);
+					break;
+				case DAHDI_SIG_HDLCFCS:
+					fprintf(stderr, "\tdchan is being used"
+						" on a BRI span (use hardhdlc)"
+						"\n");
+					break;
+				default:
+					break;
+				}
+				fprintf(stderr, "\tSignaling is being assigned"
+					" to channel 16 of an E1 CAS span\n");
 			}
 			close(fd);
 			exit(1);
