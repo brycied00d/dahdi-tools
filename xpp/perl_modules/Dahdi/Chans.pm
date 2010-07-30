@@ -70,8 +70,8 @@ my @sigtypes = (
 	"FXOLS",
 	"FXOKS",
 	"FXOGS",
-	"E&M",
 	"E&M-E1",
+	"E&M",
 	"Clear",
 	"HDLCRAW",
 	"HDLCFCS",
@@ -83,7 +83,8 @@ my @sigtypes = (
 	"DACS",
 	"DACS+RBS",
 	"SF (ToneOnly)",
-	"Unconfigured"
+	"Unconfigured",
+	"Reserved"
 	);
 
 sub new($$$$$$) {
