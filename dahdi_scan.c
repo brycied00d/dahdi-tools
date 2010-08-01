@@ -90,10 +90,12 @@ int main(int argc, char *argv[])
 				strcat(alarms, "YEL/");
 			if (s.alarms & DAHDI_ALARM_RED) {
 				strcat(alarms, "RED/");
+#ifdef DAHDI_ALARM_LFA
 				if (s.alarms & DAHDI_ALARM_LFA)
 					strcat(alarms, "LFA/");
 				if (s.alarms & DAHDI_ALARM_LMFA)
 					strcat(alarms, "LMFA/");
+#endif /* ifdef DAHDI_ALARM_LFA */
 			}
 			if (s.alarms & DAHDI_ALARM_LOOPBACK)
 				strcat(alarms,"LB/");
