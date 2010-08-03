@@ -152,6 +152,9 @@ my %pci_ids = (
 	'e159:0001/2151' => { DRIVER => 'ystdm8xx', DESCRIPTION => 'Yeastar YSTDM8xx'},
 
 	'e159:0001/9500:0003' => { DRIVER => 'opvxa1200', DESCRIPTION => 'OpenVox A800P' },
+
+	# Aligera
+ 	'10ee:1004'		=> { DRIVER => 'ap400', DESCRIPTION => 'Aligera AP40X/APE40X 1E1/2E1/4E1 card' },
 	);
 
 $ENV{PATH} .= ":/usr/sbin:/sbin:/usr/bin:/bin";

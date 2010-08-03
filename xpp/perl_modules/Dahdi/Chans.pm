@@ -143,7 +143,7 @@ sub new($$$$$$) {
 		$type = "FXO"; # likely Rhino
 	} elsif ($fqn =~ m{---/.*}) {
 		$type = "EMPTY"; # likely Rhino, empty slot.
-	} elsif ($fqn =~ m{\b(TE[24]|WCT1|Tor2|TorISA|WP[TE]1|cwain[12]|R[124]T1)/.*}) {
+	} elsif ($fqn =~ m{\b(TE[24]|WCT1|Tor2|TorISA|WP[TE]1|cwain[12]|R[124]T1|AP40[124]|APE40[124])/.*}) {
 		# TE[24]: Digium wct4xxp
 		# WCT1: Digium single span card drivers?
 		# Tor2: Tor PCI cards
@@ -151,6 +151,8 @@ sub new($$$$$$) {
 		# WP[TE]1: Sangoma. TODO: this one tells us if it is TE or NT.
 		# cwain: Junghanns E1 card.
 		# R[124]: Rhino r1t1/rxt1 cards
+		# AP40[124]: Aligera AP40X cards
+		# APE40[124]: Aligera APE40X cards
 		$type = "PRI";
 	} elsif ($fqn =~ m{\b(WCBRI|B4|ZTHFC\d*|ztqoz\d*)/.*}) {
 		# WCBRI: The Digium Hx8 series cards with BRI module.
