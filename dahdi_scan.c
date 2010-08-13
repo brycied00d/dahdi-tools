@@ -37,6 +37,11 @@
 
 #include "dahdi_tools_version.h"
 
+static inline int is_digital_span(struct dahdi_spaninfo *s)
+{
+	return (s->linecompat > 0);
+}
+
 int main(int argc, char *argv[])
 {
 	int ctl;
@@ -135,7 +140,7 @@ int main(int argc, char *argv[])
 			continue;
 		}
 
-		if (params.sigcap & (__DAHDI_SIG_DACS |  DAHDI_SIG_CAS)) {
+		if (is_digital_span(&s)) {
 			/* this is a digital span */
 			fprintf(stdout, "type=digital-%s\n", s.spantype);
 			fprintf(stdout, "syncsrc=%d\n", s.syncsrc);
