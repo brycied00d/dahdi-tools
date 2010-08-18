@@ -151,6 +151,7 @@ sub new($) {
 		FXS	=> $p->item('context_phones'),
 		IN	=> $p->item('context_input'),
 		OUT	=> $p->item('context_output'),
+		DYN	=> $p->item('context_lines'),
 		BRI_TE	=> $p->item('context_lines'),
 		BRI_NT	=> $p->item('context_lines'),
 		E1_TE	=> $p->item('context_lines'),
@@ -165,6 +166,7 @@ sub new($) {
 		FXS	=> $p->item('group_phones'),
 		IN	=> '',
 		OUT	=> '',
+		DYN	=> '',
 		BRI_TE	=> $p->item('group_lines'),
 		BRI_NT	=> $p->item('group_lines'),
 		E1_TE	=> $p->item('group_lines'),
@@ -179,12 +181,14 @@ sub new($) {
 		FXS	=> "fxo$fxs_default_start",
 		IN	=> "fxo$fxs_default_start",
 		OUT	=> "fxo$fxs_default_start",
+		DYN	=> "clear",
 		);
 	my %default_chan_dahdi_signalling = (
 		FXO	=> "fxs_$fxo_default_start",
 		FXS	=> "fxo_$fxs_default_start",
 		IN	=> "fxo_$fxs_default_start",
 		OUT	=> "fxo_$fxs_default_start",
+		DYN	=> "auto", # Cheating. Won't really work
 		);
 
 	# First complex mapping
